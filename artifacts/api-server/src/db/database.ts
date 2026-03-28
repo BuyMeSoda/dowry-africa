@@ -30,6 +30,7 @@ export interface User {
   photoUrl?: string;
   tier: Tier;
   hasBadge: boolean;
+  stripeCustomerId?: string;
   genderPref?: string;
   minAge?: number;
   maxAge?: number;

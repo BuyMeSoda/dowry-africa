@@ -1,11 +1,12 @@
 import { Navbar } from "@/components/layout/Navbar";
-import { useCreateCheckout, useGetPaymentStatus } from "@workspace/api-client-react";
-import { Check, Shield, Loader2 } from "lucide-react";
+import { useCreateCheckout, useGetPaymentStatus, useCreatePortal } from "@workspace/api-client-react";
+import { Check, Shield, Loader2, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useRef } from "react";
 
 export default function Premium() {
   const checkoutMutation = useCreateCheckout();
+  const portalMutation = useCreatePortal();
   const { data: status, refetch } = useGetPaymentStatus();
   const { toast } = useToast();
   const polled = useRef(false);
@@ -27,6 +28,17 @@ export default function Premium() {
       window.history.replaceState({}, "", "/premium");
     }
   }, []);
+
+  const handlePortal = () => {
+    portalMutation.mutate(undefined, {
+      onSuccess: (res) => {
+        window.open(res.url, '_blank');
+      },
+      onError: (err: any) => {
+        toast({ variant: "destructive", title: "Error", description: err.message });
+      }
+    });
+  };
 
   const handleCheckout = (tier: 'core' | 'badge') => {
     checkoutMutation.mutate({ data: { tier } }, {
@@ -129,6 +141,27 @@ export default function Premium() {
         </div>
 
       </div>
+
+      {/* Manage subscription — only shown for paid users */}
+      {currentTier !== 'free' && (
+        <div className="container mx-auto px-4 md:px-8 max-w-6xl mt-12 text-center">
+          <div className="inline-flex flex-col items-center gap-3 bg-white border border-border rounded-2xl px-8 py-6 shadow-sm">
+            <p className="text-muted-foreground text-sm">
+              Need to cancel, switch plans, or update your payment method?
+            </p>
+            <button
+              onClick={handlePortal}
+              disabled={portalMutation.isPending}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-secondary transition-colors disabled:opacity-50"
+            >
+              {portalMutation.isPending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Settings className="w-4 h-4" />}
+              Manage Subscription
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

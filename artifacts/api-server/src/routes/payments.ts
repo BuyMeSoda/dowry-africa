@@ -79,12 +79,52 @@ router.post("/webhook", async (req, res) => {
         const user = users.get(userId)!;
         user.tier = tier;
         user.hasBadge = tier === "badge";
+        if (session.customer) user.stripeCustomerId = session.customer;
+      }
+    }
+
+    if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as any;
+      const customerId = subscription.customer;
+      for (const user of users.values()) {
+        if (user.stripeCustomerId === customerId) {
+          const status = subscription.status;
+          if (event.type === "customer.subscription.deleted" || status === "canceled" || status === "unpaid") {
+            user.tier = "free";
+            user.hasBadge = false;
+          }
+          break;
+        }
       }
     }
 
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: "Webhook error" });
+  }
+});
+
+router.post("/create-portal", requireAuth, async (req, res) => {
+  const me = users.get(req.userId!);
+  if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  if (!me.stripeCustomerId || isDemoMode()) {
+    res.status(400).json({ error: "No active subscription to manage." });
+    return;
+  }
+
+  try {
+    const stripe = await import("stripe");
+    const client = new (stripe.default)(process.env["STRIPE_SECRET_KEY"]!);
+    const domain = process.env["REPLIT_DOMAINS"]?.split(",")[0] ?? "localhost:80";
+    const session = await client.billingPortal.sessions.create({
+      customer: me.stripeCustomerId,
+      return_url: `https://${domain}/premium`,
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    req.log.error(err, "Stripe portal error");
+    res.status(500).json({ error: "Could not open billing portal." });
   }
 });
 
