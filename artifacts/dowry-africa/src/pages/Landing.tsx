@@ -25,7 +25,7 @@ export default function Landing() {
               >
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium mb-6">
                   <Star className="w-4 h-4 text-primary" />
-                  The #1 platform for African marriages
+                  Designed for serious relationships
                 </div>
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-bold leading-[1.1] text-foreground mb-6">
                   Built for marriage.<br />
