@@ -3,7 +3,7 @@ import { Link, useRoute } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { useGetConversations, useGetMessages, useSendMessage } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
-import { Send, MessageCircle, ChevronLeft } from "lucide-react";
+import { Send, MessageCircle, ChevronLeft, Heart } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Messages() {

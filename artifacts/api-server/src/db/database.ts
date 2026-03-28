@@ -22,6 +22,9 @@ export interface User {
   marriageTimeline?: string;
   familyInvolvement?: string;
   relocationOpen?: boolean;
+  preferredFaith?: string;
+  preferredCountry?: string;
+  preferredHeritage?: string[];
   bio?: string;
   quote?: string;
   photoUrl?: string;

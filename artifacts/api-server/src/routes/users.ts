@@ -18,7 +18,8 @@ router.patch("/me/profile", requireAuth, (req, res) => {
     "city", "country", "heritage", "faith", "languages",
     "intent", "lifeStage", "childrenPref", "marriageTimeline",
     "familyInvolvement", "relocationOpen", "bio", "quote", "photoUrl",
-    "genderPref", "minAge", "maxAge"
+    "genderPref", "minAge", "maxAge",
+    "preferredFaith", "preferredCountry", "preferredHeritage"
   ];
 
   for (const key of allowed) {

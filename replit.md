@@ -48,6 +48,27 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+## Dowry.Africa Application
+
+### Demo Accounts
+- chidinma@demo.com / demo (woman, Lagos, badge tier)
+- emeka@demo.com / demo (man, Nairobi, core tier)
+- amara@demo.com / demo (woman, London, badge tier)
+- kofi@demo.com / demo (man, Johannesburg, badge tier)
+
+### Key Features
+- JWT auth (30d expiry), stored as `da_token` in localStorage
+- In-memory user store (no database required)
+- 5-dimension matching algorithm (values 30%, lifeStage 25%, cultural 20%, practical 15%, engagement 10%)
+- Subscription tiers: free (5 matches), core ($7/mo), badge ($15/mo)
+- Stripe in demo mode (no STRIPE_SECRET_KEY needed)
+- Partner Preferences on Profile: gender, age range, heritage, faith, children, timeline, location, relocation
+
+### New Fields (added to User model)
+- `preferredFaith` — partner's preferred faith
+- `preferredCountry` — preferred partner location
+- `preferredHeritage[]` — preferred partner heritage(s)
+
 ## Packages
 
 ### `artifacts/api-server` (`@workspace/api-server`)
