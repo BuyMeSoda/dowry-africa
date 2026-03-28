@@ -1,12 +1,32 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { useCreateCheckout, useGetPaymentStatus } from "@workspace/api-client-react";
-import { Check, Sparkles, Shield, Loader2 } from "lucide-react";
+import { Check, Shield, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect, useRef } from "react";
 
 export default function Premium() {
   const checkoutMutation = useCreateCheckout();
   const { data: status, refetch } = useGetPaymentStatus();
   const { toast } = useToast();
+  const polled = useRef(false);
+
+  // Handle post-Stripe redirect (?success=true)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "true" && !polled.current) {
+      polled.current = true;
+      const tier = params.get("tier") || "core";
+      toast({
+        title: "Payment successful!",
+        description: `Welcome to ${tier === "badge" ? "Serious Badge" : "Core"}. Your profile is now upgraded.`,
+      });
+      // Poll a few times to catch the webhook update
+      const poll = setInterval(() => refetch(), 2000);
+      setTimeout(() => clearInterval(poll), 10000);
+      // Clean up URL
+      window.history.replaceState({}, "", "/premium");
+    }
+  }, []);
 
   const handleCheckout = (tier: 'core' | 'badge') => {
     checkoutMutation.mutate({ data: { tier } }, {
