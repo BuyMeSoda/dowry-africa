@@ -38,7 +38,7 @@ export default function Premium() {
           });
           refetch();
         } else if (res.url) {
-          window.location.href = res.url;
+          window.open(res.url, '_blank');
         }
       },
       onError: (err: any) => {
