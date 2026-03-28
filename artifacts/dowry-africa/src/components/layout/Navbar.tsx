@@ -27,7 +27,7 @@ export function Navbar() {
             <img
               src={`${import.meta.env.BASE_URL}logo.png`}
               alt="Dowry.Africa"
-              className="h-12 w-auto object-contain"
+              className="h-14 w-auto max-w-[220px] object-contain"
             />
           </Link>
           
