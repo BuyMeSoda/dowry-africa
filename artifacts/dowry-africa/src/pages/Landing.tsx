@@ -32,7 +32,7 @@ export default function Landing() {
                   <span className="text-primary italic font-medium">Not just matches.</span>
                 </h1>
                 <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl leading-relaxed">
-                  Dowry.Africa is an exclusive matchmaking platform connecting commitment-ready Africans and the diaspora worldwide. Find a partner who shares your roots, values, and vision for the future.
+                  Dowry.Africa is an exclusive matchmaking platform for Africans who are done with games and ready to build something real. Connect with people who share your values, your culture, and your vision for family.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link href="/register" className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-semibold text-lg text-center shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
