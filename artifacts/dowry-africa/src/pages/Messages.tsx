@@ -88,7 +88,7 @@ export default function Messages() {
         </div>
 
         {/* Right Chat Area */}
-        <div className={`${!activeUserId ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-background/50`}>
+        <div className={`${!activeUserId ? 'hidden md:flex' : 'flex'} flex-1 min-w-0 flex-col bg-background/50`}>
           {!activeUserId ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mb-6">
@@ -112,7 +112,7 @@ export default function Messages() {
               </div>
               
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-secondary/5">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6 bg-secondary/5">
                 {msgsLoading ? (
                    <div className="text-center text-muted-foreground mt-10">Loading messages...</div>
                 ) : (
@@ -134,7 +134,7 @@ export default function Messages() {
 
               {/* Guided Prompts (if any) */}
               {msgsData?.guidedPrompts && msgsData.guidedPrompts.length > 0 && localMsgs.length < 5 && (
-                <div className="px-6 py-3 bg-white border-t border-border flex gap-2 overflow-x-auto whitespace-nowrap hide-scrollbar">
+                <div className="pl-6 pr-6 py-3 bg-white border-t border-border flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none" style={{ scrollbarWidth: 'none' }}>
                   {msgsData.guidedPrompts.map((prompt, i) => (
                     <button 
                       key={i} 
