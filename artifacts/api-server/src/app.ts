@@ -27,6 +27,10 @@ app.use(
   }),
 );
 app.use(cors());
+
+// Stripe webhook needs the raw body for signature verification — must come before express.json()
+app.use("/api/payments/webhook", express.raw({ type: "*/*" }));
+
 app.use(express.json({ type: ["application/json", "text/plain", "*/*"] }));
 app.use(express.urlencoded({ extended: true }));
 
