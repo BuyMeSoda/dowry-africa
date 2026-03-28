@@ -91,8 +91,9 @@ async function seedUser(data: {
   hasBadge: boolean;
   genderPref: string;
   photoUrl?: string;
+  id?: string;
 }) {
-  const id = uuidv4();
+  const id = data.id ?? uuidv4();
   const passwordHash = data.password === "demo" ? "$demo$" : await bcrypt.hash(data.password, 12);
   const now = new Date();
   const user: User = {
@@ -133,6 +134,7 @@ async function seedUser(data: {
 
 export async function seedDatabase() {
   const chidinma = await seedUser({
+    id: "demo-chidinma-0001-0000-000000000001",
     email: "chidinma@demo.com",
     password: "demo",
     name: "Chidinma",
@@ -157,6 +159,7 @@ export async function seedDatabase() {
   });
 
   const amara = await seedUser({
+    id: "demo-amara-00001-0000-000000000002",
     email: "amara@demo.com",
     password: "demo",
     name: "Amara",
@@ -181,6 +184,7 @@ export async function seedDatabase() {
   });
 
   const emeka = await seedUser({
+    id: "demo-emeka-00001-0000-000000000003",
     email: "emeka@demo.com",
     password: "demo",
     name: "Emeka",
@@ -205,6 +209,7 @@ export async function seedDatabase() {
   });
 
   const kofi = await seedUser({
+    id: "demo-kofi-000001-0000-000000000004",
     email: "kofi@demo.com",
     password: "demo",
     name: "Kofi",
