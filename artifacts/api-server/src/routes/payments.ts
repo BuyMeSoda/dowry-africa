@@ -108,17 +108,30 @@ router.post("/create-portal", requireAuth, async (req, res) => {
   const me = users.get(req.userId!);
   if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  if (!me.stripeCustomerId || isDemoMode()) {
-    res.status(400).json({ error: "No active subscription to manage." });
+  if (isDemoMode()) {
+    res.status(400).json({ error: "Billing portal is not available in demo mode." });
     return;
   }
 
   try {
     const stripe = await import("stripe");
     const client = new (stripe.default)(process.env["STRIPE_SECRET_KEY"]!);
+
+    // Resolve customer ID — use stored value or look up by email as fallback
+    let customerId = me.stripeCustomerId;
+    if (!customerId) {
+      const results = await client.customers.list({ email: me.email, limit: 1 });
+      if (results.data.length === 0) {
+        res.status(400).json({ error: "No Stripe subscription found. Please subscribe first." });
+        return;
+      }
+      customerId = results.data[0].id;
+      me.stripeCustomerId = customerId; // cache for next time
+    }
+
     const domain = process.env["REPLIT_DOMAINS"]?.split(",")[0] ?? "localhost:80";
     const session = await client.billingPortal.sessions.create({
-      customer: me.stripeCustomerId,
+      customer: customerId,
       return_url: `https://${domain}/premium`,
     });
     res.json({ url: session.url });
@@ -128,9 +141,35 @@ router.post("/create-portal", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/status", requireAuth, (req, res) => {
+router.get("/status", requireAuth, async (req, res) => {
   const me = users.get(req.userId!);
   if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  // If tier appears as free but Stripe is configured, sync from Stripe in case the
+  // server restarted and lost in-memory state after a prior payment.
+  if (me.tier === "free" && !isDemoMode()) {
+    try {
+      const stripe = await import("stripe");
+      const client = new (stripe.default)(process.env["STRIPE_SECRET_KEY"]!);
+      const results = await client.customers.list({ email: me.email, limit: 1 });
+      if (results.data.length > 0) {
+        const customer = results.data[0];
+        me.stripeCustomerId = customer.id;
+        const subs = await client.subscriptions.list({ customer: customer.id, status: "active", limit: 1 });
+        if (subs.data.length > 0) {
+          const sub = subs.data[0];
+          const priceId = sub.items.data[0]?.price?.id;
+          const badgePriceId = process.env["STRIPE_BADGE_PRICE_ID"];
+          const corePriceId = process.env["STRIPE_CORE_PRICE_ID"];
+          if (priceId === badgePriceId) { me.tier = "badge"; me.hasBadge = true; }
+          else if (priceId === corePriceId) { me.tier = "core"; me.hasBadge = false; }
+        }
+      }
+    } catch {
+      // Stripe sync failed — return current in-memory state
+    }
+  }
+
   res.json({ tier: me.tier, hasBadge: me.hasBadge });
 });
 
