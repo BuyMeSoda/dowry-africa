@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
-import { useGetMatchFeed, useLikeUser, usePassUser, type FeedCard } from "@workspace/api-client-react";
+import { useGetMatchFeed, useLikeUser, usePassUser, useGetPaymentStatus, type FeedCard } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Discover() {
   const { data: feedData, isLoading, refetch } = useGetMatchFeed();
+  const { data: paymentStatus } = useGetPaymentStatus();
   const likeMutation = useLikeUser();
   const passMutation = usePassUser();
   const { toast } = useToast();
@@ -66,14 +67,24 @@ export default function Discover() {
                  </div>
               </div>
               
-              <div className="mt-8 bg-gradient-to-br from-primary/10 to-transparent p-5 rounded-2xl border border-primary/20">
-                <div className="flex items-center gap-2 text-primary font-bold mb-2">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Serious Badge</span>
+              {(!paymentStatus || paymentStatus.tier === 'free') ? (
+                <div className="mt-8 bg-gradient-to-br from-primary/10 to-transparent p-5 rounded-2xl border border-primary/20">
+                  <div className="flex items-center gap-2 text-primary font-bold mb-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Serious Badge</span>
+                  </div>
+                  <p className="text-sm text-foreground/80 mb-4">Upgrade to Core or Badge tier to see who liked you and get priority matching.</p>
+                  <Link href="/premium" className="text-xs font-bold uppercase tracking-wider text-primary hover:underline">View Plans</Link>
                 </div>
-                <p className="text-sm text-foreground/80 mb-4">Upgrade to Core or Badge tier to see who liked you and get priority matching.</p>
-                <Link href="/premium" className="text-xs font-bold uppercase tracking-wider text-primary hover:underline">View Plans</Link>
-              </div>
+              ) : (
+                <div className="mt-8 bg-gradient-to-br from-yellow-50 to-transparent p-5 rounded-2xl border border-yellow-200">
+                  <div className="flex items-center gap-2 font-bold mb-1 text-yellow-700">
+                    <Sparkles className="w-4 h-4" />
+                    <span>{paymentStatus.tier === 'badge' ? 'Serious Badge' : 'Core Member'}</span>
+                  </div>
+                  <p className="text-sm text-foreground/70">You have priority matching and unlimited access active.</p>
+                </div>
+              )}
            </div>
         </aside>
 
