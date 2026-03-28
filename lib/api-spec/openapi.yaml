@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Dowry.Africa matchmaking platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: matches
+    description: Matching and discovery
+  - name: messages
+    description: Messaging
+  - name: payments
+    description: Subscription payments
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +33,348 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}:
+    get:
+      operationId: getUserById
+      tags: [users]
+      summary: Get user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicUser"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/me/profile:
+    patch:
+      operationId: updateProfile
+      tags: [users]
+      summary: Update my profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /matches/feed:
+    get:
+      operationId: getMatchFeed
+      tags: [matches]
+      summary: Get match feed
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Match feed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedResponse"
+
+  /matches/{id}/score:
+    get:
+      operationId: getMatchScore
+      tags: [matches]
+      summary: Get compatibility score with a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Compatibility score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompatibilityScore"
+
+  /matches/like/{id}:
+    post:
+      operationId: likeUser
+      tags: [matches]
+      summary: Like a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Like result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeResponse"
+
+  /matches/pass/{id}:
+    post:
+      operationId: passUser
+      tags: [matches]
+      summary: Pass on a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pass recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /matches/liked-me:
+    get:
+      operationId: getLikedMe
+      tags: [matches]
+      summary: Get users who liked me
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Users who liked me
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikedMeResponse"
+
+  /messages:
+    get:
+      operationId: getConversations
+      tags: [messages]
+      summary: Get all conversations
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Conversations list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationsResponse"
+
+  /messages/{userId}:
+    get:
+      operationId: getMessages
+      tags: [messages]
+      summary: Get messages with a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessagesResponse"
+        "403":
+          description: Requires core subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: sendMessage
+      tags: [messages]
+      summary: Send a message
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "403":
+          description: Requires core subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/create-checkout:
+    post:
+      operationId: createCheckout
+      tags: [payments]
+      summary: Create a checkout session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutRequest"
+      responses:
+        "200":
+          description: Checkout session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+
+  /payments/webhook:
+    post:
+      operationId: stripeWebhook
+      tags: [payments]
+      summary: Stripe webhook
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /payments/status:
+    get:
+      operationId: getPaymentStatus
+      tags: [payments]
+      summary: Get payment/subscription status
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentStatusResponse"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +384,433 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+        - ok
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        name:
+          type: string
+        gender:
+          type: string
+          enum: [man, woman, non-binary]
+        birthYear:
+          type: integer
+      required:
+        - email
+        - password
+        - name
+        - gender
+        - birthYear
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - token
+        - user
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        gender:
+          type: string
+        birthYear:
+          type: integer
+        age:
+          type: integer
+        city:
+          type: string
+        country:
+          type: string
+        heritage:
+          type: array
+          items:
+            type: string
+        faith:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        intent:
+          type: string
+        lifeStage:
+          type: string
+        childrenPref:
+          type: string
+        marriageTimeline:
+          type: string
+        familyInvolvement:
+          type: string
+        relocationOpen:
+          type: boolean
+        bio:
+          type: string
+        quote:
+          type: string
+        photoUrl:
+          type: string
+        tier:
+          type: string
+          enum: [free, core, badge]
+        hasBadge:
+          type: boolean
+        genderPref:
+          type: string
+        minAge:
+          type: integer
+        maxAge:
+          type: integer
+        completeness:
+          type: integer
+        lastActive:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - gender
+        - birthYear
+        - tier
+        - hasBadge
+
+    PublicUser:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        age:
+          type: integer
+        city:
+          type: string
+        country:
+          type: string
+        heritage:
+          type: array
+          items:
+            type: string
+        faith:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        intent:
+          type: string
+        lifeStage:
+          type: string
+        bio:
+          type: string
+        quote:
+          type: string
+        photoUrl:
+          type: string
+        hasBadge:
+          type: boolean
+      required:
+        - id
+        - name
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        city:
+          type: string
+        country:
+          type: string
+        heritage:
+          type: array
+          items:
+            type: string
+        faith:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        intent:
+          type: string
+        lifeStage:
+          type: string
+        childrenPref:
+          type: string
+        marriageTimeline:
+          type: string
+        familyInvolvement:
+          type: string
+        relocationOpen:
+          type: boolean
+        bio:
+          type: string
+        quote:
+          type: string
+        photoUrl:
+          type: string
+        genderPref:
+          type: string
+        minAge:
+          type: integer
+        maxAge:
+          type: integer
+
+    FeedCard:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/PublicUser"
+        score:
+          type: integer
+        dimensions:
+          $ref: "#/components/schemas/ScoreDimensions"
+        prompts:
+          type: array
+          items:
+            type: string
+        freshBoost:
+          type: boolean
+      required:
+        - user
+        - score
+
+    FeedResponse:
+      type: object
+      properties:
+        feed:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeedCard"
+        total:
+          type: integer
+        tier:
+          type: string
+      required:
+        - feed
+        - total
+        - tier
+
+    ScoreDimensions:
+      type: object
+      properties:
+        values:
+          type: integer
+        lifeStage:
+          type: integer
+        cultural:
+          type: integer
+        practical:
+          type: integer
+        engagement:
+          type: integer
+      required:
+        - values
+        - lifeStage
+        - cultural
+        - practical
+        - engagement
+
+    CompatibilityScore:
+      type: object
+      properties:
+        score:
+          type: integer
+        dimensions:
+          $ref: "#/components/schemas/ScoreDimensions"
+        prompts:
+          type: array
+          items:
+            type: string
+      required:
+        - score
+        - dimensions
+        - prompts
+
+    LikeResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        mutual:
+          type: boolean
+      required:
+        - ok
+        - mutual
+
+    LikedMeEntry:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/PublicUser"
+        blurred:
+          type: boolean
+      required:
+        - user
+        - blurred
+
+    LikedMeResponse:
+      type: object
+      properties:
+        likedBy:
+          type: array
+          items:
+            $ref: "#/components/schemas/LikedMeEntry"
+        count:
+          type: integer
+      required:
+        - likedBy
+        - count
+
+    Conversation:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        photoUrl:
+          type: string
+        lastMessage:
+          type: string
+        lastMessageAt:
+          type: string
+          format: date-time
+        unread:
+          type: integer
+      required:
+        - userId
+        - name
+
+    ConversationsResponse:
+      type: object
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Conversation"
+      required:
+        - conversations
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        fromId:
+          type: string
+        toId:
+          type: string
+        text:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - fromId
+        - toId
+        - text
+        - createdAt
+
+    MessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+        guidedPrompts:
+          type: array
+          items:
+            type: string
+      required:
+        - messages
+
+    SendMessageRequest:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+
+    CreateCheckoutRequest:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [core, badge]
+      required:
+        - tier
+
+    CheckoutResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        demo:
+          type: boolean
+        tier:
+          type: string
+      required:
+        - tier
+
+    PaymentStatusResponse:
+      type: object
+      properties:
+        tier:
+          type: string
+        hasBadge:
+          type: boolean
+        validUntil:
+          type: string
+          format: date-time
+      required:
+        - tier
+        - hasBadge

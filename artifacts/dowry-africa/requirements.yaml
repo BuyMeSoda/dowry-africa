@@ -1,0 +1,18 @@
+packages:
+  "framer-motion": "For elegant page transitions and interactive micro-animations"
+  "clsx": "For conditional class names in custom components"
+  "tailwind-merge": "For merging tailwind classes in custom components"
+  "date-fns": "For formatting message dates"
+images:
+  - path: "artifacts/dowry-africa/public/images/hero-couple.png"
+    description: "Elegant African couple dressed in modern luxury attire, soft natural lighting, warm romantic tones, professional photography"
+    aspect_ratio: "16:9"
+  - path: "artifacts/dowry-africa/public/images/trust-badge.png"
+    description: "Minimalist luxury wax seal badge with elegant serif typography, subtle gold foil effect on white"
+    aspect_ratio: "1:1"
+  - path: "artifacts/dowry-africa/public/images/pattern-bg.png"
+    description: "Subtle abstract geometric pattern in warm rose gold on white background, very low opacity, elegant and minimal"
+    aspect_ratio: "16:9"
+notes:
+  - "Using global fetch interceptor in App.tsx to attach Bearer token to all /api requests"
+  - "Assuming generated hooks from @workspace/api-client-react are available"

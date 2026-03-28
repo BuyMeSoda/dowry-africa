@@ -1,0 +1,105 @@
+Build a full-stack commitment-first matchmaking platform called Dowry.Africa with this exact structure:
+
+TECH STACK: Node.js + Express backend, vanilla HTML/CSS/JS frontend, no database framework (use in-memory JS Maps), JWT auth, Stripe payments.
+
+FOLDER STRUCTURE:
+- server.js (entry point)
+- package.json
+- .replit (run = "npm start")
+- public/index.html (frontend)
+- public/app.js (frontend API client)
+- db/database.js (in-memory store)
+- lib/matching.js (matching algorithm)
+- middleware/auth.js (JWT middleware)
+- routes/auth.js
+- routes/matches.js
+- routes/messages.js
+- routes/users.js
+- routes/payments.js
+- tests/matching.test.js
+
+MATCHING ALGORITHM (lib/matching.js):
+Score two users 0-100 across 5 weighted dimensions:
+1. Values alignment 30% — intent match, faith compatibility, family involvement, children preference, marriage timeline
+2. Life stage readiness 25% — life stage compatibility table, serious badge boost, profile completeness
+3. Cultural resonance 20% — heritage overlap, language overlap, country match, diaspora alignment
+4. Practical compatibility 15% — location/city match, country match, relocation openness
+5. Engagement quality 10% — recency of activity, response rate, badge status (hidden from users)
+
+Hard filters before scoring: same user blocked, gender preference, age range, badge-only gate, intent mismatch gate.
+
+After scoring, generate conversation prompts based on compatibility gaps (faith gap → faith prompt, low cultural → bridge prompt, high values → affirming prompt).
+
+Feed ranking: badge holders first, then score descending, freshness boost for active in 48h, badge boost +5 points.
+
+DATABASE (db/database.js):
+In-memory Maps for users, likes, messages.
+Seed 4 demo users:
+- chidinma@demo.com / demo — woman, 29, Lagos, Igbo, Christian, marriage_ready, serious badge
+- amara@demo.com / demo — woman, 27, London, Akan, Christian, marriage_ready, serious badge  
+- emeka@demo.com / demo — man, 33, Nairobi, Yoruba, Muslim, serious_relationship, core
+- kofi@demo.com / demo — man, 31, Johannesburg, Akan, Christian, marriage_ready, serious badge
+
+API ROUTES:
+POST /api/auth/register
+POST /api/auth/login
+GET  /api/auth/me
+GET  /api/users/:id
+PATCH /api/users/me/profile
+GET  /api/matches/feed (free tier: 5 results, core/badge: 50)
+GET  /api/matches/:id/score
+POST /api/matches/like/:id (returns mutual:true if both liked)
+POST /api/matches/pass/:id
+GET  /api/matches/liked-me (free tier: blurred, paid: full)
+GET  /api/messages
+GET  /api/messages/:userId (requires core+ subscription)
+POST /api/messages/:userId (requires core+ subscription)
+POST /api/payments/create-checkout (Stripe or demo mode if no keys)
+POST /api/payments/webhook (Stripe webhook handler)
+GET  /api/payments/status
+
+SUBSCRIPTION TIERS:
+- free: 5 matches/day, no messaging, blurred likes
+- core ($7/mo): unlimited matches, full messaging, see who liked you
+- badge ($15/mo): everything in core + serious badge on profile + badge-only pool + ranked higher
+
+PAYMENTS:
+Use Stripe checkout sessions for subscriptions. If STRIPE_SECRET_KEY env var is not set or contains "YOUR_", run in demo mode — immediately upgrade the user without real payment and return { demo: true }.
+
+AUTH:
+JWT tokens, 30 day expiry. Demo accounts use passwordHash '$demo$' and password 'demo'. Real accounts use bcrypt hash with 12 rounds.
+
+FRONTEND (public/index.html):
+Single page app with these screens navigable via showScreen() function:
+1. Landing — hero with "Built for marriage. Not just matches." headline, trust strip (Verified profiles, Intent-based matching, Built for commitment), How it works section (3 columns: Intent-based not swipe-based, Verified serious members only, Built for Africans & diaspora), testimonials section, stats bar (48K+ members, 12 countries, 2100+ engagements, 94% verified)
+2. Onboarding — 4 step form: intent selection, basic info, cultural roots (heritage tag cloud, faith, languages), life readiness signals
+3. Discover — Hinge-style vertical feed (NOT a grid), each card is horizontal with photo thumbnail left + info right, includes a personal quote/prompt snippet, like/pass buttons, compatibility bar. Plus new-matches horizontal scroll row at top, filter chips, sidebar with profile widget + daily counter + events
+4. Messages — split panel, conversation list left, chat right with guided prompts
+5. Profile view — full profile with photo, badges, bio, details, compatibility breakdown bars
+6. Premium — 3 pricing cards: Free ($0), Core ($7/mo, featured), Serious Badge ($15/mo dark card). Below cards: explanation strip for what the Serious Badge is
+7. Checkout — Stripe payment form with card fields, order summary
+
+FRONTEND API CLIENT (public/app.js):
+- Stores JWT in localStorage as 'da_token'
+- On page load: restore session, render user state into UI
+- loadFeed() fetches /api/matches/feed and renders real cards
+- handleLike() and handlePass() call respective API endpoints
+- submitOnboarding() calls register then patch profile
+- doPay() calls /api/payments/create-checkout, handles demo mode toast
+- renderUserState() updates nav avatar, sidebar name/location/progress
+
+DESIGN SYSTEM:
+CSS variables: --rose:#F0416C, --ink:#0D0D14, --surface:#F8F8FA, --green:#00B37D, --blue:#2B6BE6
+Fonts: Instrument Serif (display/headings) + Outfit (body) from Google Fonts
+Cards: white background, border-radius 20-28px, subtle box shadows
+No brown, no gold, no traditional "African" clichés — clean, modern, premium like Hinge meets a European luxury app
+
+ENVIRONMENT VARIABLES NEEDED:
+- JWT_SECRET (required)
+- STRIPE_SECRET_KEY (optional, demo mode if missing)
+- STRIPE_WEBHOOK_SECRET (optional)
+- STRIPE_CORE_PRICE_ID (optional)
+- STRIPE_BADGE_PRICE_ID (optional)
+- PORT (default 3000)
+
+After building, run: npm install && node tests/matching.test.js to verify the algorithm works.
