@@ -120,7 +120,7 @@ export default function Discover() {
                     {/* Info Side */}
                     <div className="p-6 md:p-8 flex-1 flex flex-col justify-between bg-white relative">
                       {card.freshBoost && (
-                        <div className="absolute top-0 right-8 -translate-y-1/2 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+                        <div className="absolute top-4 right-6 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1">
                           <Sparkles className="w-3 h-3" /> New Here
                         </div>
                       )}
