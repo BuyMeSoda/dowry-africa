@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { users, messages, publicUser } from "../db/database.js";
+import { users, messages, likes, getLikesKey, publicUser } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -18,28 +18,46 @@ router.get("/", requireAuth, (req, res) => {
   const me = users.get(req.userId!);
   if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  const convMap = new Map<string, { userId: string; lastMessage: string; lastMessageAt: Date; unread: number }>();
+  const convMap = new Map<string, { userId: string; lastMessage: string | null; lastMessageAt: Date | null; unread: number; matchedAt: Date | null }>();
 
+  // Seed from mutual likes first (so mutual matches always appear)
+  for (const like of likes.values()) {
+    if (like.fromId !== me.id) continue;
+    const reverseKey = getLikesKey(like.toId, me.id);
+    if (!likes.has(reverseKey)) continue;
+    // mutual match
+    const other = users.get(like.toId);
+    if (!other) continue;
+    if (!convMap.has(like.toId)) {
+      convMap.set(like.toId, { userId: like.toId, lastMessage: null, lastMessageAt: null, unread: 0, matchedAt: like.createdAt });
+    }
+  }
+
+  // Overlay actual messages on top
   for (const msg of messages) {
     if (msg.fromId !== me.id && msg.toId !== me.id) continue;
     const otherId = msg.fromId === me.id ? msg.toId : msg.fromId;
     const existing = convMap.get(otherId);
-    if (!existing || msg.createdAt > existing.lastMessageAt) {
-      convMap.set(otherId, { userId: otherId, lastMessage: msg.text, lastMessageAt: msg.createdAt, unread: 0 });
+    if (!existing || !existing.lastMessageAt || msg.createdAt > existing.lastMessageAt) {
+      convMap.set(otherId, { userId: otherId, lastMessage: msg.text, lastMessageAt: msg.createdAt, unread: 0, matchedAt: existing?.matchedAt ?? null });
     }
   }
 
-  const conversations = Array.from(convMap.values()).map(({ userId, lastMessage, lastMessageAt, unread }) => {
+  const conversations = Array.from(convMap.values()).map(({ userId, lastMessage, lastMessageAt, unread, matchedAt }) => {
     const other = users.get(userId);
     return {
       userId,
       name: other?.name ?? "Unknown",
       photoUrl: other?.photoUrl,
       lastMessage,
-      lastMessageAt,
+      lastMessageAt: lastMessageAt ?? matchedAt,
       unread,
     };
-  }).sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
+  }).sort((a, b) => {
+    const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+    const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+    return bTime - aTime;
+  });
 
   res.json({ conversations });
 });

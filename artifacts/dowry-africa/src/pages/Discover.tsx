@@ -28,7 +28,9 @@ export default function Discover() {
       likeMutation.mutate({ id }, {
         onSuccess: (res) => {
           if (res.mutual) {
-            toast({ title: "It's a Match! 🎉", description: "You and this person liked each other. Start a conversation now." });
+            toast({ title: "It's a Match!", description: "You and this person liked each other. Head to Messages to start the conversation." });
+          } else {
+            toast({ title: "Like sent!", description: "We'll let you know if they like you back." });
           }
         }
       });

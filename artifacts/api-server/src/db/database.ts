@@ -228,6 +228,23 @@ export async function seedDatabase() {
     photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
   });
 
+  // Seed mutual likes so matches appear in Messages from day one
+  const now = new Date();
+  // Chidinma ↔ Kofi (mutual)
+  likes.set(getLikesKey(chidinma.id, kofi.id), { fromId: chidinma.id, toId: kofi.id, createdAt: now });
+  likes.set(getLikesKey(kofi.id, chidinma.id), { fromId: kofi.id, toId: chidinma.id, createdAt: now });
+  // Amara ↔ Emeka (mutual)
+  likes.set(getLikesKey(amara.id, emeka.id), { fromId: amara.id, toId: emeka.id, createdAt: now });
+  likes.set(getLikesKey(emeka.id, amara.id), { fromId: emeka.id, toId: amara.id, createdAt: now });
+  // Amara ↔ Kofi (mutual)
+  likes.set(getLikesKey(amara.id, kofi.id), { fromId: amara.id, toId: kofi.id, createdAt: now });
+  likes.set(getLikesKey(kofi.id, amara.id), { fromId: kofi.id, toId: amara.id, createdAt: now });
+
+  // Seed a starter message for each match
+  const v4 = uuidv4;
+  messages.push({ id: v4(), fromId: kofi.id, toId: chidinma.id, text: "Asalamu alaikum, Chidinma. Your profile really resonated with me — especially your view on marriage as a covenant. I'd love to hear more about you.", createdAt: new Date(Date.now() - 3600_000) });
+  messages.push({ id: v4(), fromId: emeka.id, toId: amara.id, text: "Hello Amara, fellow diaspora soul here. Navigating both worlds is its own journey — would love to connect.", createdAt: new Date(Date.now() - 7200_000) });
+
   return { chidinma, amara, emeka, kofi };
 }
 
