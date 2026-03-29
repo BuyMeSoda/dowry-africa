@@ -6,6 +6,43 @@ import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+// ── Tag label formatting ─────────────────────────────────────────────────────
+const TAG_LABELS: Record<string, string> = {
+  // Intent
+  marriage_ready:        "💍 Marriage Ready",
+  serious_relationship:  "🌱 Serious",
+  open_to_dating:        "✨ Open to Dating",
+  // Faith
+  christian:             "✝️ Christian",
+  christianity:          "✝️ Christian",
+  muslim:                "☪️ Muslim",
+  islam:                 "☪️ Muslim",
+  traditional:           "🌿 Traditional",
+  spiritual:             "🔮 Spiritual",
+  "spiritual but not religious": "🔮 Spiritual",
+  "any / open":          "🤍 Any / Open",
+  other:                 "🌍 Other",
+  // Children
+  yes:                   "👶 Wants children",
+  no:                    "🚫 No children",
+  open:                  "🤍 Open",
+  // Timeline
+  asap:                  "⚡ Ready now",
+  "1_year":              "📅 Within 1 year",
+  "2_years":             "📅 Within 2 years",
+  "5_years":             "📅 Within 5 years",
+  not_sure:              "🤔 Not sure yet",
+};
+
+function formatTag(raw: string): string {
+  if (!raw) return raw;
+  const key = raw.toLowerCase().trim();
+  if (TAG_LABELS[key]) return TAG_LABELS[key];
+  // Generic fallback: replace underscores + capitalise each word
+  return raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function Discover() {
   const { data: feedData, isLoading, refetch } = useGetMatchFeed();
   const { data: paymentStatus } = useGetPaymentStatus();
@@ -152,10 +189,14 @@ export default function Discover() {
                         </div>
                         
                         <div className="flex flex-wrap gap-2 mb-6">
-                          <span className="px-3 py-1 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg border border-border/50">{card.user.intent}</span>
-                          <span className="px-3 py-1 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg border border-border/50">{card.user.faith}</span>
+                          {card.user.intent && (
+                            <span className="px-3 py-1 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg border border-border/50">{formatTag(card.user.intent)}</span>
+                          )}
+                          {card.user.faith && (
+                            <span className="px-3 py-1 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg border border-border/50">{formatTag(card.user.faith)}</span>
+                          )}
                           {card.user.heritage?.map(h => (
-                            <span key={h} className="px-3 py-1 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg border border-border/50">{h}</span>
+                            <span key={h} className="px-3 py-1 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg border border-border/50">{formatTag(h)}</span>
                           ))}
                         </div>
 
