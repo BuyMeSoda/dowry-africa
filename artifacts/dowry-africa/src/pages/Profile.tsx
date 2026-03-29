@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/Navbar";
+import { API_BASE } from "@/lib/api-url";
 import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -75,12 +76,10 @@ export default function Profile() {
 
   const token = localStorage.getItem("da_token");
 
-  const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
-
   async function savePrefs() {
     setSaving(true);
     try {
-      const res = await fetch(`${apiBase}/api/users/me/profile`, {
+      const res = await fetch(`${API_BASE}/api/users/me/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(prefForm),
@@ -99,7 +98,7 @@ export default function Profile() {
   async function saveProfile() {
     setSaving(true);
     try {
-      const res = await fetch(`${apiBase}/api/users/me/profile`, {
+      const res = await fetch(`${API_BASE}/api/users/me/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(profileForm),

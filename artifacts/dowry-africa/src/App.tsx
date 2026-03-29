@@ -15,14 +15,16 @@ import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
 import Premium from "@/pages/Premium";
 
-// Global Fetch Interceptor for JWT token
-const _apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+import { API_BASE } from "@/lib/api-url";
+
+// Global Fetch Interceptor for JWT token.
+// Adds Authorization header to every /api call whether relative (dev proxy) or absolute (production).
 const originalFetch = window.fetch;
 window.fetch = async (input, init) => {
   const token = localStorage.getItem('da_token');
   if (token && typeof input === 'string') {
     const isRelativeApi = input.startsWith('/api');
-    const isAbsoluteApi = _apiBase !== "" && input.startsWith(`${_apiBase}/api`);
+    const isAbsoluteApi = API_BASE !== "" && input.startsWith(`${API_BASE}/api`);
     if (isRelativeApi || isAbsoluteApi) {
       init = init || {};
       init.headers = {
