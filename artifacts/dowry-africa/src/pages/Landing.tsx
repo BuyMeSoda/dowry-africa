@@ -23,6 +23,9 @@ export default function Landing() {
                 transition={{ duration: 0.8 }}
                 className="w-full lg:w-1/2"
               >
+                <p className="text-sm tracking-wide text-muted-foreground/80 font-medium mb-4">
+                  Connecting Africans globally for serious relationships and marriage.
+                </p>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium mb-6">
                   <Star className="w-4 h-4 text-primary" />
                   Designed for serious relationships
