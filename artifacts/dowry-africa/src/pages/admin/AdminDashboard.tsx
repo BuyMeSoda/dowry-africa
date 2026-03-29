@@ -45,9 +45,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     adminFetch("/dashboard")
-      .then(r => r.json())
-      .then(setData)
-      .catch(() => setError("Failed to load dashboard data"));
+      .then(async r => {
+        const json = await r.json();
+        if (!r.ok) throw new Error(json.error ?? "Failed to load");
+        setData(json);
+      })
+      .catch(e => setError(e.message ?? "Failed to load dashboard data"));
   }, []);
 
   return (

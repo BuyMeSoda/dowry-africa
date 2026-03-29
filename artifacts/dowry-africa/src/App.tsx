@@ -81,6 +81,7 @@ function Router() {
       <Route path="/admin/activity" component={AdminActivity} />
       <Route path="/admin/moderation" component={AdminModeration} />
       <Route path="/admin/settings" component={AdminSettings} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin" component={AdminDashboard} />
 
       {/* Protected Routes */}

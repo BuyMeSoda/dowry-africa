@@ -23,7 +23,6 @@ router.get("/dashboard", async (_req, res) => {
       [coreSubs],
       [badgeSubs],
       [totalMessages],
-      [totalMatches],
       [waitlistApproved],
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)::int` }).from(schema.users),
@@ -33,9 +32,14 @@ router.get("/dashboard", async (_req, res) => {
       db.select({ count: sql<number>`count(*)::int` }).from(schema.users).where(eq(schema.users.tier, "core")),
       db.select({ count: sql<number>`count(*)::int` }).from(schema.users).where(and(eq(schema.users.tier, "badge"), eq(schema.users.hasBadge, true))),
       db.select({ count: sql<number>`count(*)::int` }).from(schema.messages),
-      db.execute(sql`SELECT (COUNT(*)::int / 2) AS count FROM likes l1 WHERE EXISTS (SELECT 1 FROM likes l2 WHERE l2.from_id = l1.to_id AND l2.to_id = l1.from_id)`),
       db.select({ count: sql<number>`count(*)::int` }).from(schema.waitlist).where(eq(schema.waitlist.status, "approved")),
     ]);
+
+    // db.execute returns { rows } not an array — handle separately
+    const matchesResult = await db.execute(
+      sql`SELECT (COUNT(*)::int / 2) AS count FROM likes l1 WHERE EXISTS (SELECT 1 FROM likes l2 WHERE l2.from_id = l1.to_id AND l2.to_id = l1.from_id)`
+    );
+    const totalMatchCount = Number((matchesResult.rows[0] as any)?.count ?? 0);
 
     const coreCount = coreSubs.count;
     const badgeCount = badgeSubs.count;
@@ -51,7 +55,7 @@ router.get("/dashboard", async (_req, res) => {
       activeSubscriptions: { core: coreCount, badge: badgeCount, total: coreCount + badgeCount },
       mrr,
       totalMessages: totalMessages.count,
-      totalMatches: Number((totalMatches.rows[0] as any)?.count ?? 0),
+      totalMatches: totalMatchCount,
       waitlistConversionRate: conversionRate,
     });
   } catch (err) {

@@ -19,12 +19,20 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
+  const loggedIn = isAdminLoggedIn();
 
+  // Redirect on session expiry during navigation
   useEffect(() => {
     if (!isAdminLoggedIn()) {
       setLocation("/admin/login");
     }
-  }, []);
+  }, [location]);
+
+  // Render nothing and redirect immediately if not authenticated
+  if (!loggedIn) {
+    setLocation("/admin/login");
+    return null;
+  }
 
   const handleLogout = () => {
     clearAdminSecret();
