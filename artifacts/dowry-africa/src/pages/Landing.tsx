@@ -23,16 +23,16 @@ export default function Landing() {
                 transition={{ duration: 0.8 }}
                 className="w-full lg:w-1/2"
               >
-                <p className="text-base tracking-wider text-foreground/55 font-medium mb-7">
-                  For Africans ready for marriage — wherever they are in the world
+                <p className="text-base tracking-wider text-foreground/65 font-semibold mb-9">
+                  For Africans ready for marriage — wherever they are in the world.
                 </p>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium mb-6">
                   <Star className="w-4 h-4 text-primary" />
-                  Designed for serious relationships
+                  No games. Just intention.
                 </div>
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-bold leading-[1.1] text-foreground mb-6">
                   Built for marriage.<br />
-                  <span className="text-primary italic font-medium">Not just matches.</span>
+                  <span className="text-primary italic font-medium">Not for games.</span>
                 </h1>
                 <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl leading-relaxed">
                   Dowry.Africa is an exclusive matchmaking platform for Africans who are done with games and ready to build something real. Connect with people who share your values, your culture, and your vision for family.
