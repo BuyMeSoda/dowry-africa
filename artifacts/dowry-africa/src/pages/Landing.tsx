@@ -3,8 +3,21 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Heart, ShieldCheck, Star, Users } from "lucide-react";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { API_BASE } from "@/lib/api-url";
 
 export default function Landing() {
+  const [waitlistMode, setWaitlistMode] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/waitlist/status`)
+      .then(r => r.json())
+      .then(d => setWaitlistMode(!!d.waitlistMode))
+      .catch(() => {});
+  }, []);
+
+  const applyHref = waitlistMode ? "/apply" : "/register";
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -39,7 +52,7 @@ export default function Landing() {
                   Dowry.Africa is an exclusive matchmaking platform for Africans who are done with games and ready to build something real. Connect with people who share your values, your culture, and your vision for family.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/register" className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-semibold text-lg text-center shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <Link href={applyHref} className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-semibold text-lg text-center shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                     Apply for Membership
                   </Link>
                   <Link href="/login" className="px-8 py-4 bg-white text-foreground border border-border rounded-full font-semibold text-lg text-center hover:bg-secondary transition-all duration-300">
