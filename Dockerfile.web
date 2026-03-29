@@ -13,6 +13,8 @@ COPY lib/ ./lib/
 
 RUN pnpm install --no-frozen-lockfile
 
+ENV PORT=3000
+
 RUN pnpm --filter @workspace/dowry-africa build
 
 WORKDIR /app/artifacts/dowry-africa
