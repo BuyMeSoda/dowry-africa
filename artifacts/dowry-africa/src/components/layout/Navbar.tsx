@@ -23,16 +23,16 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-1.5">
-            <div className="h-9 w-9 overflow-hidden flex-shrink-0">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="h-11 w-11 overflow-hidden flex-shrink-0">
               <img
                 src={`${import.meta.env.BASE_URL}logo.png`}
                 alt=""
-                className="h-9 w-auto"
+                className="h-11 w-auto"
                 style={{ maxWidth: "none" }}
               />
             </div>
-            <span className="font-display font-bold text-primary text-xl leading-none tracking-tight">
+            <span className="font-display font-bold text-primary text-2xl leading-none tracking-tight">
               Dowry.Africa
             </span>
           </Link>
