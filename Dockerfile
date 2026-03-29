@@ -11,7 +11,7 @@ COPY pnpm-lock.yaml ./
 COPY artifacts/ ./artifacts/
 COPY lib/ ./lib/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 RUN pnpm --filter @workspace/api-server build
 
