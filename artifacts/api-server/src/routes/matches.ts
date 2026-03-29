@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, publicUser } from "../db/database.js";
@@ -23,18 +24,21 @@ router.get("/feed", requireAuth, async (req, res) => {
 
     const limit = TIER_LIMITS[me.tier] ?? 5;
 
-    const [allUserRows, myPasses] = await Promise.all([
+    const [allUserRows, myPasses, myLikes] = await Promise.all([
       db.select().from(schema.users),
       db.select({ toId: schema.passes.toId }).from(schema.passes).where(eq(schema.passes.fromId, me.id)),
+      db.select({ toId: schema.likes.toId }).from(schema.likes).where(eq(schema.likes.fromId, me.id)),
     ]);
 
     const passedIds = new Set(myPasses.map(p => p.toId));
+    const likedIds = new Set(myLikes.map(l => l.toId));
 
     const scoredCandidates = [];
     for (const row of allUserRows) {
       const candidate = toUser(row);
       if (!passesHardFilters(me, candidate)) continue;
       if (passedIds.has(candidate.id)) continue;
+      if (likedIds.has(candidate.id)) continue; // hide already-liked profiles
       const { score, dimensions, prompts } = scoreMatch(me, candidate);
       const now = Date.now();
       const freshBoost = (now - candidate.lastActive.getTime()) < 48 * 60 * 60 * 1000;
@@ -75,8 +79,15 @@ router.get("/liked-me", requireAuth, async (req, res) => {
       .from(schema.likes)
       .where(eq(schema.likes.toId, me.id));
 
+    // Exclude people we've already mutually matched with
+    const myLikedIds = new Set(
+      (await db.select({ toId: schema.likes.toId }).from(schema.likes).where(eq(schema.likes.fromId, me.id)))
+        .map(l => l.toId)
+    );
+
     const likedBy = [];
     for (const { fromId } of likerRows) {
+      if (myLikedIds.has(fromId)) continue; // already mutual — skip from "likes you" list
       const [likerRow] = await db
         .select()
         .from(schema.users)
@@ -131,7 +142,32 @@ router.post("/like/:id", requireAuth, async (req, res) => {
       .limit(1);
 
     const mutual = reverseCheck.length > 0;
-    res.json({ ok: true, mutual });
+
+    if (mutual) {
+      // Remove any pending 'like' notification — replace with 'match' for both
+      await db.execute(
+        (await import("drizzle-orm")).sql`
+          DELETE FROM notifications
+          WHERE (user_id = ${meRow.id}   AND from_user_id = ${targetRow.id} AND type = 'like')
+             OR (user_id = ${targetRow.id} AND from_user_id = ${meRow.id}   AND type = 'like')
+        `
+      );
+      await db.insert(schema.notifications).values([
+        { id: uuidv4(), userId: meRow.id,    type: "match", fromUserId: targetRow.id },
+        { id: uuidv4(), userId: targetRow.id, type: "match", fromUserId: meRow.id   },
+      ]);
+    } else {
+      // Notify target that someone liked them (upsert — one unseen like notif per person pair)
+      await db.execute(
+        (await import("drizzle-orm")).sql`
+          INSERT INTO notifications (id, user_id, type, from_user_id, seen)
+          VALUES (${uuidv4()}, ${targetRow.id}, 'like', ${meRow.id}, false)
+          ON CONFLICT DO NOTHING
+        `
+      );
+    }
+
+    res.json({ ok: true, mutual, matchedUser: mutual ? publicUser(toUser(targetRow)) : null });
   } catch (err) {
     req.log.error(err, "Like error");
     res.status(500).json({ error: "Internal server error" });

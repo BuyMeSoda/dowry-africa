@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { useNotifications } from "@/contexts/NotificationsContext";
 import { LogOut, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -13,12 +14,15 @@ import {
 export function Navbar() {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const { counts } = useNotifications();
   const getStartedHref = "/register";
 
   const handleLogout = () => {
     logout();
     setLocation("/");
   };
+
+  const msgBadge = counts.messages + counts.matches;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
@@ -43,8 +47,13 @@ export function Navbar() {
               <Link href="/discover" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/discover' ? 'text-primary' : 'text-muted-foreground'}`}>
                 Discover
               </Link>
-              <Link href="/messages" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/messages' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <Link href="/messages" className={`relative text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/messages') ? 'text-primary' : 'text-muted-foreground'}`}>
                 Messages
+                {msgBadge > 0 && (
+                  <span className="absolute -top-1.5 -right-3.5 min-w-[18px] h-[18px] bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                    {msgBadge > 99 ? "99+" : msgBadge}
+                  </span>
+                )}
               </Link>
               <Link href="/premium" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/premium' ? 'text-primary' : 'text-muted-foreground'}`}>
                 Premium

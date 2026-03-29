@@ -7,6 +7,7 @@ import messagesRouter from "./messages.js";
 import paymentsRouter from "./payments.js";
 import adminRouter from "./admin.js";
 import earlyAccessRouter from "./earlyAccess.js";
+import notificationsRouter from "./notifications.js";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/messages", messagesRouter);
 router.use("/payments", paymentsRouter);
 router.use("/admin", adminRouter);
 router.use("/early-access", earlyAccessRouter);
+router.use("/notifications", notificationsRouter);
 
 export default router;

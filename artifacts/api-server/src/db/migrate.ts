@@ -99,6 +99,19 @@ export async function runMigrations(): Promise<void> {
       ON CONFLICT (key) DO NOTHING;
 
       DROP TABLE IF EXISTS waitlist;
+
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        type TEXT NOT NULL,
+        from_user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+        seen BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS notifications_user_unseen ON notifications (user_id, seen) WHERE seen = false;
     `);
   } finally {
     client.release();

@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ComingSoonProvider, useComingSoon } from "@/contexts/ComingSoonContext";
+import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { useEffect } from "react";
 
 // Pages
@@ -130,12 +131,14 @@ function App() {
   return (
     <AuthProvider>
       <ComingSoonProvider>
+        <NotificationsProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
           <Toaster />
         </TooltipProvider>
+        </NotificationsProvider>
       </ComingSoonProvider>
     </AuthProvider>
   );

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
@@ -38,8 +38,6 @@ router.get("/", requireAuth, async (req, res) => {
       ),
     ]);
 
-    const likesSent = new Set(myLikes.map(l => l.toId));
-
     const mutualIds = new Set<string>();
     const matchedAtMap = new Map<string, Date>();
 
@@ -56,11 +54,13 @@ router.get("/", requireAuth, async (req, res) => {
       }
     }
 
+    // Build conversation map from mutual matches
     const convMap = new Map<string, {
       userId: string;
       lastMessage: string | null;
       lastMessageAt: Date | null;
       matchedAt: Date | null;
+      unread: number;
     }>();
 
     for (const otherId of mutualIds) {
@@ -69,9 +69,11 @@ router.get("/", requireAuth, async (req, res) => {
         lastMessage: null,
         lastMessageAt: null,
         matchedAt: matchedAtMap.get(otherId) ?? null,
+        unread: 0,
       });
     }
 
+    // Layer in messages
     for (const msg of myMessages) {
       const otherId = msg.fromId === me.id ? msg.toId : msg.fromId;
       const existing = convMap.get(otherId);
@@ -81,7 +83,23 @@ router.get("/", requireAuth, async (req, res) => {
           lastMessage: msg.text,
           lastMessageAt: msg.createdAt,
           matchedAt: existing?.matchedAt ?? null,
+          unread: existing?.unread ?? 0,
         });
+      }
+    }
+
+    // Count unseen message notifications per sender
+    const unreadResult = await db.execute(sql`
+      SELECT from_user_id, COUNT(*) AS cnt
+      FROM notifications
+      WHERE user_id = ${me.id} AND type = 'message' AND seen = false
+      GROUP BY from_user_id
+    `);
+
+    for (const row of unreadResult.rows as any[]) {
+      const existing = convMap.get(row.from_user_id);
+      if (existing) {
+        existing.unread = Number(row.cnt);
       }
     }
 
@@ -95,7 +113,7 @@ router.get("/", requireAuth, async (req, res) => {
     const userMap = new Map(otherUsers.map(u => [u.id, u]));
 
     const conversations = Array.from(convMap.values())
-      .map(({ userId, lastMessage, lastMessageAt, matchedAt }) => {
+      .map(({ userId, lastMessage, lastMessageAt, matchedAt, unread }) => {
         const other = userMap.get(userId);
         return {
           userId,
@@ -103,7 +121,7 @@ router.get("/", requireAuth, async (req, res) => {
           photoUrl: other?.photoUrl ?? null,
           lastMessage,
           lastMessageAt: lastMessageAt ?? matchedAt,
-          unread: 0,
+          unread,
         };
       })
       .sort((a, b) => {
@@ -160,6 +178,21 @@ router.get("/:userId", requireAuth, async (req, res) => {
 
     thread.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
+    // Mark unseen message + match notifications from this person as seen
+    await db
+      .update(schema.notifications)
+      .set({ seen: true })
+      .where(
+        and(
+          eq(schema.notifications.userId, me.id),
+          eq(schema.notifications.fromUserId, otherId),
+          or(
+            eq(schema.notifications.type, "message"),
+            eq(schema.notifications.type, "match")
+          )
+        )
+      );
+
     const shuffled = [...GUIDED_PROMPTS].sort(() => Math.random() - 0.5).slice(0, 3);
     res.json({ messages: thread, guidedPrompts: shuffled });
   } catch (err) {
@@ -211,6 +244,16 @@ router.post("/:userId", requireAuth, async (req, res) => {
     };
 
     await db.insert(schema.messages).values(message);
+
+    // Notify the receiver of the new message
+    await db.insert(schema.notifications).values({
+      id: uuidv4(),
+      userId: otherId,
+      type: "message",
+      fromUserId: me.id,
+      seen: false,
+    });
+
     res.status(201).json(message);
   } catch (err) {
     req.log.error(err, "Send message error");

@@ -78,5 +78,15 @@ export const messages = pgTable("messages", {
   fromId: text("from_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   toId: text("to_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   text: text("text").notNull(),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // 'like' | 'match' | 'message'
+  fromUserId: text("from_user_id").references(() => users.id, { onDelete: "cascade" }),
+  seen: boolean("seen").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
