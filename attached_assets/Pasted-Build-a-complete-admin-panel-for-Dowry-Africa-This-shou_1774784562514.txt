@@ -1,0 +1,233 @@
+Build a complete admin panel for Dowry.Africa. This should be a separate, protected section of the app accessible at /admin. It must be password protected using the ADMIN_SECRET environment variable.
+
+The admin panel needs these sections:
+
+═══════════════════════════════
+1. ADMIN DASHBOARD (overview)
+═══════════════════════════════
+A summary page showing key metrics at a glance:
+- Total registered users
+- Total waitlist applicants
+- New users today / this week
+- Active subscriptions (Core + Serious Badge)
+- Monthly revenue (from Stripe)
+- Total matches made
+- Total messages sent
+- Conversion rate: waitlist → registered users
+
+═══════════════════════════════
+2. WAITLIST MANAGEMENT
+═══════════════════════════════
+- Master ON/OFF toggle for waitlist mode stored in a database settings table
+  * ON = clicking "Apply for Membership" on landing page opens waitlist form at /apply
+  * OFF = clicking "Apply for Membership" goes directly to normal signup
+  * This toggle persists in the database — no env variable changes needed
+- Total applicant count
+- Priority breakdown: High / Medium / Low
+- Status breakdown: Pending / Approved / Rejected
+- Full applicant list showing:
+  * Name, age, city, country, email
+  * Intention + timeline
+  * Priority badge (green=high, yellow=medium, red=low)
+  * All three commitment answers (yes/no)
+  * Their "Why joining" answer
+  * Referral source
+  * Date applied
+  * Approve / Reject buttons
+- Filters: by priority, by status, by country
+- Search: by name or email
+- Bulk approve / bulk reject selected applicants
+- When approved: send confirmation email (console.log for now, real email integration later)
+
+Also create the waitlist application form at /apply:
+
+Step 1 - Basics:
+- Full name, age (min 21), city, country (full dropdown of African countries + UK, US, Canada, Australia, other diaspora countries), email
+
+Step 2 - Intention:
+- What are you looking for? (Marriage — I am ready to commit / Serious relationship leading to marriage)
+- Timeline: (I am ready now / Within 6-12 months / Within 1-2 years)
+
+Step 3 - Commitment check:
+- Willing to complete full verified profile? (Yes/No)
+- Willing to verify identity? (Yes/No)
+- Commit to engaging respectfully? (Yes/No)
+- Anyone selecting No on any = priority automatically set to low
+
+Step 4 - Background (optional):
+- Faith/religion, open to long distance, heritage/ethnicity, diaspora preference
+
+Step 5 - Seriousness filter:
+- "Why are you interested in joining Dowry.Africa?" (required, min 50 characters)
+- How did you hear about us? (Instagram, TikTok, Twitter/X, Friend referral, Google, Other)
+- Referral code (optional)
+
+Confirmation page after submit:
+- "You're on the waitlist."
+- "We review every application personally. You'll be notified within 7 days."
+- Share buttons: WhatsApp, Twitter/X, copy link
+- "Invite 2 serious friends to move up the list"
+
+═══════════════════════════════
+3. USER MANAGEMENT
+═══════════════════════════════
+- Full list of all registered users
+- Per user show:
+  * Name, age, location, email
+  * Subscription tier (Free / Core / Serious Badge)
+  * Account status (active / suspended / banned)
+  * Date joined
+  * Last active
+  * Profile completeness %
+  * Total matches, total messages sent
+- Actions per user:
+  * View full profile
+  * Suspend account (temporarily block access)
+  * Ban account (permanent block)
+  * Reactivate account
+  * Manually upgrade subscription tier
+  * Reset password (send reset email)
+  * Delete account
+- Search by name or email
+- Filter by subscription tier, status, country
+- Sort by: date joined, last active, subscription
+
+═══════════════════════════════
+4. SUBSCRIPTION & PAYMENTS
+═══════════════════════════════
+- Total revenue this month
+- Total revenue all time
+- Active subscriptions breakdown:
+  * Free tier count
+  * Core ($7/mo) count and MRR
+  * Serious Badge ($15/mo) count and MRR
+  * Total MRR (monthly recurring revenue)
+- Recent transactions list:
+  * User name, email, plan, amount, date, status
+- Stripe integration:
+  * Pull real subscription data from Stripe API
+  * Show failed payments
+  * Ability to manually grant/revoke subscription access
+- Churn rate (cancelled this month vs last month)
+
+═══════════════════════════════
+5. MATCHES & ACTIVITY
+═══════════════════════════════
+- Total likes given today / this week / all time
+- Total mutual matches today / this week / all time
+- Total messages sent today / this week / all time
+- Most active users (top 10 by activity)
+- Match success rate
+- Geographic breakdown of users (which countries most active)
+
+═══════════════════════════════
+6. CONTENT MODERATION
+═══════════════════════════════
+- Reported profiles list
+- Per report show:
+  * Who reported, who was reported, reason, date
+  * Action buttons: Dismiss report / Warn user / Suspend user / Ban user
+- Profile photo review queue (photos flagged or newly uploaded)
+- Ability to remove inappropriate profile photos
+
+═══════════════════════════════
+7. SETTINGS & CONFIGURATION
+═══════════════════════════════
+- Waitlist mode toggle (ON/OFF) — same as in waitlist section
+- App maintenance mode toggle (shows maintenance message to all users)
+- Daily match limit per tier:
+  * Free tier: X matches per day (editable)
+  * Core tier: unlimited toggle
+  * Serious Badge: unlimited + priority toggle
+- Platform announcement banner (admin types a message, it shows as a banner on the app for all users)
+- Admin password change
+
+═══════════════════════════════
+8. DATABASE ADDITIONS NEEDED
+═══════════════════════════════
+
+Waitlist table:
+- id, full_name, age, city, country, email
+- intention, timeline
+- willing_profile, willing_verify, willing_respect (booleans)
+- faith, open_to_distance, heritage, diaspora_preference
+- why_joining (text), referral_source, referral_code
+- priority (high/medium/low — auto calculated on submission)
+- status (pending/approved/rejected) default pending
+- created_at, approved_at
+
+Settings table (key/value store):
+- waitlist_mode (boolean)
+- maintenance_mode (boolean)
+- free_tier_daily_limit (integer)
+- announcement_banner (text, nullable)
+
+Reports table:
+- id, reporter_user_id, reported_user_id, reason, details, status, created_at
+
+═══════════════════════════════
+9. BACKEND API ADDITIONS
+═══════════════════════════════
+All admin routes protected by ADMIN_SECRET header or session:
+
+- GET /api/admin/dashboard — all dashboard stats
+- GET /api/admin/waitlist — list with filters
+- POST /api/admin/waitlist/:id/approve
+- POST /api/admin/waitlist/:id/reject
+- POST /api/admin/waitlist/bulk-approve
+- GET /api/admin/users — list with filters
+- GET /api/admin/users/:id — full user detail
+- PATCH /api/admin/users/:id/suspend
+- PATCH /api/admin/users/:id/ban
+- PATCH /api/admin/users/:id/reactivate
+- PATCH /api/admin/users/:id/subscription
+- DELETE /api/admin/users/:id
+- GET /api/admin/subscriptions — revenue and subscription data
+- GET /api/admin/activity — matches and messages stats
+- GET /api/admin/reports — moderation queue
+- PATCH /api/admin/reports/:id — action on report
+- GET /api/admin/settings — get all settings
+- PATCH /api/admin/settings — update any setting
+- POST /api/waitlist — public endpoint to submit application
+- GET /api/waitlist/status — check if waitlist mode is on (public, used by frontend)
+
+═══════════════════════════════
+10. ADMIN PANEL DESIGN
+═══════════════════════════════
+- Separate layout from the main app — admin has its own sidebar navigation
+- Dark or light theme — clean, data-focused, professional
+- Sidebar navigation with icons for each section:
+  * Dashboard
+  * Waitlist
+  * Users
+  * Subscriptions
+  * Activity
+  * Moderation
+  * Settings
+- Protected login page at /admin/login using ADMIN_SECRET password
+- Session persists for 24 hours
+- Responsive but optimised for desktop (admins will use desktop)
+- Use the same fonts as the main app but a more neutral color palette for data readability
+- Tables with pagination (25 rows per page)
+- Loading states and error handling throughout
+- Toast notifications for actions (approved, banned, etc.)
+
+═══════════════════════════════
+11. FRONTEND WAITLIST INTEGRATION
+═══════════════════════════════
+- On app startup, frontend calls GET /api/waitlist/status
+- If waitlist_mode = true:
+  * "Apply for Membership" and "Get Started" buttons on landing page → go to /apply
+  * Normal signup is still accessible at /signup for approved members with invite
+- If waitlist_mode = false:
+  * All buttons work normally going to signup
+- The landing page design must NOT change at all — only button destinations change
+
+═══════════════════════════════
+12. ENVIRONMENT VARIABLES
+═══════════════════════════════
+Backend (Railway api-server):
+- ADMIN_SECRET = strong_password_you_choose
+
+Frontend (Railway dowry-africa):
+- No additional env variables needed — waitlist mode is fetched from API at runtime

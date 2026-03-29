@@ -1,5 +1,6 @@
 import { pgTable, text, integer, boolean, timestamp, primaryKey } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+export { sql };
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -35,6 +36,48 @@ export const users = pgTable("users", {
   lastActive: timestamp("last_active", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   blocked: text("blocked").array().notNull().default(sql`ARRAY[]::text[]`),
+  accountStatus: text("account_status").notNull().default("active"),
+});
+
+export const waitlist = pgTable("waitlist", {
+  id: text("id").primaryKey(),
+  fullName: text("full_name").notNull(),
+  age: integer("age").notNull(),
+  city: text("city").notNull(),
+  country: text("country").notNull(),
+  email: text("email").notNull().unique(),
+  intention: text("intention").notNull(),
+  timeline: text("timeline").notNull(),
+  willingProfile: boolean("willing_profile").notNull().default(false),
+  willingVerify: boolean("willing_verify").notNull().default(false),
+  willingRespect: boolean("willing_respect").notNull().default(false),
+  faith: text("faith"),
+  openToDistance: boolean("open_to_distance"),
+  heritage: text("heritage"),
+  diasporaPreference: text("diaspora_preference"),
+  whyJoining: text("why_joining").notNull(),
+  referralSource: text("referral_source"),
+  referralCode: text("referral_code"),
+  priority: text("priority").notNull().default("medium"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+});
+
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const reports = pgTable("reports", {
+  id: text("id").primaryKey(),
+  reporterUserId: text("reporter_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reportedUserId: text("reported_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  details: text("details"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const likes = pgTable("likes", {
