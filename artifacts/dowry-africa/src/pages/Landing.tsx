@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Heart, ShieldCheck, Star, Users } from "lucide-react";
+import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { motion } from "framer-motion";
 
 export default function Landing() {
@@ -59,7 +60,7 @@ export default function Landing() {
                   
                   {/* Floating Badge */}
                   <div className="absolute bottom-8 left-8 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl flex items-center gap-4">
-                     <img src={`${import.meta.env.BASE_URL}images/trust-badge.png`} alt="Verified" className="w-12 h-12" />
+                     <SeriousBadgeIcon size={48} />
                      <div>
                        <p className="font-display font-bold text-foreground">Verified Member</p>
                        <p className="text-sm text-muted-foreground">Identity & Intent checked</p>
