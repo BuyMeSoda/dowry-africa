@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "./AdminLayout";
 import { adminFetch } from "@/lib/admin";
-import { Users, ListChecks, CreditCard, MessageSquare, Heart, TrendingUp, UserCheck, DollarSign } from "lucide-react";
+import { Users, Mail, CreditCard, MessageSquare, Heart, TrendingUp, UserCheck, DollarSign } from "lucide-react";
 
 interface DashboardData {
   totalUsers: number;
-  totalWaitlist: number;
+  totalEarlyAccess: number;
   newUsersToday: number;
   newUsersThisWeek: number;
   activeSubscriptions: { core: number; badge: number; total: number };
   mrr: number;
   totalMessages: number;
   totalMatches: number;
-  waitlistConversionRate: number;
+  subscriptionRate: number;
 }
 
 function Stat({ label, value, icon: Icon, sub, color = "amber" }: {
@@ -65,14 +65,14 @@ export default function AdminDashboard() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
               <Stat label="Total Users" value={data.totalUsers} icon={Users} sub={`+${data.newUsersToday} today · +${data.newUsersThisWeek} this week`} color="blue" />
-              <Stat label="Waitlist Applicants" value={data.totalWaitlist} icon={ListChecks} sub={`${data.waitlistConversionRate}% converted to members`} color="purple" />
+              <Stat label="Early Access Signups" value={data.totalEarlyAccess ?? 0} icon={Mail} sub="Email interest captured" color="purple" />
               <Stat label="Active Subscriptions" value={data.activeSubscriptions.total} icon={UserCheck} sub={`${data.activeSubscriptions.core} Core · ${data.activeSubscriptions.badge} Badge`} color="green" />
               <Stat label="Monthly Revenue" value={`$${data.mrr}`} icon={DollarSign} sub="Estimated MRR" color="amber" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Stat label="Total Matches" value={data.totalMatches} icon={Heart} color="rose" />
               <Stat label="Total Messages" value={data.totalMessages} icon={MessageSquare} color="blue" />
-              <Stat label="Waitlist → Member Rate" value={`${data.waitlistConversionRate}%`} icon={TrendingUp} color="green" />
+              <Stat label="Subscription Rate" value={`${data.subscriptionRate ?? 0}%`} icon={TrendingUp} color="green" />
             </div>
           </>
         ) : (

@@ -64,29 +64,10 @@ export async function runMigrations(): Promise<void> {
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status TEXT NOT NULL DEFAULT 'active';
 
-      CREATE TABLE IF NOT EXISTS waitlist (
+      CREATE TABLE IF NOT EXISTS early_access (
         id TEXT PRIMARY KEY,
-        full_name TEXT NOT NULL,
-        age INTEGER NOT NULL,
-        city TEXT NOT NULL,
-        country TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
-        intention TEXT NOT NULL,
-        timeline TEXT NOT NULL,
-        willing_profile BOOLEAN NOT NULL DEFAULT FALSE,
-        willing_verify BOOLEAN NOT NULL DEFAULT FALSE,
-        willing_respect BOOLEAN NOT NULL DEFAULT FALSE,
-        faith TEXT,
-        open_to_distance BOOLEAN,
-        heritage TEXT,
-        diaspora_preference TEXT,
-        why_joining TEXT NOT NULL,
-        referral_source TEXT,
-        referral_code TEXT,
-        priority TEXT NOT NULL DEFAULT 'medium',
-        status TEXT NOT NULL DEFAULT 'pending',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        approved_at TIMESTAMPTZ
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS settings (
@@ -107,11 +88,17 @@ export async function runMigrations(): Promise<void> {
 
       INSERT INTO settings (key, value, updated_at)
       VALUES
-        ('waitlist_mode', 'false', NOW()),
-        ('maintenance_mode', 'false', NOW()),
+        ('coming_soon_mode', 'false', NOW()),
+        ('coming_soon_headline', 'Built for marriage. Not just matches.', NOW()),
+        ('coming_soon_subtext', 'Dowry.Africa is launching soon — a curated platform for Africans and the diaspora who are serious about commitment. No games. No talking stages. Just real people ready for real love.', NOW()),
+        ('coming_soon_exclusivity', 'We are onboarding a limited number of serious members. Be first.', NOW()),
+        ('coming_soon_button_text', 'Request early access', NOW()),
+        ('coming_soon_success_message', 'You''re on the list. We''ll be in touch soon.', NOW()),
         ('free_tier_daily_limit', '10', NOW()),
         ('announcement_banner', '', NOW())
       ON CONFLICT (key) DO NOTHING;
+
+      DROP TABLE IF EXISTS waitlist;
     `);
   } finally {
     client.release();

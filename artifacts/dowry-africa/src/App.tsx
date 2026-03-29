@@ -2,7 +2,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { WaitlistProvider } from "@/contexts/WaitlistContext";
+import { ComingSoonProvider, useComingSoon } from "@/contexts/ComingSoonContext";
 import { useEffect } from "react";
 
 // Pages
@@ -15,10 +15,9 @@ import Discover from "@/pages/Discover";
 import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
 import Premium from "@/pages/Premium";
-import Apply from "@/pages/Apply";
+import ComingSoon from "@/pages/ComingSoon";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminWaitlist from "@/pages/admin/AdminWaitlist";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminSubscriptions from "@/pages/admin/AdminSubscriptions";
 import AdminActivity from "@/pages/admin/AdminActivity";
@@ -63,61 +62,79 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
   return <Component {...rest} />;
 }
 
+// Coming Soon Gate — wraps all non-admin, non-login routes
+function ComingSoonGate({ children }: { children: React.ReactNode }) {
+  const { comingSoonMode } = useComingSoon();
+  const [location, setLocation] = useLocation();
+
+  const isExempt = location.startsWith("/admin") || location === "/login" || location === "/coming-soon";
+
+  useEffect(() => {
+    if (comingSoonMode && !isExempt) {
+      setLocation("/coming-soon");
+    }
+  }, [comingSoonMode, isExempt, setLocation]);
+
+  if (comingSoonMode && !isExempt) return null;
+  return <>{children}</>;
+}
+
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Landing} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/apply" component={Apply} />
+    <ComingSoonGate>
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/coming-soon" component={ComingSoon} />
 
-      {/* Admin routes — use their own auth */}
-      <Route path="/admin/login" component={AdminLogin} />
-      <Route path="/admin/waitlist" component={AdminWaitlist} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/subscriptions" component={AdminSubscriptions} />
-      <Route path="/admin/activity" component={AdminActivity} />
-      <Route path="/admin/moderation" component={AdminModeration} />
-      <Route path="/admin/settings" component={AdminSettings} />
-      <Route path="/admin/dashboard" component={AdminDashboard} />
-      <Route path="/admin" component={AdminDashboard} />
+        {/* Admin routes — use their own auth */}
+        <Route path="/admin/login" component={AdminLogin} />
+        <Route path="/admin/users" component={AdminUsers} />
+        <Route path="/admin/subscriptions" component={AdminSubscriptions} />
+        <Route path="/admin/activity" component={AdminActivity} />
+        <Route path="/admin/moderation" component={AdminModeration} />
+        <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/dashboard" component={AdminDashboard} />
+        <Route path="/admin" component={AdminDashboard} />
 
-      {/* Protected Routes */}
-      <Route path="/onboarding">
-        {() => <ProtectedRoute component={Onboarding} />}
-      </Route>
-      <Route path="/discover">
-        {() => <ProtectedRoute component={Discover} />}
-      </Route>
-      <Route path="/messages">
-        {() => <ProtectedRoute component={Messages} />}
-      </Route>
-      <Route path="/messages/:id">
-        {() => <ProtectedRoute component={Messages} />}
-      </Route>
-      <Route path="/profile">
-        {() => <ProtectedRoute component={Profile} />}
-      </Route>
-      <Route path="/premium">
-        {() => <ProtectedRoute component={Premium} />}
-      </Route>
+        {/* Protected Routes */}
+        <Route path="/onboarding">
+          {() => <ProtectedRoute component={Onboarding} />}
+        </Route>
+        <Route path="/discover">
+          {() => <ProtectedRoute component={Discover} />}
+        </Route>
+        <Route path="/messages">
+          {() => <ProtectedRoute component={Messages} />}
+        </Route>
+        <Route path="/messages/:id">
+          {() => <ProtectedRoute component={Messages} />}
+        </Route>
+        <Route path="/profile">
+          {() => <ProtectedRoute component={Profile} />}
+        </Route>
+        <Route path="/premium">
+          {() => <ProtectedRoute component={Premium} />}
+        </Route>
 
-      <Route component={NotFound} />
-    </Switch>
+        <Route component={NotFound} />
+      </Switch>
+    </ComingSoonGate>
   );
 }
 
 function App() {
   return (
     <AuthProvider>
-      <WaitlistProvider>
+      <ComingSoonProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
           <Toaster />
         </TooltipProvider>
-      </WaitlistProvider>
+      </ComingSoonProvider>
     </AuthProvider>
   );
 }

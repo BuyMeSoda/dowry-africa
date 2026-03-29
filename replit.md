@@ -1,4 +1,4 @@
-# Workspace
+# Dowry.Africa — Workspace
 
 ## Overview
 

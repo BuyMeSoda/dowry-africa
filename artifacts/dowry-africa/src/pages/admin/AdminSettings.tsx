@@ -1,13 +1,24 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "./AdminLayout";
 import { adminFetch } from "@/lib/admin";
-import { Save, ToggleLeft, ToggleRight } from "lucide-react";
+import { API_BASE } from "@/lib/api-url";
+import { Save, ToggleLeft, ToggleRight, Download, Mail } from "lucide-react";
 
 interface AppSettings {
-  waitlist_mode: string;
-  maintenance_mode: string;
+  coming_soon_mode: string;
+  coming_soon_headline: string;
+  coming_soon_subtext: string;
+  coming_soon_exclusivity: string;
+  coming_soon_button_text: string;
+  coming_soon_success_message: string;
   free_tier_daily_limit: string;
   announcement_banner: string;
+}
+
+interface EarlyAccessEmail {
+  id: string;
+  email: string;
+  createdAt: string;
 }
 
 function Toggle({ label, desc, value, onChange }: {
@@ -15,25 +26,49 @@ function Toggle({ label, desc, value, onChange }: {
 }) {
   return (
     <div className="flex items-center justify-between py-4">
-      <div>
+      <div className="flex-1 pr-4">
         <p className="text-white font-medium">{label}</p>
         <p className="text-gray-400 text-sm mt-0.5">{desc}</p>
       </div>
       <button onClick={() => onChange(!value)}
-        className={`transition-colors ${value ? "text-amber-400" : "text-gray-600"}`}>
+        className={`transition-colors shrink-0 ${value ? "text-amber-400" : "text-gray-600"}`}>
         {value ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
       </button>
     </div>
   );
 }
 
+function Field({ label, value, onChange, multiline, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void;
+  multiline?: boolean; placeholder?: string;
+}) {
+  const cls = "w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500";
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-300 mb-2">{label}</label>
+      {multiline ? (
+        <textarea rows={3} value={value} onChange={e => onChange(e.target.value)}
+          placeholder={placeholder} className={`${cls} resize-none`} />
+      ) : (
+        <input type="text" value={value} onChange={e => onChange(e.target.value)}
+          placeholder={placeholder} className={cls} />
+      )}
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const [settings, setSettings] = useState<AppSettings>({
-    waitlist_mode: "false",
-    maintenance_mode: "false",
+    coming_soon_mode: "false",
+    coming_soon_headline: "Built for marriage. Not just matches.",
+    coming_soon_subtext: "",
+    coming_soon_exclusivity: "",
+    coming_soon_button_text: "Request early access",
+    coming_soon_success_message: "You're on the list. We'll be in touch soon.",
     free_tier_daily_limit: "10",
     announcement_banner: "",
   });
+  const [emails, setEmails] = useState<EarlyAccessEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
@@ -41,9 +76,18 @@ export default function AdminSettings() {
   const toast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 3000); };
 
   useEffect(() => {
-    adminFetch("/settings").then(r => r.json()).then(data => {
-      setSettings(prev => ({ ...prev, ...data }));
+    Promise.all([
+      adminFetch("/settings").then(r => r.json()),
+      adminFetch("/early-access-emails").then(r => r.json()),
+    ]).then(([settingsData, emailsData]) => {
+      setSettings(prev => ({ ...prev, ...settingsData }));
+      setEmails(emailsData.rows ?? []);
       setLoading(false);
+    }).catch(() => {
+      adminFetch("/settings").then(r => r.json()).then(data => {
+        setSettings(prev => ({ ...prev, ...data }));
+        setLoading(false);
+      });
     });
   }, []);
 
@@ -54,6 +98,24 @@ export default function AdminSettings() {
     toast("Settings saved successfully");
   };
 
+  const exportCSV = async () => {
+    const adminSecret = sessionStorage.getItem("da_admin_secret") ?? "";
+    const res = await fetch(`${API_BASE}/api/early-access/export`, {
+      headers: { "x-admin-secret": adminSecret },
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `early-access-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const set = (key: keyof AppSettings) => (v: string) =>
+    setSettings(s => ({ ...s, [key]: v }));
+
   if (loading) return (
     <AdminLayout>
       <div className="p-8 text-gray-400">Loading settings...</div>
@@ -62,66 +124,103 @@ export default function AdminSettings() {
 
   return (
     <AdminLayout>
-      <div className="p-8 max-w-2xl">
-        <h1 className="text-white text-2xl font-bold mb-2">Settings</h1>
-        <p className="text-gray-400 text-sm mb-8">Platform configuration and toggles</p>
+      <div className="p-8 max-w-2xl space-y-6">
+        <div>
+          <h1 className="text-white text-2xl font-bold mb-1">Settings</h1>
+          <p className="text-gray-400 text-sm">Platform configuration and coming soon controls</p>
+        </div>
 
         {toastMsg && (
-          <div className="mb-6 px-4 py-3 bg-green-600/20 border border-green-500/30 text-green-400 rounded-xl text-sm">{toastMsg}</div>
+          <div className="px-4 py-3 bg-green-600/20 border border-green-500/30 text-green-400 rounded-xl text-sm">{toastMsg}</div>
         )}
 
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden mb-6">
+        {/* Coming Soon Mode */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
           <div className="p-6 border-b border-gray-800">
-            <h2 className="text-white font-bold">Access Control</h2>
+            <h2 className="text-white font-bold">Coming Soon Mode</h2>
+            <p className="text-gray-400 text-sm mt-1">When ON, all visitors see the coming soon page instead of the app.</p>
           </div>
-          <div className="px-6 divide-y divide-gray-800">
+          <div className="px-6">
             <Toggle
-              label="Waitlist Mode"
-              desc='When ON, "Apply for Membership" leads to the waitlist form. When OFF, goes directly to signup.'
-              value={settings.waitlist_mode === "true"}
-              onChange={v => setSettings(s => ({ ...s, waitlist_mode: String(v) }))}
-            />
-            <Toggle
-              label="Maintenance Mode"
-              desc="When ON, all users see a maintenance message. Admin can still access the panel."
-              value={settings.maintenance_mode === "true"}
-              onChange={v => setSettings(s => ({ ...s, maintenance_mode: String(v) }))}
+              label="Coming Soon Mode"
+              desc="Admins and logged-in members can still access /admin and /login."
+              value={settings.coming_soon_mode === "true"}
+              onChange={v => set("coming_soon_mode")(String(v))}
             />
           </div>
         </div>
 
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden mb-6">
+        {/* Coming Soon Content */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <div className="p-6 border-b border-gray-800">
+            <h2 className="text-white font-bold">Coming Soon Page Content</h2>
+          </div>
+          <div className="p-6 space-y-5">
+            <Field
+              label="Headline"
+              value={settings.coming_soon_headline}
+              onChange={set("coming_soon_headline")}
+              placeholder="Built for marriage. Not just matches."
+            />
+            <Field
+              label="Subtext"
+              value={settings.coming_soon_subtext}
+              onChange={set("coming_soon_subtext")}
+              multiline
+              placeholder="Launching soon — a curated platform for Africans..."
+            />
+            <Field
+              label="Exclusivity Line"
+              value={settings.coming_soon_exclusivity}
+              onChange={set("coming_soon_exclusivity")}
+              placeholder="We are onboarding a limited number of serious members. Be first."
+            />
+            <Field
+              label="Button Text"
+              value={settings.coming_soon_button_text}
+              onChange={set("coming_soon_button_text")}
+              placeholder="Request early access"
+            />
+            <Field
+              label="After-Submit Message"
+              value={settings.coming_soon_success_message}
+              onChange={set("coming_soon_success_message")}
+              placeholder="You're on the list. We'll be in touch soon."
+            />
+          </div>
+        </div>
+
+        {/* Match Limits */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
           <div className="p-6 border-b border-gray-800">
             <h2 className="text-white font-bold">Match Limits</h2>
           </div>
           <div className="p-6">
             <label className="block text-sm font-medium text-gray-300 mb-2">Free Tier Daily Match Limit</label>
             <input
-              type="number"
-              min={1}
-              max={100}
+              type="number" min={1} max={100}
               value={settings.free_tier_daily_limit}
-              onChange={e => setSettings(s => ({ ...s, free_tier_daily_limit: e.target.value }))}
+              onChange={e => set("free_tier_daily_limit")(e.target.value)}
               className="w-32 bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <p className="text-gray-500 text-xs mt-2">Core and Badge tiers have unlimited matches.</p>
           </div>
         </div>
 
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden mb-6">
+        {/* Announcement Banner */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
           <div className="p-6 border-b border-gray-800">
             <h2 className="text-white font-bold">Announcement Banner</h2>
           </div>
           <div className="p-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Banner Message</label>
             <textarea
               value={settings.announcement_banner}
-              onChange={e => setSettings(s => ({ ...s, announcement_banner: e.target.value }))}
+              onChange={e => set("announcement_banner")(e.target.value)}
               rows={3}
-              placeholder="Leave empty to hide the banner. e.g. 'We are currently experiencing high demand — thank you for your patience.'"
+              placeholder="Leave empty to hide. e.g. 'We are currently experiencing high demand — thank you for your patience.'"
               className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
             />
-            <p className="text-gray-500 text-xs mt-2">Shown as a banner at the top of the app for all users when non-empty.</p>
+            <p className="text-gray-500 text-xs mt-2">Shown at the top for all users when non-empty.</p>
           </div>
         </div>
 
@@ -133,6 +232,42 @@ export default function AdminSettings() {
           <Save className="w-4 h-4" />
           {saving ? "Saving..." : "Save Settings"}
         </button>
+
+        {/* Early Access Emails */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+            <div>
+              <h2 className="text-white font-bold">Early Access Emails</h2>
+              <p className="text-gray-400 text-sm mt-0.5">{emails.length} email{emails.length !== 1 ? "s" : ""} collected</p>
+            </div>
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition-colors border border-gray-700"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
+          <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
+            {emails.length === 0 ? (
+              <div className="p-8 text-center">
+                <Mail className="w-8 h-8 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">No early access requests yet.</p>
+              </div>
+            ) : (
+              emails.map(row => (
+                <div key={row.id} className="px-6 py-3 flex items-center justify-between">
+                  <span className="text-white text-sm">{row.email}</span>
+                  <span className="text-gray-500 text-xs">
+                    {new Date(row.createdAt).toLocaleDateString("en-GB", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </AdminLayout>
   );

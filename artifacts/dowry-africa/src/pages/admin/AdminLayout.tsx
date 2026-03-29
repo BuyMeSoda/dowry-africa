@@ -3,13 +3,12 @@ import { useEffect } from "react";
 import { isAdminLoggedIn, clearAdminSecret } from "@/lib/admin";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import {
-  LayoutDashboard, Users, ListChecks, CreditCard,
+  LayoutDashboard, Users, CreditCard,
   Activity, ShieldAlert, Settings, LogOut
 } from "lucide-react";
 
 const NAV = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { label: "Waitlist", icon: ListChecks, href: "/admin/waitlist" },
   { label: "Users", icon: Users, href: "/admin/users" },
   { label: "Subscriptions", icon: CreditCard, href: "/admin/subscriptions" },
   { label: "Activity", icon: Activity, href: "/admin/activity" },

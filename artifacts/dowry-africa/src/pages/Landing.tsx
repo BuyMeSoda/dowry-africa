@@ -3,18 +3,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Heart, ShieldCheck, Star, Users } from "lucide-react";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { motion } from "framer-motion";
-import { useEffect } from "react";
-import { useWaitlist } from "@/contexts/WaitlistContext";
-
 export default function Landing() {
-  const { waitlistMode, refresh } = useWaitlist();
-
-  // Re-fetch every time the landing page mounts so admin toggles are reflected immediately
-  useEffect(() => {
-    refresh();
-  }, []);
-
-  const applyHref = waitlistMode ? "/apply" : "/register";
+  const applyHref = "/register";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

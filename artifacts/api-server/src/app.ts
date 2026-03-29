@@ -45,7 +45,7 @@ app.use(
       if (allowedOrigins.length === 0) return callback(null, true);
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-admin-secret"],
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
     credentials: false,
   }),

@@ -1,0 +1,73 @@
+I want to replace the waitlist form with a proper "Coming Soon / Early Access" page. Here is exactly what I need:
+
+1. MAINTENANCE/COMING SOON MODE
+When maintenance_mode or waitlist_mode is turned ON in the admin panel, ALL visitors to the site (except logged-in admins) see a full-screen "Coming Soon" page instead of the normal app.
+
+This page should:
+- Show the Dowry.Africa logo prominently
+- Show a powerful headline (editable from admin)
+- Show a subtext (editable from admin)
+- Show an email capture input + button
+- Feel premium, beautiful and on-brand
+
+2. DEFAULT CONTENT (admin can edit all of this from the settings panel)
+- Headline: "Built for marriage. Not just matches."
+- Subtext: "Dowry.Africa is launching soon — a curated platform for Africans and the diaspora who are serious about commitment. No games. No talking stages. Just real people ready for real love."
+- Exclusivity line: "We are onboarding a limited number of serious members. Be first."
+- Button text: "Request early access"
+- After submit message: "You're on the list. We'll be in touch soon."
+
+3. EMAIL CAPTURE
+- Single input: email address
+- Single button: "Request early access"
+- On submit: save email + timestamp to a early_access table in the database
+- Show success message after submit
+- No other fields needed — keep it simple and frictionless
+- Duplicate email handling: if email already exists show "You're already on the list!"
+
+4. ADMIN CONTROL
+In the admin Settings section add:
+- Coming Soon mode toggle (ON/OFF) — when ON, all visitors see the coming soon page
+- Editable fields:
+  * Headline text
+  * Subtext
+  * Exclusivity line
+  * Button text
+  * After-submit message
+- Early access emails list showing:
+  * Email address
+  * Date submitted
+  * Export to CSV button
+
+5. DESIGN
+- Full screen, centered layout
+- Use the exact same brand colors and fonts as the rest of the app
+- Large, bold headline
+- Soft elegant background — could use the existing hero background pattern or a clean gradient
+- The email input should be large and prominent
+- Mobile first — must look perfect on phone
+- Add a subtle animated element if possible (gentle pulse on the logo or a soft background animation)
+- Below the form add social media links: Instagram, TikTok, Twitter/X @dowry.africa
+
+6. DATABASE
+Add early_access table:
+- id, email, created_at
+
+Add to settings table:
+- coming_soon_mode (boolean)
+- coming_soon_headline (text)
+- coming_soon_subtext (text)
+- coming_soon_exclusivity (text)
+- coming_soon_button_text (text)
+- coming_soon_success_message (text)
+
+7. API ENDPOINTS
+- POST /api/early-access — save email, handle duplicates
+- GET /api/early-access — admin only, list all emails
+- GET /api/early-access/export — admin only, return CSV
+
+8. IMPORTANT
+- The /admin route must still be accessible even when coming soon mode is ON
+- The /login route must still be accessible for existing approved members
+- Everyone else sees the coming soon page
+- When coming soon mode is OFF — everything works normally, nobody sees the coming soon page

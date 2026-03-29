@@ -39,29 +39,10 @@ export const users = pgTable("users", {
   accountStatus: text("account_status").notNull().default("active"),
 });
 
-export const waitlist = pgTable("waitlist", {
+export const earlyAccess = pgTable("early_access", {
   id: text("id").primaryKey(),
-  fullName: text("full_name").notNull(),
-  age: integer("age").notNull(),
-  city: text("city").notNull(),
-  country: text("country").notNull(),
   email: text("email").notNull().unique(),
-  intention: text("intention").notNull(),
-  timeline: text("timeline").notNull(),
-  willingProfile: boolean("willing_profile").notNull().default(false),
-  willingVerify: boolean("willing_verify").notNull().default(false),
-  willingRespect: boolean("willing_respect").notNull().default(false),
-  faith: text("faith"),
-  openToDistance: boolean("open_to_distance"),
-  heritage: text("heritage"),
-  diasporaPreference: text("diaspora_preference"),
-  whyJoining: text("why_joining").notNull(),
-  referralSource: text("referral_source"),
-  referralCode: text("referral_code"),
-  priority: text("priority").notNull().default("medium"),
-  status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  approvedAt: timestamp("approved_at", { withTimezone: true }),
 });
 
 export const settings = pgTable("settings", {

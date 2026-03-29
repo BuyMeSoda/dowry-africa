@@ -1,6 +1,5 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { useWaitlist } from "@/contexts/WaitlistContext";
 import { LogOut, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -13,10 +12,8 @@ import {
 
 export function Navbar() {
   const { user, logout } = useAuth();
-  const { waitlistMode } = useWaitlist();
   const [location, setLocation] = useLocation();
-
-  const getStartedHref = waitlistMode ? "/apply" : "/register";
+  const getStartedHref = "/register";
 
   const handleLogout = () => {
     logout();

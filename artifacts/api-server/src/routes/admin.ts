@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, sql, and, ilike, or, desc, gte } from "drizzle-orm";
+import { eq, sql, and, desc, gte } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
@@ -17,22 +17,20 @@ router.get("/dashboard", async (_req, res) => {
 
     const [
       [totalUsers],
-      [totalWaitlist],
+      [totalEarlyAccess],
       [newToday],
       [newThisWeek],
       [coreSubs],
       [badgeSubs],
       [totalMessages],
-      [waitlistApproved],
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)::int` }).from(schema.users),
-      db.select({ count: sql<number>`count(*)::int` }).from(schema.waitlist),
+      db.execute(sql`SELECT count(*)::int AS count FROM early_access`).then(r => [{ count: Number((r.rows[0] as any)?.count ?? 0) }]),
       db.select({ count: sql<number>`count(*)::int` }).from(schema.users).where(gte(schema.users.createdAt, todayStart)),
       db.select({ count: sql<number>`count(*)::int` }).from(schema.users).where(gte(schema.users.createdAt, weekStart)),
       db.select({ count: sql<number>`count(*)::int` }).from(schema.users).where(eq(schema.users.tier, "core")),
       db.select({ count: sql<number>`count(*)::int` }).from(schema.users).where(and(eq(schema.users.tier, "badge"), eq(schema.users.hasBadge, true))),
       db.select({ count: sql<number>`count(*)::int` }).from(schema.messages),
-      db.select({ count: sql<number>`count(*)::int` }).from(schema.waitlist).where(eq(schema.waitlist.status, "approved")),
     ]);
 
     // db.execute returns { rows } not an array — handle separately
@@ -44,108 +42,22 @@ router.get("/dashboard", async (_req, res) => {
     const coreCount = coreSubs.count;
     const badgeCount = badgeSubs.count;
     const mrr = coreCount * 7 + badgeCount * 15;
-    const wlTotal = totalWaitlist.count;
-    const conversionRate = wlTotal > 0 ? Math.round((waitlistApproved.count / wlTotal) * 100) : 0;
+    const totalUsersCount = totalUsers.count;
+    const subscriptionRate = totalUsersCount > 0 ? Math.round(((coreCount + badgeCount) / totalUsersCount) * 100) : 0;
 
     res.json({
-      totalUsers: totalUsers.count,
-      totalWaitlist: wlTotal,
+      totalUsers: totalUsersCount,
+      totalEarlyAccess: totalEarlyAccess.count,
       newUsersToday: newToday.count,
       newUsersThisWeek: newThisWeek.count,
       activeSubscriptions: { core: coreCount, badge: badgeCount, total: coreCount + badgeCount },
       mrr,
       totalMessages: totalMessages.count,
       totalMatches: totalMatchCount,
-      waitlistConversionRate: conversionRate,
+      subscriptionRate,
     });
   } catch (err) {
     console.error("Admin dashboard error", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// ── Waitlist ──────────────────────────────────────────────────────────────
-router.get("/waitlist", async (req, res) => {
-  try {
-    const { priority, status, country, search, page = "1" } = req.query as Record<string, string>;
-    const limit = 25;
-    const offset = (Number(page) - 1) * limit;
-
-    let query = db.select().from(schema.waitlist);
-    const conditions: any[] = [];
-
-    if (priority) conditions.push(eq(schema.waitlist.priority, priority));
-    if (status) conditions.push(eq(schema.waitlist.status, status));
-    if (country) conditions.push(eq(schema.waitlist.country, country));
-    if (search) conditions.push(or(ilike(schema.waitlist.fullName, `%${search}%`), ilike(schema.waitlist.email, `%${search}%`)));
-
-    const rows = await (conditions.length > 0
-      ? db.select().from(schema.waitlist).where(and(...conditions)).orderBy(desc(schema.waitlist.createdAt)).limit(limit).offset(offset)
-      : db.select().from(schema.waitlist).orderBy(desc(schema.waitlist.createdAt)).limit(limit).offset(offset));
-
-    const [total] = await (conditions.length > 0
-      ? db.select({ count: sql<number>`count(*)::int` }).from(schema.waitlist).where(and(...conditions))
-      : db.select({ count: sql<number>`count(*)::int` }).from(schema.waitlist));
-
-    const [priorityBreakdown] = await Promise.all([
-      db.execute(sql`SELECT priority, count(*)::int FROM waitlist GROUP BY priority`),
-    ]);
-    const [statusBreakdown] = await Promise.all([
-      db.execute(sql`SELECT status, count(*)::int FROM waitlist GROUP BY status`),
-    ]);
-
-    res.json({ rows, total: total.count, priorityBreakdown: priorityBreakdown.rows, statusBreakdown: statusBreakdown.rows });
-  } catch (err) {
-    console.error("Admin waitlist error", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-router.post("/waitlist/:id/approve", async (req, res) => {
-  try {
-    const [row] = await db.update(schema.waitlist)
-      .set({ status: "approved", approvedAt: new Date() })
-      .where(eq(schema.waitlist.id, req.params.id))
-      .returning();
-    if (!row) { res.status(404).json({ error: "Not found" }); return; }
-    console.log(`[Admin] Waitlist approved: ${row.email}`);
-    res.json({ success: true, row });
-  } catch (err) {
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-router.post("/waitlist/:id/reject", async (req, res) => {
-  try {
-    const [row] = await db.update(schema.waitlist)
-      .set({ status: "rejected" })
-      .where(eq(schema.waitlist.id, req.params.id))
-      .returning();
-    if (!row) { res.status(404).json({ error: "Not found" }); return; }
-    res.json({ success: true, row });
-  } catch (err) {
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-router.post("/waitlist/bulk-approve", async (req, res) => {
-  try {
-    const { ids } = req.body as { ids: string[] };
-    if (!ids?.length) { res.status(400).json({ error: "No ids provided" }); return; }
-    await db.execute(sql`UPDATE waitlist SET status = 'approved', approved_at = NOW() WHERE id = ANY(${ids})`);
-    res.json({ success: true, count: ids.length });
-  } catch (err) {
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-router.post("/waitlist/bulk-reject", async (req, res) => {
-  try {
-    const { ids } = req.body as { ids: string[] };
-    if (!ids?.length) { res.status(400).json({ error: "No ids provided" }); return; }
-    await db.execute(sql`UPDATE waitlist SET status = 'rejected' WHERE id = ANY(${ids})`);
-    res.json({ success: true, count: ids.length });
-  } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -356,6 +268,16 @@ router.patch("/reports/:id", async (req, res) => {
   }
 });
 
+// ── Early Access Emails ───────────────────────────────────────────────────
+router.get("/early-access-emails", async (_req, res) => {
+  try {
+    const result = await db.execute(sql`SELECT id, email, created_at AS "createdAt" FROM early_access ORDER BY created_at DESC`);
+    res.json({ rows: result.rows, total: result.rows.length });
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── Settings ──────────────────────────────────────────────────────────────
 router.get("/settings", async (_req, res) => {
   try {
@@ -371,7 +293,11 @@ router.get("/settings", async (_req, res) => {
 router.patch("/settings", async (req, res) => {
   try {
     const updates = req.body as Record<string, string>;
-    const validKeys = ["waitlist_mode", "maintenance_mode", "free_tier_daily_limit", "announcement_banner"];
+    const validKeys = [
+      "coming_soon_mode", "coming_soon_headline", "coming_soon_subtext",
+      "coming_soon_exclusivity", "coming_soon_button_text", "coming_soon_success_message",
+      "free_tier_daily_limit", "announcement_banner",
+    ];
 
     for (const [key, value] of Object.entries(updates)) {
       if (!validKeys.includes(key)) continue;
