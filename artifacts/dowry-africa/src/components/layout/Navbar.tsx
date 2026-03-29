@@ -56,6 +56,9 @@ export function Navbar() {
         <div className="flex items-center gap-4">
           {!user ? (
             <>
+              <Link href="/about" className={`hidden md:block text-sm font-medium transition-colors hover:text-primary ${location === '/about' ? 'text-primary' : 'text-muted-foreground'}`}>
+                About
+              </Link>
               <Link href="/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
                 Log in
               </Link>

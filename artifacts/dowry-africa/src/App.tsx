@@ -16,6 +16,7 @@ import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
 import Premium from "@/pages/Premium";
 import ComingSoon from "@/pages/ComingSoon";
+import About from "@/pages/About";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
@@ -87,6 +88,7 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/coming-soon" component={ComingSoon} />
+        <Route path="/about" component={About} />
 
         {/* Admin routes — use their own auth */}
         <Route path="/admin/login" component={AdminLogin} />

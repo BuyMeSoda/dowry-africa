@@ -127,6 +127,11 @@ export default function Landing() {
       <footer className="bg-foreground text-white py-12">
         <div className="container mx-auto px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="font-display text-2xl font-bold text-white">Dowry.Africa</p>
+          <nav className="flex items-center gap-6">
+            <Link href="/about" className="text-white/60 hover:text-white text-sm transition-colors">About</Link>
+            <Link href="/register" className="text-white/60 hover:text-white text-sm transition-colors">Join</Link>
+            <Link href="/login" className="text-white/60 hover:text-white text-sm transition-colors">Log in</Link>
+          </nav>
           <p className="text-white/50 text-sm">© {new Date().getFullYear()} Dowry.Africa. All rights reserved.</p>
         </div>
       </footer>
