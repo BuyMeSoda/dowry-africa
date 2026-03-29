@@ -78,28 +78,37 @@ export default function ComingSoon() {
       </div>
 
       <div className="relative z-10 w-full max-w-lg text-center">
-        {/* Logo with gentle pulse */}
-        <div className="flex justify-center mb-8">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-primary/15 animate-ping" style={{ animationDuration: "3s" }} />
-            <div className="relative w-20 h-20 overflow-hidden">
+        {/* Logo lockup */}
+        <div className="flex justify-center mb-10">
+          <div className="flex items-center gap-3">
+            <div className="h-14 w-14 overflow-hidden flex-shrink-0">
               <img
                 src={`${import.meta.env.BASE_URL}logo.png`}
                 alt="Dowry.Africa"
-                className="w-full h-full object-contain"
+                className="h-14 w-auto"
+                style={{ maxWidth: "none" }}
               />
             </div>
+            <span className="font-display font-bold text-primary text-3xl leading-none tracking-tight">
+              Dowry.Africa
+            </span>
           </div>
         </div>
 
-        {/* Brand name */}
-        <p className="font-display font-bold text-primary text-2xl mb-10 tracking-tight">
-          Dowry.Africa
-        </p>
-
         {/* Headline */}
-        <h1 className="font-display font-bold text-4xl md:text-5xl lg:text-6xl text-foreground leading-[1.1] mb-6">
-          {headline}
+        <h1 className="font-display font-bold text-4xl md:text-5xl lg:text-6xl leading-[1.1] mb-6">
+          {(() => {
+            const parts = headline.split(/(?<=\.) /);
+            if (parts.length >= 2) {
+              return (
+                <>
+                  <span className="text-foreground">{parts[0]} </span>
+                  <span className="text-primary">{parts.slice(1).join(" ")}</span>
+                </>
+              );
+            }
+            return <span className="text-foreground">{headline}</span>;
+          })()}
         </h1>
 
         {/* Subtext */}
