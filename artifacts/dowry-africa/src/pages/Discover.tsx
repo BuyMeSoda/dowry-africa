@@ -120,7 +120,11 @@ export default function Discover() {
                     <Sparkles className="w-4 h-4" />
                     <span>{paymentStatus.tier === 'badge' ? 'Serious Badge' : 'Core Member'}</span>
                   </div>
-                  <p className="text-sm text-foreground/70">You have priority matching and unlimited access active.</p>
+                  <p className="text-sm text-foreground/70">
+                    {paymentStatus.tier === 'badge'
+                      ? 'Priority matching, exclusive badge pool, and unlimited access active.'
+                      : 'Full messaging access and unlimited matches active.'}
+                  </p>
                 </div>
               )}
            </div>
