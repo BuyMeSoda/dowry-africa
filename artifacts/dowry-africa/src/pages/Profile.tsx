@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
+import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -130,11 +131,11 @@ export default function Profile() {
         <div className="bg-white rounded-[2rem] shadow-xl border border-border overflow-hidden">
           <div className="h-48 bg-gradient-to-r from-primary/20 to-secondary/40 relative">
             {user.hasBadge && (
-              <div className="absolute top-6 right-6 bg-white p-3 rounded-2xl shadow-lg flex items-center gap-3">
-                <img src={`${import.meta.env.BASE_URL}images/trust-badge.png`} alt="Verified" className="w-10 h-10" />
+              <div className="absolute top-6 right-6 flex items-center gap-3 bg-white/90 backdrop-blur-sm border border-amber-200/60 px-4 py-2.5 rounded-2xl shadow-lg shadow-amber-100/40">
+                <SeriousBadgeIcon size={36} />
                 <div>
-                  <p className="font-bold text-sm">Serious Badge</p>
-                  <p className="text-xs text-muted-foreground">Active</p>
+                  <p className="font-bold text-sm text-amber-900">Serious Badge</p>
+                  <p className="text-xs text-amber-700/70 font-medium">Verified Member</p>
                 </div>
               </div>
             )}

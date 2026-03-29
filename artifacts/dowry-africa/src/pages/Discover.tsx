@@ -5,6 +5,7 @@ import { useGetMatchFeed, useLikeUser, usePassUser, useGetPaymentStatus, type Fe
 import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 
 // ── Tag label formatting ─────────────────────────────────────────────────────
 const TAG_LABELS: Record<string, string> = {
@@ -179,7 +180,7 @@ export default function Discover() {
                         <div className="hidden md:flex justify-between items-start mb-1">
                           <h2 className="text-3xl font-display font-bold text-foreground">{card.user.name}, {card.user.age}</h2>
                           {card.user.hasBadge && (
-                            <img src={`${import.meta.env.BASE_URL}images/trust-badge.png`} className="w-8 h-8" alt="Badge" title="Serious Badge Verified" />
+                            <SeriousBadgeIcon size={34} title="Serious Badge Verified" />
                           )}
                         </div>
                         
