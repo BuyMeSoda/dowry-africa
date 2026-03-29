@@ -81,13 +81,16 @@ export default function ComingSoon() {
         {/* Logo lockup */}
         <div className="flex justify-center mb-10">
           <div className="flex items-center gap-3">
-            <div className="h-14 w-14 overflow-hidden flex-shrink-0">
-              <img
-                src={`${import.meta.env.BASE_URL}logo.png`}
-                alt="Dowry.Africa"
-                className="h-14 w-auto"
-                style={{ maxWidth: "none" }}
-              />
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 rounded-full bg-primary/15 animate-ping" style={{ animationDuration: "3s" }} />
+              <div className="relative h-14 w-14 overflow-hidden">
+                <img
+                  src={`${import.meta.env.BASE_URL}logo.png`}
+                  alt="Dowry.Africa"
+                  className="h-14 w-auto"
+                  style={{ maxWidth: "none" }}
+                />
+              </div>
             </div>
             <span className="font-display font-bold text-primary text-3xl leading-none tracking-tight">
               Dowry.Africa
