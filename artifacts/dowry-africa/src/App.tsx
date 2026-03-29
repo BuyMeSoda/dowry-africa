@@ -16,15 +16,20 @@ import Profile from "@/pages/Profile";
 import Premium from "@/pages/Premium";
 
 // Global Fetch Interceptor for JWT token
+const _apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 const originalFetch = window.fetch;
 window.fetch = async (input, init) => {
   const token = localStorage.getItem('da_token');
-  if (token && typeof input === 'string' && input.startsWith('/api')) {
-    init = init || {};
-    init.headers = {
-      ...init.headers,
-      Authorization: `Bearer ${token}`
-    };
+  if (token && typeof input === 'string') {
+    const isRelativeApi = input.startsWith('/api');
+    const isAbsoluteApi = _apiBase !== "" && input.startsWith(`${_apiBase}/api`);
+    if (isRelativeApi || isAbsoluteApi) {
+      init = init || {};
+      init.headers = {
+        ...init.headers,
+        Authorization: `Bearer ${token}`
+      };
+    }
   }
   return originalFetch(input, init);
 };

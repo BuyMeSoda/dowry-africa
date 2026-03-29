@@ -75,10 +75,12 @@ export default function Profile() {
 
   const token = localStorage.getItem("da_token");
 
+  const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+
   async function savePrefs() {
     setSaving(true);
     try {
-      const res = await fetch("/api/users/me/profile", {
+      const res = await fetch(`${apiBase}/api/users/me/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(prefForm),
@@ -97,7 +99,7 @@ export default function Profile() {
   async function saveProfile() {
     setSaving(true);
     try {
-      const res = await fetch("/api/users/me/profile", {
+      const res = await fetch(`${apiBase}/api/users/me/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(profileForm),
