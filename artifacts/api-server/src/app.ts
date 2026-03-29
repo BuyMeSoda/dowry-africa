@@ -27,7 +27,29 @@ app.use(
     },
   }),
 );
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (server-to-server, curl, Postman)
+      if (!origin) return callback(null, true);
+      // Always allow localhost in any port (dev)
+      if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+      // Allow explicit allow-list from env
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Fall back to allow-all when no explicit list is configured
+      if (allowedOrigins.length === 0) return callback(null, true);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    credentials: false,
+  }),
+);
 
 // Stripe webhook needs the raw body for signature verification — must come before express.json()
 app.use("/api/payments/webhook", express.raw({ type: "*/*" }));

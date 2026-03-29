@@ -6,9 +6,8 @@ import path from "path";
 const port = Number(process.env.PORT || 3000);
 const basePath = process.env.BASE_PATH || "/";
 
-// Runtime API URL — available in both dev server and vite preview (process.env),
-// regardless of whether it was present at build time (import.meta.env).
-const apiTarget = process.env.VITE_API_URL || "http://localhost:8080";
+// Dev proxy target — only used by the local vite dev server, never in production builds.
+const devApiTarget = "http://localhost:8080";
 
 export default defineConfig({
   base: basePath,
@@ -33,7 +32,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: apiTarget,
+        target: devApiTarget,
         changeOrigin: true,
       },
     },
@@ -42,11 +41,5 @@ export default defineConfig({
     port,
     host: "0.0.0.0",
     allowedHosts: true,
-    proxy: {
-      "/api": {
-        target: apiTarget,
-        changeOrigin: true,
-      },
-    },
   },
 });
