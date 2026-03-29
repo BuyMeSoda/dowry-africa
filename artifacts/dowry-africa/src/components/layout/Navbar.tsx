@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { useWaitlist } from "@/contexts/WaitlistContext";
 import { LogOut, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -12,7 +13,10 @@ import {
 
 export function Navbar() {
   const { user, logout } = useAuth();
+  const { waitlistMode } = useWaitlist();
   const [location, setLocation] = useLocation();
+
+  const getStartedHref = waitlistMode ? "/apply" : "/register";
 
   const handleLogout = () => {
     logout();
@@ -58,7 +62,7 @@ export function Navbar() {
               <Link href="/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
                 Log in
               </Link>
-              <Link href="/register" className="text-sm font-medium bg-primary text-primary-foreground px-5 py-2.5 rounded-full hover:bg-primary/90 shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5">
+              <Link href={getStartedHref} className="text-sm font-medium bg-primary text-primary-foreground px-5 py-2.5 rounded-full hover:bg-primary/90 shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5">
                 Get Started
               </Link>
             </>

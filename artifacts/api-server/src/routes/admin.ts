@@ -271,7 +271,7 @@ router.get("/activity", async (_req, res) => {
     const [
       [likesToday], [likesWeek], [likesAll],
       [msgsToday], [msgsWeek], [msgsAll],
-      [matchesAll],
+      matchesAll,
       topUsers,
       geoBreakdown,
     ] = await Promise.all([

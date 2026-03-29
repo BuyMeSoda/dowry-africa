@@ -3,17 +3,15 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Heart, ShieldCheck, Star, Users } from "lucide-react";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { API_BASE } from "@/lib/api-url";
+import { useEffect } from "react";
+import { useWaitlist } from "@/contexts/WaitlistContext";
 
 export default function Landing() {
-  const [waitlistMode, setWaitlistMode] = useState(false);
+  const { waitlistMode, refresh } = useWaitlist();
 
+  // Re-fetch every time the landing page mounts so admin toggles are reflected immediately
   useEffect(() => {
-    fetch(`${API_BASE}/api/waitlist/status`)
-      .then(r => r.json())
-      .then(d => setWaitlistMode(!!d.waitlistMode))
-      .catch(() => {});
+    refresh();
   }, []);
 
   const applyHref = waitlistMode ? "/apply" : "/register";

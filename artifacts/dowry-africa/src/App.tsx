@@ -2,7 +2,8 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { useEffect, useState } from "react";
+import { WaitlistProvider } from "@/contexts/WaitlistContext";
+import { useEffect } from "react";
 
 // Pages
 import NotFound from "@/pages/not-found";
@@ -62,9 +63,6 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
   return <Component {...rest} />;
 }
 
-// Waitlist mode context — fetched once on app load
-export const WaitlistContext = { mode: false };
-
 function Router() {
   return (
     <Switch>
@@ -110,26 +108,16 @@ function Router() {
 }
 
 function App() {
-  const [waitlistMode, setWaitlistMode] = useState(false);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/waitlist/status`)
-      .then(r => r.json())
-      .then(data => {
-        WaitlistContext.mode = !!data.waitlistMode;
-        setWaitlistMode(!!data.waitlistMode);
-      })
-      .catch(() => {});
-  }, []);
-
   return (
     <AuthProvider>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <WaitlistProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </WaitlistProvider>
     </AuthProvider>
   );
 }
