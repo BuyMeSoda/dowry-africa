@@ -3,7 +3,8 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
-import { seedDatabase } from "./db/database.js";
+import { runMigrations } from "./db/migrate.js";
+import { seedDatabase } from "./db/seed.js";
 
 const app: Express = express();
 
@@ -36,10 +37,17 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
-seedDatabase().then(() => {
-  logger.info("Database seeded with demo users");
-}).catch((err) => {
-  logger.error({ err }, "Failed to seed database");
-});
+// Run migrations then seed on every startup (idempotent)
+runMigrations()
+  .then(() => {
+    logger.info("Database migrations complete");
+    return seedDatabase();
+  })
+  .then(() => {
+    logger.info("Database seeded with demo users");
+  })
+  .catch((err) => {
+    logger.error({ err }, "Database setup failed");
+  });
 
 export default app;

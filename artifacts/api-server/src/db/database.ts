@@ -1,263 +1,17 @@
-import bcrypt from "bcryptjs";
-import { v4 as uuidv4 } from "uuid";
+import type { InferSelectModel } from "drizzle-orm";
+import type { users as usersTable } from "./schema.js";
 
 export type Tier = "free" | "core" | "badge";
 
-export interface User {
-  id: string;
-  email: string;
-  passwordHash: string;
-  name: string;
-  gender: "man" | "woman" | "non-binary";
-  birthYear: number;
-  age: number;
-  city?: string;
-  country?: string;
-  heritage: string[];
-  faith?: string;
-  languages: string[];
-  intent?: string;
-  lifeStage?: string;
-  childrenPref?: string;
-  marriageTimeline?: string;
-  familyInvolvement?: string;
-  relocationOpen?: boolean;
-  preferredFaith?: string;
-  preferredCountry?: string;
-  preferredHeritage?: string[];
-  bio?: string;
-  quote?: string;
-  photoUrl?: string;
-  tier: Tier;
-  hasBadge: boolean;
-  stripeCustomerId?: string;
-  genderPref?: string;
-  minAge?: number;
-  maxAge?: number;
-  completeness: number;
-  lastActive: Date;
-  createdAt: Date;
-  blocked: string[];
-}
+export type DbUser = InferSelectModel<typeof usersTable>;
 
-export interface Like {
-  fromId: string;
-  toId: string;
-  createdAt: Date;
-}
+export type User = DbUser & { age: number };
 
-export interface Pass {
-  fromId: string;
-  toId: string;
-}
-
-export interface Message {
-  id: string;
-  fromId: string;
-  toId: string;
-  text: string;
-  createdAt: Date;
-}
-
-export const users = new Map<string, User>();
-export const likes = new Map<string, Like>();
-export const passes = new Map<string, Pass>();
-export const messages: Message[] = [];
-
-function calcCompleteness(u: Partial<User>): number {
-  const fields = [u.bio, u.quote, u.photoUrl, u.city, u.country, u.faith, u.intent, u.lifeStage, u.childrenPref, u.marriageTimeline];
-  const filled = fields.filter(Boolean).length;
-  return Math.round((filled / fields.length) * 100);
-}
-
-async function seedUser(data: {
-  email: string;
-  password: string;
-  name: string;
-  gender: "man" | "woman" | "non-binary";
-  birthYear: number;
-  city: string;
-  country: string;
-  heritage: string[];
-  faith: string;
-  languages: string[];
-  intent: string;
-  lifeStage: string;
-  childrenPref: string;
-  marriageTimeline: string;
-  familyInvolvement: string;
-  bio: string;
-  quote: string;
-  tier: Tier;
-  hasBadge: boolean;
-  genderPref: string;
-  photoUrl?: string;
-  id?: string;
-}) {
-  const id = data.id ?? uuidv4();
-  const passwordHash = data.password === "demo" ? "$demo$" : await bcrypt.hash(data.password, 12);
-  const now = new Date();
-  const user: User = {
-    id,
-    email: data.email,
-    passwordHash,
-    name: data.name,
-    gender: data.gender,
-    birthYear: data.birthYear,
-    age: new Date().getFullYear() - data.birthYear,
-    city: data.city,
-    country: data.country,
-    heritage: data.heritage,
-    faith: data.faith,
-    languages: data.languages,
-    intent: data.intent,
-    lifeStage: data.lifeStage,
-    childrenPref: data.childrenPref,
-    marriageTimeline: data.marriageTimeline,
-    familyInvolvement: data.familyInvolvement,
-    bio: data.bio,
-    quote: data.quote,
-    photoUrl: data.photoUrl,
-    tier: data.tier,
-    hasBadge: data.hasBadge,
-    genderPref: data.genderPref,
-    minAge: 24,
-    maxAge: 45,
-    completeness: 100,
-    lastActive: now,
-    createdAt: now,
-    blocked: [],
+export function toUser(row: DbUser): User {
+  return {
+    ...row,
+    age: new Date().getFullYear() - row.birthYear,
   };
-  user.completeness = calcCompleteness(user);
-  users.set(id, user);
-  return user;
-}
-
-export async function seedDatabase() {
-  const chidinma = await seedUser({
-    id: "demo-chidinma-0001-0000-000000000001",
-    email: "chidinma@demo.com",
-    password: "demo",
-    name: "Chidinma",
-    gender: "woman",
-    birthYear: 1996,
-    city: "Lagos",
-    country: "Nigeria",
-    heritage: ["Igbo"],
-    faith: "Christian",
-    languages: ["English", "Igbo"],
-    intent: "marriage_ready",
-    lifeStage: "marriage_ready",
-    childrenPref: "yes",
-    marriageTimeline: "1_year",
-    familyInvolvement: "high",
-    bio: "I believe marriage is a sacred covenant, not just a social contract. I'm looking for someone who leads with intention and loves with depth.",
-    quote: "The best time to plant a tree was 20 years ago. The second best time is now.",
-    tier: "badge",
-    hasBadge: true,
-    genderPref: "man",
-    photoUrl: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&h=400&fit=crop",
-  });
-
-  const amara = await seedUser({
-    id: "demo-amara-00001-0000-000000000002",
-    email: "amara@demo.com",
-    password: "demo",
-    name: "Amara",
-    gender: "woman",
-    birthYear: 1998,
-    city: "London",
-    country: "UK",
-    heritage: ["Akan"],
-    faith: "Christian",
-    languages: ["English", "Twi"],
-    intent: "marriage_ready",
-    lifeStage: "marriage_ready",
-    childrenPref: "yes",
-    marriageTimeline: "2_years",
-    familyInvolvement: "medium",
-    bio: "Ghanaian-British. I'm deeply rooted in my culture while navigating life in the diaspora. Looking for someone who understands both worlds.",
-    quote: "Home is wherever my people are.",
-    tier: "badge",
-    hasBadge: true,
-    genderPref: "man",
-    photoUrl: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&h=400&fit=crop",
-  });
-
-  const emeka = await seedUser({
-    id: "demo-emeka-00001-0000-000000000003",
-    email: "emeka@demo.com",
-    password: "demo",
-    name: "Emeka",
-    gender: "man",
-    birthYear: 1992,
-    city: "Nairobi",
-    country: "Kenya",
-    heritage: ["Yoruba"],
-    faith: "Muslim",
-    languages: ["English", "Yoruba", "Swahili"],
-    intent: "serious_relationship",
-    lifeStage: "serious_relationship",
-    childrenPref: "yes",
-    marriageTimeline: "2_years",
-    familyInvolvement: "high",
-    bio: "Yoruba man building life in East Africa. I value family deeply — mine is loud, warm, and always at the table. Looking for someone who wants the same.",
-    quote: "A family that prays together stays together.",
-    tier: "core",
-    hasBadge: false,
-    genderPref: "woman",
-    photoUrl: "https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?w=400&h=400&fit=crop",
-  });
-
-  const kofi = await seedUser({
-    id: "demo-kofi-000001-0000-000000000004",
-    email: "kofi@demo.com",
-    password: "demo",
-    name: "Kofi",
-    gender: "man",
-    birthYear: 1994,
-    city: "Johannesburg",
-    country: "South Africa",
-    heritage: ["Akan"],
-    faith: "Christian",
-    languages: ["English", "Twi"],
-    intent: "marriage_ready",
-    lifeStage: "marriage_ready",
-    childrenPref: "yes",
-    marriageTimeline: "1_year",
-    familyInvolvement: "medium",
-    bio: "Ghanaian raised in South Africa. I bring together the warmth of Akan traditions with a modern, global perspective. Ready to build something real.",
-    quote: "The strength of a tree is in its roots.",
-    tier: "badge",
-    hasBadge: true,
-    genderPref: "woman",
-    photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
-  });
-
-  // Seed mutual likes so matches appear in Messages from day one
-  const now = new Date();
-  // Chidinma ↔ Kofi (mutual)
-  likes.set(getLikesKey(chidinma.id, kofi.id), { fromId: chidinma.id, toId: kofi.id, createdAt: now });
-  likes.set(getLikesKey(kofi.id, chidinma.id), { fromId: kofi.id, toId: chidinma.id, createdAt: now });
-  // Amara ↔ Emeka (mutual)
-  likes.set(getLikesKey(amara.id, emeka.id), { fromId: amara.id, toId: emeka.id, createdAt: now });
-  likes.set(getLikesKey(emeka.id, amara.id), { fromId: emeka.id, toId: amara.id, createdAt: now });
-  // Amara ↔ Kofi (mutual)
-  likes.set(getLikesKey(amara.id, kofi.id), { fromId: amara.id, toId: kofi.id, createdAt: now });
-  likes.set(getLikesKey(kofi.id, amara.id), { fromId: kofi.id, toId: amara.id, createdAt: now });
-
-  // Seed a starter message for each match
-  const v4 = uuidv4;
-  messages.push({ id: v4(), fromId: kofi.id, toId: chidinma.id, text: "Asalamu alaikum, Chidinma. Your profile really resonated with me — especially your view on marriage as a covenant. I'd love to hear more about you.", createdAt: new Date(Date.now() - 3600_000) });
-  messages.push({ id: v4(), fromId: emeka.id, toId: amara.id, text: "Hello Amara, fellow diaspora soul here. Navigating both worlds is its own journey — would love to connect.", createdAt: new Date(Date.now() - 7200_000) });
-
-  return { chidinma, amara, emeka, kofi };
-}
-
-export function getUserByEmail(email: string): User | undefined {
-  for (const user of users.values()) {
-    if (user.email.toLowerCase() === email.toLowerCase()) return user;
-  }
 }
 
 export function sanitizeUser(user: User): Omit<User, "passwordHash" | "blocked"> {
@@ -285,12 +39,12 @@ export function publicUser(user: User) {
   };
 }
 
-export function getLikesKey(fromId: string, toId: string) {
-  return `${fromId}:${toId}`;
+export function calcCompleteness(u: Partial<User>): number {
+  const fields = [u.bio, u.quote, u.photoUrl, u.city, u.country, u.faith, u.intent, u.lifeStage, u.childrenPref, u.marriageTimeline];
+  const filled = fields.filter(Boolean).length;
+  return Math.round((filled / fields.length) * 100);
 }
 
-export function updateUserCompleteness(user: User) {
-  const fields = [user.bio, user.quote, user.photoUrl, user.city, user.country, user.faith, user.intent, user.lifeStage, user.childrenPref, user.marriageTimeline];
-  const filled = fields.filter(Boolean).length;
-  user.completeness = Math.round((filled / fields.length) * 100);
+export function getLikesKey(fromId: string, toId: string) {
+  return `${fromId}:${toId}`;
 }

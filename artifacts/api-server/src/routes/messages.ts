@@ -1,7 +1,10 @@
 import { Router } from "express";
-import { users, messages, likes, getLikesKey, publicUser } from "../db/database.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { eq, and, or } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { db } from "../db/connection.js";
+import * as schema from "../db/schema.js";
+import { toUser } from "../db/database.js";
+import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -14,104 +17,205 @@ const GUIDED_PROMPTS = [
   "What does home mean to you?",
 ];
 
-router.get("/", requireAuth, (req, res) => {
-  const me = users.get(req.userId!);
-  if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
+router.get("/", requireAuth, async (req, res) => {
+  try {
+    const [meRow] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
 
-  const convMap = new Map<string, { userId: string; lastMessage: string | null; lastMessageAt: Date | null; unread: number; matchedAt: Date | null }>();
+    if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const me = toUser(meRow);
 
-  // Seed from mutual likes first (so mutual matches always appear)
-  for (const like of likes.values()) {
-    if (like.fromId !== me.id) continue;
-    const reverseKey = getLikesKey(like.toId, me.id);
-    if (!likes.has(reverseKey)) continue;
-    // mutual match
-    const other = users.get(like.toId);
-    if (!other) continue;
-    if (!convMap.has(like.toId)) {
-      convMap.set(like.toId, { userId: like.toId, lastMessage: null, lastMessageAt: null, unread: 0, matchedAt: like.createdAt });
+    const [myLikes, myMessages] = await Promise.all([
+      db.select().from(schema.likes).where(eq(schema.likes.fromId, me.id)),
+      db.select().from(schema.messages).where(
+        or(
+          eq(schema.messages.fromId, me.id),
+          eq(schema.messages.toId, me.id),
+        )
+      ),
+    ]);
+
+    const likesSent = new Set(myLikes.map(l => l.toId));
+
+    const mutualIds = new Set<string>();
+    const matchedAtMap = new Map<string, Date>();
+
+    for (const like of myLikes) {
+      const reverseCheck = await db
+        .select({ fromId: schema.likes.fromId })
+        .from(schema.likes)
+        .where(and(eq(schema.likes.fromId, like.toId), eq(schema.likes.toId, me.id)))
+        .limit(1);
+
+      if (reverseCheck.length > 0) {
+        mutualIds.add(like.toId);
+        matchedAtMap.set(like.toId, like.createdAt);
+      }
     }
-  }
 
-  // Overlay actual messages on top
-  for (const msg of messages) {
-    if (msg.fromId !== me.id && msg.toId !== me.id) continue;
-    const otherId = msg.fromId === me.id ? msg.toId : msg.fromId;
-    const existing = convMap.get(otherId);
-    if (!existing || !existing.lastMessageAt || msg.createdAt > existing.lastMessageAt) {
-      convMap.set(otherId, { userId: otherId, lastMessage: msg.text, lastMessageAt: msg.createdAt, unread: 0, matchedAt: existing?.matchedAt ?? null });
+    const convMap = new Map<string, {
+      userId: string;
+      lastMessage: string | null;
+      lastMessageAt: Date | null;
+      matchedAt: Date | null;
+    }>();
+
+    for (const otherId of mutualIds) {
+      convMap.set(otherId, {
+        userId: otherId,
+        lastMessage: null,
+        lastMessageAt: null,
+        matchedAt: matchedAtMap.get(otherId) ?? null,
+      });
     }
-  }
 
-  const conversations = Array.from(convMap.values()).map(({ userId, lastMessage, lastMessageAt, unread, matchedAt }) => {
-    const other = users.get(userId);
-    return {
-      userId,
-      name: other?.name ?? "Unknown",
-      photoUrl: other?.photoUrl,
-      lastMessage,
-      lastMessageAt: lastMessageAt ?? matchedAt,
-      unread,
+    for (const msg of myMessages) {
+      const otherId = msg.fromId === me.id ? msg.toId : msg.fromId;
+      const existing = convMap.get(otherId);
+      if (!existing || !existing.lastMessageAt || msg.createdAt > existing.lastMessageAt) {
+        convMap.set(otherId, {
+          userId: otherId,
+          lastMessage: msg.text,
+          lastMessageAt: msg.createdAt,
+          matchedAt: existing?.matchedAt ?? null,
+        });
+      }
+    }
+
+    const userIds = Array.from(convMap.keys());
+    const otherUsers = userIds.length > 0
+      ? await db.select().from(schema.users).where(
+          or(...userIds.map(id => eq(schema.users.id, id)))
+        )
+      : [];
+
+    const userMap = new Map(otherUsers.map(u => [u.id, u]));
+
+    const conversations = Array.from(convMap.values())
+      .map(({ userId, lastMessage, lastMessageAt, matchedAt }) => {
+        const other = userMap.get(userId);
+        return {
+          userId,
+          name: other?.name ?? "Unknown",
+          photoUrl: other?.photoUrl ?? null,
+          lastMessage,
+          lastMessageAt: lastMessageAt ?? matchedAt,
+          unread: 0,
+        };
+      })
+      .sort((a, b) => {
+        const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+        const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+        return bTime - aTime;
+      });
+
+    res.json({ conversations });
+  } catch (err) {
+    req.log.error(err, "Messages list error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:userId", requireAuth, async (req, res) => {
+  try {
+    const [meRow] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
+
+    if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const me = toUser(meRow);
+
+    if (me.tier === "free") {
+      res.status(403).json({ error: "Messaging requires a Core or Badge subscription" });
+      return;
+    }
+
+    const otherId = req.params.userId;
+
+    const otherExists = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(eq(schema.users.id, otherId))
+      .limit(1);
+
+    if (otherExists.length === 0) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const thread = await db
+      .select()
+      .from(schema.messages)
+      .where(
+        or(
+          and(eq(schema.messages.fromId, me.id), eq(schema.messages.toId, otherId)),
+          and(eq(schema.messages.fromId, otherId), eq(schema.messages.toId, me.id)),
+        )
+      );
+
+    thread.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+    const shuffled = [...GUIDED_PROMPTS].sort(() => Math.random() - 0.5).slice(0, 3);
+    res.json({ messages: thread, guidedPrompts: shuffled });
+  } catch (err) {
+    req.log.error(err, "Get thread error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:userId", requireAuth, async (req, res) => {
+  try {
+    const [meRow] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
+
+    if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const me = toUser(meRow);
+
+    if (me.tier === "free") {
+      res.status(403).json({ error: "Messaging requires a Core or Badge subscription" });
+      return;
+    }
+
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      res.status(400).json({ error: "Message text required" });
+      return;
+    }
+
+    const otherId = req.params.userId;
+    const otherExists = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(eq(schema.users.id, otherId))
+      .limit(1);
+
+    if (otherExists.length === 0) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const message = {
+      id: uuidv4(),
+      fromId: me.id,
+      toId: otherId,
+      text: text.trim(),
+      createdAt: new Date(),
     };
-  }).sort((a, b) => {
-    const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-    const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-    return bTime - aTime;
-  });
 
-  res.json({ conversations });
-});
-
-router.get("/:userId", requireAuth, (req, res) => {
-  const me = users.get(req.userId!);
-  if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-  if (me.tier === "free") {
-    res.status(403).json({ error: "Messaging requires a Core or Badge subscription" });
-    return;
+    await db.insert(schema.messages).values(message);
+    res.status(201).json(message);
+  } catch (err) {
+    req.log.error(err, "Send message error");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  const otherId = req.params.userId;
-  const thread = messages.filter(m =>
-    (m.fromId === me.id && m.toId === otherId) ||
-    (m.fromId === otherId && m.toId === me.id)
-  ).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-  const shuffled = [...GUIDED_PROMPTS].sort(() => Math.random() - 0.5).slice(0, 3);
-  res.json({ messages: thread, guidedPrompts: shuffled });
-});
-
-router.post("/:userId", requireAuth, (req, res) => {
-  const me = users.get(req.userId!);
-  if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-  if (me.tier === "free") {
-    res.status(403).json({ error: "Messaging requires a Core or Badge subscription" });
-    return;
-  }
-
-  const { text } = req.body;
-  if (!text || !text.trim()) {
-    res.status(400).json({ error: "Message text required" });
-    return;
-  }
-
-  const otherId = req.params.userId;
-  if (!users.has(otherId)) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  const message = {
-    id: uuidv4(),
-    fromId: me.id,
-    toId: otherId,
-    text: text.trim(),
-    createdAt: new Date(),
-  };
-  messages.push(message);
-
-  res.status(201).json(message);
 });
 
 export default router;

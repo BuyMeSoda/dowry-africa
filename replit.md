@@ -58,7 +58,9 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ### Key Features
 - JWT auth (30d expiry), stored as `da_token` in localStorage
-- In-memory user store (no database required)
+- PostgreSQL persistence via Drizzle ORM (tables: users, likes, passes, messages)
+- Migrations run automatically on startup via `runMigrations()` (CREATE TABLE IF NOT EXISTS — idempotent)
+- Demo users seeded on first boot via `seedDatabase()` (INSERT ... ON CONFLICT DO NOTHING)
 - 5-dimension matching algorithm (values 30%, lifeStage 25%, cultural 20%, practical 15%, engagement 10%)
 - Subscription tiers: free (5 matches), core ($7/mo), badge ($15/mo)
 - Stripe in demo mode (no STRIPE_SECRET_KEY needed)

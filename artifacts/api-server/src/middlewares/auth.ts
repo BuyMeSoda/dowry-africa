@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { users } from "../db/database.js";
 
 export interface JwtPayload {
   userId: string;
@@ -32,10 +31,6 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
   try {
     const payload = jwt.verify(token, secret) as JwtPayload;
-    if (!users.has(payload.userId)) {
-      res.status(401).json({ error: "User not found" });
-      return;
-    }
     req.userId = payload.userId;
     next();
   } catch {
@@ -54,7 +49,7 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   if (!secret) { next(); return; }
   try {
     const payload = jwt.verify(token, secret) as JwtPayload;
-    if (users.has(payload.userId)) req.userId = payload.userId;
+    req.userId = payload.userId;
   } catch {}
   next();
 }

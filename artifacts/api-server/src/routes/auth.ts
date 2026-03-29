@@ -2,7 +2,10 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-import { users, getUserByEmail, sanitizeUser, updateUserCompleteness } from "../db/database.js";
+import { eq } from "drizzle-orm";
+import { db } from "../db/connection.js";
+import * as schema from "../db/schema.js";
+import { toUser, sanitizeUser, calcCompleteness } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
@@ -21,7 +24,13 @@ router.post("/register", async (req, res) => {
       return;
     }
 
-    if (getUserByEmail(email)) {
+    const existing = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(eq(schema.users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (existing.length > 0) {
       res.status(400).json({ error: "Email already registered" });
       return;
     }
@@ -29,30 +38,43 @@ router.post("/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 12);
     const id = uuidv4();
     const now = new Date();
+    const bYear = Number(birthYear);
 
-    const user = {
+    const partial = {
+      bio: undefined as string | undefined,
+      quote: undefined as string | undefined,
+      photoUrl: undefined as string | undefined,
+      city: undefined as string | undefined,
+      country: undefined as string | undefined,
+      faith: undefined as string | undefined,
+      intent: undefined as string | undefined,
+      lifeStage: undefined as string | undefined,
+      childrenPref: undefined as string | undefined,
+      marriageTimeline: undefined as string | undefined,
+    };
+    const completeness = calcCompleteness(partial);
+
+    await db.insert(schema.users).values({
       id,
-      email,
+      email: email.toLowerCase(),
       passwordHash,
       name,
       gender,
-      birthYear: Number(birthYear),
-      age: new Date().getFullYear() - Number(birthYear),
-      heritage: [] as string[],
-      languages: [] as string[],
-      tier: "free" as const,
+      birthYear: bYear,
+      heritage: [],
+      languages: [],
+      tier: "free",
       hasBadge: false,
-      completeness: 0,
+      completeness,
       lastActive: now,
       createdAt: now,
-      blocked: [] as string[],
-    };
+      blocked: [],
+    });
 
-    updateUserCompleteness(user as any);
-    users.set(id, user as any);
-
+    const [row] = await db.select().from(schema.users).where(eq(schema.users.id, id)).limit(1);
+    const user = toUser(row);
     const token = makeToken(id);
-    res.status(201).json({ token, user: sanitizeUser(user as any) });
+    res.status(201).json({ token, user: sanitizeUser(user) });
   } catch (err) {
     req.log.error(err, "Register error");
     res.status(500).json({ error: "Internal server error" });
@@ -67,17 +89,22 @@ router.post("/login", async (req, res) => {
       return;
     }
 
-    const user = getUserByEmail(email);
-    if (!user) {
+    const [row] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (!row) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
     }
 
     let valid = false;
-    if (user.passwordHash === "$demo$") {
+    if (row.passwordHash === "$demo$") {
       valid = password === "demo";
     } else {
-      valid = await bcrypt.compare(password, user.passwordHash);
+      valid = await bcrypt.compare(password, row.passwordHash);
     }
 
     if (!valid) {
@@ -85,7 +112,12 @@ router.post("/login", async (req, res) => {
       return;
     }
 
-    user.lastActive = new Date();
+    await db
+      .update(schema.users)
+      .set({ lastActive: new Date() })
+      .where(eq(schema.users.id, row.id));
+
+    const user = toUser({ ...row, lastActive: new Date() });
     const token = makeToken(user.id);
     res.json({ token, user: sanitizeUser(user) });
   } catch (err) {
@@ -94,10 +126,20 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/me", requireAuth, (req, res) => {
-  const user = users.get(req.userId!);
-  if (!user) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(sanitizeUser(user));
+router.get("/me", requireAuth, async (req, res) => {
+  try {
+    const [row] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
+
+    if (!row) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(sanitizeUser(toUser(row)));
+  } catch (err) {
+    req.log.error(err, "Get me error");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

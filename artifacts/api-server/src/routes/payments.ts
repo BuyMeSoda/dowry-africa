@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { users } from "../db/database.js";
+import { eq } from "drizzle-orm";
+import { db } from "../db/connection.js";
+import * as schema from "../db/schema.js";
+import { toUser } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
@@ -10,23 +13,30 @@ function isDemoMode(): boolean {
 }
 
 router.post("/create-checkout", requireAuth, async (req, res) => {
-  const me = users.get(req.userId!);
-  if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-  const { tier } = req.body;
-  if (!tier || !["core", "badge"].includes(tier)) {
-    res.status(400).json({ error: "Invalid tier. Must be 'core' or 'badge'" });
-    return;
-  }
-
-  if (isDemoMode()) {
-    me.tier = tier as "core" | "badge";
-    me.hasBadge = tier === "badge";
-    res.json({ demo: true, tier, url: null });
-    return;
-  }
-
   try {
+    const [meRow] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
+
+    if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const me = toUser(meRow);
+
+    const { tier } = req.body;
+    if (!tier || !["core", "badge"].includes(tier)) {
+      res.status(400).json({ error: "Invalid tier. Must be 'core' or 'badge'" });
+      return;
+    }
+
+    if (isDemoMode()) {
+      await db.update(schema.users)
+        .set({ tier, hasBadge: tier === "badge" })
+        .where(eq(schema.users.id, me.id));
+      res.json({ demo: true, tier, url: null });
+      return;
+    }
+
     const stripe = await import("stripe");
     const client = new (stripe.default)(process.env["STRIPE_SECRET_KEY"]!);
 
@@ -35,8 +45,9 @@ router.post("/create-checkout", requireAuth, async (req, res) => {
       : process.env["STRIPE_BADGE_PRICE_ID"];
 
     if (!priceId) {
-      me.tier = tier as "core" | "badge";
-      me.hasBadge = tier === "badge";
+      await db.update(schema.users)
+        .set({ tier, hasBadge: tier === "badge" })
+        .where(eq(schema.users.id, me.id));
       res.json({ demo: true, tier, url: null });
       return;
     }
@@ -53,9 +64,13 @@ router.post("/create-checkout", requireAuth, async (req, res) => {
     res.json({ url: session.url, demo: false, tier });
   } catch (err) {
     req.log.error(err, "Stripe checkout error");
-    me.tier = tier as "core" | "badge";
-    me.hasBadge = tier === "badge";
-    res.json({ demo: true, tier, url: null });
+    if (req.userId) {
+      const { tier } = req.body;
+      await db.update(schema.users)
+        .set({ tier, hasBadge: tier === "badge" })
+        .where(eq(schema.users.id, req.userId));
+    }
+    res.json({ demo: true, tier: req.body.tier, url: null });
   }
 });
 
@@ -75,26 +90,26 @@ router.post("/webhook", async (req, res) => {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as any;
       const { userId, tier } = session.metadata ?? {};
-      if (userId && tier && users.has(userId)) {
-        const user = users.get(userId)!;
-        user.tier = tier;
-        user.hasBadge = tier === "badge";
-        if (session.customer) user.stripeCustomerId = session.customer;
+      if (userId && tier) {
+        await db.update(schema.users)
+          .set({
+            tier,
+            hasBadge: tier === "badge",
+            ...(session.customer ? { stripeCustomerId: session.customer } : {}),
+          })
+          .where(eq(schema.users.id, userId));
       }
     }
 
     if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
       const subscription = event.data.object as any;
       const customerId = subscription.customer;
-      for (const user of users.values()) {
-        if (user.stripeCustomerId === customerId) {
-          const status = subscription.status;
-          if (event.type === "customer.subscription.deleted" || status === "canceled" || status === "unpaid") {
-            user.tier = "free";
-            user.hasBadge = false;
-          }
-          break;
-        }
+      const status = subscription.status;
+
+      if (event.type === "customer.subscription.deleted" || status === "canceled" || status === "unpaid") {
+        await db.update(schema.users)
+          .set({ tier: "free", hasBadge: false })
+          .where(eq(schema.users.stripeCustomerId, customerId));
       }
     }
 
@@ -105,19 +120,24 @@ router.post("/webhook", async (req, res) => {
 });
 
 router.post("/create-portal", requireAuth, async (req, res) => {
-  const me = users.get(req.userId!);
-  if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-  if (isDemoMode()) {
-    res.status(400).json({ error: "Billing portal is not available in demo mode." });
-    return;
-  }
-
   try {
+    const [meRow] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
+
+    if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const me = toUser(meRow);
+
+    if (isDemoMode()) {
+      res.status(400).json({ error: "Billing portal is not available in demo mode." });
+      return;
+    }
+
     const stripe = await import("stripe");
     const client = new (stripe.default)(process.env["STRIPE_SECRET_KEY"]!);
 
-    // Resolve customer ID — use stored value or look up by email as fallback
     let customerId = me.stripeCustomerId;
     if (!customerId) {
       const results = await client.customers.list({ email: me.email, limit: 1 });
@@ -126,7 +146,9 @@ router.post("/create-portal", requireAuth, async (req, res) => {
         return;
       }
       customerId = results.data[0].id;
-      me.stripeCustomerId = customerId; // cache for next time
+      await db.update(schema.users)
+        .set({ stripeCustomerId: customerId })
+        .where(eq(schema.users.id, me.id));
     }
 
     const domain = process.env["REPLIT_DOMAINS"]?.split(",")[0] ?? "localhost:80";
@@ -142,35 +164,52 @@ router.post("/create-portal", requireAuth, async (req, res) => {
 });
 
 router.get("/status", requireAuth, async (req, res) => {
-  const me = users.get(req.userId!);
-  if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const [meRow] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
 
-  // If tier appears as free but Stripe is configured, sync from Stripe in case the
-  // server restarted and lost in-memory state after a prior payment.
-  if (me.tier === "free" && !isDemoMode()) {
-    try {
-      const stripe = await import("stripe");
-      const client = new (stripe.default)(process.env["STRIPE_SECRET_KEY"]!);
-      const results = await client.customers.list({ email: me.email, limit: 1 });
-      if (results.data.length > 0) {
-        const customer = results.data[0];
-        me.stripeCustomerId = customer.id;
-        const subs = await client.subscriptions.list({ customer: customer.id, status: "active", limit: 1 });
-        if (subs.data.length > 0) {
-          const sub = subs.data[0];
-          const priceId = sub.items.data[0]?.price?.id;
-          const badgePriceId = process.env["STRIPE_BADGE_PRICE_ID"];
-          const corePriceId = process.env["STRIPE_CORE_PRICE_ID"];
-          if (priceId === badgePriceId) { me.tier = "badge"; me.hasBadge = true; }
-          else if (priceId === corePriceId) { me.tier = "core"; me.hasBadge = false; }
+    if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const me = toUser(meRow);
+
+    if (me.tier === "free" && !isDemoMode()) {
+      try {
+        const stripe = await import("stripe");
+        const client = new (stripe.default)(process.env["STRIPE_SECRET_KEY"]!);
+        const results = await client.customers.list({ email: me.email, limit: 1 });
+        if (results.data.length > 0) {
+          const customer = results.data[0];
+          const subs = await client.subscriptions.list({ customer: customer.id, status: "active", limit: 1 });
+          if (subs.data.length > 0) {
+            const sub = subs.data[0];
+            const priceId = sub.items.data[0]?.price?.id;
+            const badgePriceId = process.env["STRIPE_BADGE_PRICE_ID"];
+            const corePriceId = process.env["STRIPE_CORE_PRICE_ID"];
+            let newTier = me.tier;
+            let newBadge = me.hasBadge;
+            if (priceId === badgePriceId) { newTier = "badge"; newBadge = true; }
+            else if (priceId === corePriceId) { newTier = "core"; newBadge = false; }
+
+            if (newTier !== me.tier) {
+              await db.update(schema.users)
+                .set({ tier: newTier, hasBadge: newBadge, stripeCustomerId: customer.id })
+                .where(eq(schema.users.id, me.id));
+              return res.json({ tier: newTier, hasBadge: newBadge });
+            }
+          }
         }
+      } catch {
+        // Stripe sync failed — return current DB state
       }
-    } catch {
-      // Stripe sync failed — return current in-memory state
     }
-  }
 
-  res.json({ tier: me.tier, hasBadge: me.hasBadge });
+    res.json({ tier: me.tier, hasBadge: me.hasBadge });
+  } catch (err) {
+    req.log.error(err, "Payment status error");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;
