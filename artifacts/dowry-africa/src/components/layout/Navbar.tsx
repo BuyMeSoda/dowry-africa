@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { LogOut, User as UserIcon } from "lucide-react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,12 +79,8 @@ export function Navbar() {
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger className="focus:outline-none">
-                <div className="w-10 h-10 rounded-full bg-secondary overflow-hidden border border-border flex items-center justify-center cursor-pointer hover:ring-2 ring-primary/20 transition-all">
-                  {user.photoUrl ? (
-                    <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <UserIcon className="w-5 h-5 text-muted-foreground" />
-                  )}
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-border cursor-pointer hover:ring-2 ring-primary/20 transition-all">
+                  <UserAvatar name={user.name} photoUrl={user.photoUrl} className="w-full h-full" textClassName="text-sm font-bold" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-background/95 backdrop-blur-xl border-border/50">

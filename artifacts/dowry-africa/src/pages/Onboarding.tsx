@@ -2,17 +2,25 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useUpdateProfile } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { usePhotoUpload } from "@/hooks/usePhotoUpload";
+import { useAuth } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { ALL_COUNTRIES } from "@/lib/country-options";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight, Loader2, Camera } from "lucide-react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+
+const TOTAL_STEPS = 5;
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const updateMutation = useUpdateProfile();
+  const { uploading, progress, triggerPicker, inputRef, upload } = usePhotoUpload();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [photoUploaded, setPhotoUploaded] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     intent: "marriage_ready",
     city: "",
@@ -24,10 +32,9 @@ export default function Onboarding() {
     marriageTimeline: "",
     bio: "",
     quote: "",
-    photoUrl: "https://images.unsplash.com/photo-1531123897727-8f129e1bfd8c?w=800&q=80" // Mock stock photo 
   });
 
-  const nextStep = () => setStep(s => Math.min(4, s + 1));
+  const nextStep = () => setStep(s => Math.min(TOTAL_STEPS, s + 1));
   const prevStep = () => setStep(s => Math.max(1, s - 1));
 
   const handleComplete = () => {
@@ -44,7 +51,7 @@ export default function Onboarding() {
   const toggleHeritage = (h: string) => {
     setFormData(prev => ({
       ...prev,
-      heritage: prev.heritage.includes(h) 
+      heritage: prev.heritage.includes(h)
         ? prev.heritage.filter(x => x !== h)
         : [...prev.heritage, h]
     }));
@@ -53,10 +60,10 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-border/50">
-        
+
         {/* Progress bar */}
         <div className="flex h-1.5 w-full bg-secondary">
-           <div className="bg-primary transition-all duration-500 ease-out" style={{ width: `${(step / 4) * 100}%` }} />
+          <div className="bg-primary transition-all duration-500 ease-out" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
         </div>
 
         <div className="p-8 sm:p-12 relative min-h-[500px]">
@@ -65,14 +72,14 @@ export default function Onboarding() {
               <motion.div key="step1" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="space-y-6">
                 <h2 className="text-3xl font-display font-bold">What are you looking for?</h2>
                 <p className="text-muted-foreground text-lg">Dowry.Africa is a community for intentional dating.</p>
-                
+
                 <div className="space-y-4 mt-8">
                   {[
                     { id: 'marriage_ready', label: 'Marriage Ready', desc: 'Looking to get married within 1-2 years.' },
                     { id: 'serious_relationship', label: 'Serious Relationship', desc: 'Looking for a committed partner to build a life with.' },
                     { id: 'friendship_first', label: 'Friendship First', desc: 'Open to a relationship, but want to start as friends.' }
                   ].map(opt => (
-                    <button 
+                    <button
                       key={opt.id}
                       onClick={() => setFormData({...formData, intent: opt.id})}
                       className={`w-full text-left p-6 rounded-2xl border-2 transition-all ${formData.intent === opt.id ? 'border-primary bg-primary/5 shadow-md' : 'border-border hover:border-primary/30'}`}
@@ -89,7 +96,7 @@ export default function Onboarding() {
               <motion.div key="step2" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="space-y-6">
                 <h2 className="text-3xl font-display font-bold">Your Roots</h2>
                 <p className="text-muted-foreground text-lg">Shared background often forms a strong foundation.</p>
-                
+
                 <div className="mt-8 space-y-6">
                   <div>
                     <label className="block font-medium mb-3">Country of origin</label>
@@ -107,7 +114,7 @@ export default function Onboarding() {
                   </div>
                   <div>
                     <label className="block font-medium mb-2">Faith</label>
-                    <select 
+                    <select
                       value={formData.faith}
                       onChange={e => setFormData({...formData, faith: e.target.value})}
                       className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -127,13 +134,13 @@ export default function Onboarding() {
             {step === 3 && (
               <motion.div key="step3" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="space-y-6">
                 <h2 className="text-3xl font-display font-bold">Location & Life Stage</h2>
-                
+
                 <div className="mt-8 space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2 text-foreground/80">City</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={formData.city}
                         onChange={e => setFormData({...formData, city: e.target.value})}
                         className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -142,8 +149,8 @@ export default function Onboarding() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2 text-foreground/80">Country</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={formData.country}
                         onChange={e => setFormData({...formData, country: e.target.value})}
                         className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -153,7 +160,7 @@ export default function Onboarding() {
                   </div>
                   <div>
                     <label className="block font-medium mb-2">Life Stage</label>
-                    <select 
+                    <select
                       value={formData.lifeStage}
                       onChange={e => setFormData({...formData, lifeStage: e.target.value})}
                       className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -167,7 +174,7 @@ export default function Onboarding() {
                   </div>
                   <div>
                     <label className="block font-medium mb-2">Marriage Timeline</label>
-                    <select 
+                    <select
                       value={formData.marriageTimeline}
                       onChange={e => setFormData({...formData, marriageTimeline: e.target.value})}
                       className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -187,12 +194,12 @@ export default function Onboarding() {
               <motion.div key="step4" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="space-y-6">
                 <h2 className="text-3xl font-display font-bold">Your Story</h2>
                 <p className="text-muted-foreground text-lg">Let your personality shine.</p>
-                
+
                 <div className="mt-8 space-y-5">
                   <div>
                     <label className="block font-medium mb-2">Personal Quote or Mantra</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.quote}
                       onChange={e => setFormData({...formData, quote: e.target.value})}
                       className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-display italic"
@@ -201,13 +208,81 @@ export default function Onboarding() {
                   </div>
                   <div>
                     <label className="block font-medium mb-2">Bio</label>
-                    <textarea 
+                    <textarea
                       value={formData.bio}
                       onChange={e => setFormData({...formData, bio: e.target.value})}
                       className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[120px] resize-none"
                       placeholder="Tell us about yourself..."
                     />
                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 5 && (
+              <motion.div key="step5" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="space-y-6 flex flex-col items-center text-center">
+                <h2 className="text-3xl font-display font-bold">Add your photo</h2>
+                <p className="text-muted-foreground text-lg">A real photo gets 5× more connections. You can skip this and add one later.</p>
+
+                <div className="mt-4 flex flex-col items-center gap-5">
+                  <button
+                    type="button"
+                    onClick={triggerPicker}
+                    disabled={uploading}
+                    className="w-36 h-36 rounded-full overflow-hidden relative group focus:outline-none cursor-pointer border-4 border-border shadow-lg"
+                    title="Add profile photo"
+                  >
+                    <UserAvatar
+                      name={user?.name ?? ""}
+                      photoUrl={previewUrl}
+                      className="w-full h-full"
+                      textClassName="text-5xl font-bold"
+                    />
+                    {uploading ? (
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+                        <Loader2 className="w-7 h-7 text-white animate-spin mb-1" />
+                        <span className="text-white text-xs font-semibold">{progress}%</span>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="w-8 h-8 text-white" />
+                      </div>
+                    )}
+                  </button>
+
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setPreviewUrl(URL.createObjectURL(file));
+                      const uploaded = await upload(file);
+                      if (uploaded) {
+                        setPhotoUploaded(true);
+                        toast({ title: "Photo uploaded!", description: "Your profile photo is set." });
+                      } else {
+                        setPreviewUrl(null);
+                        toast({ variant: "destructive", title: "Upload failed", description: "Please try again." });
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+
+                  {photoUploaded ? (
+                    <div className="text-emerald-600 font-semibold text-sm">Photo uploaded successfully!</div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={triggerPicker}
+                      disabled={uploading}
+                      className="px-6 py-3 border-2 border-primary text-primary rounded-full font-semibold hover:bg-primary/5 transition-colors disabled:opacity-50"
+                    >
+                      {uploading ? `Uploading… ${progress}%` : "Choose Photo"}
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -219,15 +294,30 @@ export default function Onboarding() {
                 Back
               </button>
             ) : <div />}
-            
-            {step < 4 ? (
+
+            {step < TOTAL_STEPS ? (
               <button onClick={nextStep} className="px-8 py-3 bg-primary text-white rounded-full font-medium shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all flex items-center gap-2">
                 Continue <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <button onClick={handleComplete} disabled={updateMutation.isPending} className="px-8 py-3 bg-foreground text-white rounded-full font-medium shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                {updateMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Profile"}
-              </button>
+              <div className="flex items-center gap-3">
+                {!photoUploaded && (
+                  <button
+                    onClick={handleComplete}
+                    disabled={updateMutation.isPending}
+                    className="px-6 py-3 text-muted-foreground font-medium hover:text-foreground transition-colors"
+                  >
+                    Skip
+                  </button>
+                )}
+                <button
+                  onClick={handleComplete}
+                  disabled={updateMutation.isPending}
+                  className="px-8 py-3 bg-foreground text-white rounded-full font-medium shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2"
+                >
+                  {updateMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Profile"}
+                </button>
+              </div>
             )}
           </div>
         </div>

@@ -4,7 +4,9 @@ import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
-import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users } from "lucide-react";
+import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users, Camera } from "lucide-react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { COUNTRY_GROUPS, ALL_COUNTRIES } from "@/lib/country-options";
 
@@ -57,6 +59,8 @@ export default function Profile() {
   const [showPrefEdit, setShowPrefEdit] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
+  const { uploading, progress, triggerPicker, inputRef, upload } = usePhotoUpload();
 
   const [prefForm, setPrefForm] = useState({
     genderPref: user?.genderPref ?? "any",
@@ -150,9 +154,49 @@ export default function Profile() {
 
           <div className="px-8 pb-12 relative">
             <div className="flex justify-between items-end mb-8">
-              <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-secondary -mt-16 overflow-hidden relative z-10">
-                <img src={user.photoUrl || "https://images.unsplash.com/photo-1531123897727-8f129e1bfd8c?w=400&q=80"} className="w-full h-full object-cover" />
-              </div>
+              {/* Clickable profile photo with camera overlay */}
+              <button
+                type="button"
+                onClick={triggerPicker}
+                disabled={uploading}
+                className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-secondary -mt-16 overflow-hidden relative z-10 group focus:outline-none cursor-pointer"
+                title="Change profile photo"
+              >
+                <UserAvatar
+                  name={user.name}
+                  photoUrl={localPhotoUrl ?? user.photoUrl}
+                  className="w-full h-full"
+                  textClassName="text-5xl font-bold"
+                />
+                {uploading ? (
+                  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+                    <Loader2 className="w-7 h-7 text-white animate-spin mb-1" />
+                    <span className="text-white text-xs font-semibold">{progress}%</span>
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="w-7 h-7 text-white" />
+                  </div>
+                )}
+              </button>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const previewUrl = URL.createObjectURL(file);
+                  setLocalPhotoUrl(previewUrl);
+                  const uploaded = await upload(file);
+                  if (!uploaded) {
+                    setLocalPhotoUrl(null);
+                    toast({ variant: "destructive", title: "Upload failed", description: "Please try again." });
+                  }
+                  e.target.value = "";
+                }}
+              />
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowProfileEdit(true)}
@@ -461,6 +505,41 @@ export default function Profile() {
             </div>
 
             <div className="p-6 space-y-5">
+              {/* Photo upload section */}
+              <div className="flex flex-col items-center gap-3 pb-4 border-b border-border">
+                <button
+                  type="button"
+                  onClick={triggerPicker}
+                  disabled={uploading}
+                  className="w-24 h-24 rounded-full overflow-hidden relative group focus:outline-none cursor-pointer border-4 border-border shadow-md"
+                  title="Change photo"
+                >
+                  <UserAvatar
+                    name={user.name}
+                    photoUrl={localPhotoUrl ?? user.photoUrl}
+                    className="w-full h-full"
+                    textClassName="text-3xl font-bold"
+                  />
+                  {uploading ? (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={triggerPicker}
+                  disabled={uploading}
+                  className="text-sm text-primary font-semibold hover:underline"
+                >
+                  {uploading ? `Uploading… ${progress}%` : "Change photo"}
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1.5">City</label>

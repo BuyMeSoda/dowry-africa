@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { API_BASE } from "@/lib/api-url";
 import { COUNTRY_GROUPS } from "@/lib/country-options";
 
@@ -85,11 +86,7 @@ function MatchModal({ name, photoUrl, onClose }: MatchModalProps) {
               </motion.div>
             ))}
             <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-primary shadow-xl shadow-primary/30 relative z-10">
-              <img
-                src={photoUrl || "https://images.unsplash.com/photo-1531123897727-8f129e1bfd8c?w=200&q=80"}
-                alt={name}
-                className="w-full h-full object-cover"
-              />
+              <UserAvatar name={name} photoUrl={photoUrl} className="w-full h-full" textClassName="text-5xl font-bold" />
             </div>
           </div>
 
@@ -186,11 +183,7 @@ function LikesYouPanel() {
             {likedBy.map(({ user }: any) => (
               <div key={user.id} className="shrink-0 w-44 bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="h-48 relative">
-                  <img
-                    src={user.photoUrl || "https://images.unsplash.com/photo-1531123897727-8f129e1bfd8c?w=200&q=80"}
-                    alt={user.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <UserAvatar name={user.name} photoUrl={user.photoUrl} className="w-full h-full" textClassName="text-4xl font-bold" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-3 left-3 right-3">
                     <p className="text-white font-bold text-sm truncate">{user.name}</p>
@@ -552,11 +545,7 @@ export default function Discover() {
                       >
                         {/* Photo Side */}
                         <div className="w-full md:w-5/12 aspect-[4/5] md:aspect-auto md:h-[500px] relative shrink-0">
-                          <img 
-                            src={card.user.photoUrl || "https://images.unsplash.com/photo-1516245834210-c4c142787335?q=80&w=800"} 
-                            alt={card.user.name} 
-                            className="w-full h-full object-cover"
-                          />
+                          <UserAvatar name={card.user.name} photoUrl={card.user.photoUrl} className="w-full h-full" textClassName="text-8xl font-bold" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 md:opacity-100 transition-opacity"></div>
                           
                           <div className="absolute bottom-6 left-6 right-6 md:hidden">

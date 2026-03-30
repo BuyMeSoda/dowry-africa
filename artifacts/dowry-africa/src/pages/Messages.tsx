@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { Send, MessageCircle, ChevronLeft, Heart, Sparkles } from "lucide-react";
 import { format } from "date-fns";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export default function Messages() {
   const { user } = useAuth();
@@ -89,11 +90,7 @@ export default function Messages() {
                         <Link key={c.userId} href={`/messages/${c.userId}`}>
                           <div className="flex flex-col items-center gap-2 cursor-pointer group w-16 shrink-0">
                             <div className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${activeUserId === c.userId ? 'border-primary' : 'border-primary/40 group-hover:border-primary'}`}>
-                              <img
-                                src={c.photoUrl || "https://images.unsplash.com/photo-1531123897727-8f129e1bfd8c?w=100&q=80"}
-                                className="w-full h-full object-cover"
-                                alt={c.name}
-                              />
+                              <UserAvatar name={c.name} photoUrl={c.photoUrl} className="w-full h-full" textClassName="text-xl font-bold" />
                             </div>
                             <span className="text-xs text-center text-foreground font-medium truncate w-full text-center leading-tight">{c.name.split(' ')[0]}</span>
                           </div>
@@ -116,7 +113,7 @@ export default function Messages() {
                         <Link key={c.userId} href={`/messages/${c.userId}`}>
                           <div className={`p-4 flex gap-4 cursor-pointer hover:bg-secondary/30 transition-colors ${activeUserId === c.userId ? 'bg-secondary/50 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}>
                             <div className="relative shrink-0">
-                              <img src={c.photoUrl || "https://images.unsplash.com/photo-1531123897727-8f129e1bfd8c?w=100&q=80"} className="w-14 h-14 rounded-full object-cover" alt={c.name} />
+                              <UserAvatar name={c.name} photoUrl={c.photoUrl} size={56} className="rounded-full" textClassName="text-xl font-bold" />
                               {c.unread > 0 && (
                                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                                   {c.unread > 9 ? "9+" : c.unread}
@@ -167,7 +164,7 @@ export default function Messages() {
                 <Link href="/messages" className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center hover:bg-secondary">
                   <ChevronLeft className="w-6 h-6" />
                 </Link>
-                <img src={activeConvo?.photoUrl || "https://images.unsplash.com/photo-1531123897727-8f129e1bfd8c?w=100&q=80"} className="w-12 h-12 rounded-full object-cover" />
+                <UserAvatar name={activeConvo?.name ?? ""} photoUrl={activeConvo?.photoUrl} size={48} className="rounded-full" textClassName="text-lg font-bold" />
                 <div>
                   <h3 className="font-display font-bold text-lg">{activeConvo?.name || 'Match'}</h3>
                   <p className="text-xs text-muted-foreground">Matched recently</p>
