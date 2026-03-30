@@ -108,7 +108,7 @@ export default function Landing() {
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 { icon: ShieldCheck, title: "Curated Community", desc: "Every profile undergoes verification to ensure authentic intent and real identities." },
-                { icon: Heart, title: "Compatibility Dimensions", desc: "Matches based on values, life stage, cultural heritage, and practical timelines." },
+                { icon: Heart, title: "Compatibility Dimensions", desc: "Matches based on values, life stage, country of origin, and practical timelines." },
                 { icon: Users, title: "Meaningful Dialogue", desc: "Guided prompts and structured messaging encourage deep, intentional conversations." }
               ].map((feature, idx) => (
                 <div key={idx} className="bg-white p-8 rounded-3xl shadow-lg border border-border/50 hover:shadow-xl transition-all duration-300">

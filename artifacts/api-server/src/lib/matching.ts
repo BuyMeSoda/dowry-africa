@@ -87,21 +87,84 @@ function overlap(a: string[], b: string[]): number {
   return a.filter(x => b.includes(x)).length;
 }
 
-// Diaspora countries (both abbreviated and full forms used across seed/user data)
+// ── Country-region maps for proximity scoring ─────────────────────────────────
+const WEST_AFRICA = new Set([
+  "Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo",
+  "Benin", "Guinea", "Sierra Leone", "Liberia", "Burkina Faso", "Niger",
+  "Gambia", "Guinea-Bissau", "Cape Verde", "Mauritania",
+]);
+const EAST_AFRICA = new Set([
+  "Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia",
+  "Eritrea", "Djibouti", "Burundi", "South Sudan", "Madagascar",
+  "Comoros", "Seychelles", "Mauritius",
+]);
+const SOUTHERN_AFRICA = new Set([
+  "South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique",
+  "Malawi", "Namibia", "Lesotho", "Eswatini", "Angola",
+]);
+const NORTH_AFRICA = new Set([
+  "Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya",
+]);
+const CENTRAL_AFRICA = new Set([
+  "DR Congo", "Republic of Congo", "Chad", "Gabon",
+  "Central African Republic", "Equatorial Guinea", "São Tomé and Príncipe",
+]);
 const DIASPORA_COUNTRIES = new Set([
   "United Kingdom", "UK", "United States", "US", "USA",
   "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland",
+  "Belgium", "Portugal", "Italy", "Spain", "Sweden", "Norway", "Denmark",
+  "Switzerland", "New Zealand", "UAE", "Saudi Arabia",
 ]);
 
-function culturalScore(a: User, b: User): number {
-  // heritage now stores country of origin (e.g. "Nigeria", "Ghana")
-  // Shared origin country → strong cultural signal
-  const originOverlap = overlap(a.heritage, b.heritage) > 0 ? 100 : 25;
-  const langOverlap = overlap(a.languages, b.languages) > 0 ? 80 : 40;
-  const residenceMatch = a.country === b.country ? 100 : 50;
-  const bothDiaspora = (DIASPORA_COUNTRIES.has(a.country ?? "") && DIASPORA_COUNTRIES.has(b.country ?? "")) ? 80 : 50;
+const AFRICAN_REGIONS = [WEST_AFRICA, EAST_AFRICA, SOUTHERN_AFRICA, NORTH_AFRICA, CENTRAL_AFRICA];
 
-  return Math.round((originOverlap * 0.45 + langOverlap * 0.30 + residenceMatch * 0.15 + bothDiaspora * 0.10));
+function getRegion(country: string): string {
+  if (WEST_AFRICA.has(country))    return "west";
+  if (EAST_AFRICA.has(country))    return "east";
+  if (SOUTHERN_AFRICA.has(country)) return "southern";
+  if (NORTH_AFRICA.has(country))   return "north";
+  if (CENTRAL_AFRICA.has(country)) return "central";
+  if (DIASPORA_COUNTRIES.has(country)) return "diaspora";
+  return "other";
+}
+
+function isAfrican(country: string): boolean {
+  return AFRICAN_REGIONS.some(region => region.has(country));
+}
+
+function countryOriginScore(aHeritage: string[], bHeritage: string[]): number {
+  // Empty heritage = "Open to all" → neutral, no penalty
+  if (!aHeritage.length || !bHeritage.length) return 50;
+
+  // Same country = 100
+  if (aHeritage.some(h => bHeritage.includes(h))) return 100;
+
+  // Gather regions for each person
+  const aRegions = new Set(aHeritage.map(getRegion));
+  const bRegions = new Set(bHeritage.map(getRegion));
+
+  // Same African region = 70
+  const sharedAfricanRegion = [...aRegions].some(
+    r => r !== "diaspora" && r !== "other" && bRegions.has(r),
+  );
+  if (sharedAfricanRegion) return 70;
+
+  // Both African (any African region), different regions = 50
+  const aAfrican = aHeritage.some(h => isAfrican(h));
+  const bAfrican = bHeritage.some(h => isAfrican(h));
+  if (aAfrican && bAfrican) return 50;
+
+  // Different continents = 30
+  return 30;
+}
+
+function culturalScore(a: User, b: User): number {
+  const originScore   = countryOriginScore(a.heritage, b.heritage);
+  const langOverlap   = overlap(a.languages, b.languages) > 0 ? 80 : 40;
+  const residenceMatch = a.country === b.country ? 100 : 50;
+  const bothDiaspora  = (DIASPORA_COUNTRIES.has(a.country ?? "") && DIASPORA_COUNTRIES.has(b.country ?? "")) ? 80 : 50;
+
+  return Math.round(originScore * 0.45 + langOverlap * 0.30 + residenceMatch * 0.15 + bothDiaspora * 0.10);
 }
 
 function practicalScore(a: User, b: User): number {

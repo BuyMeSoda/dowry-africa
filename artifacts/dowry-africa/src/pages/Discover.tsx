@@ -3,27 +3,19 @@ import { Link, useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { useLikeUser, usePassUser, useGetPaymentStatus, useGetLikedMe, type FeedCard } from "@workspace/api-client-react";
 import { useNotifications } from "@/contexts/NotificationsContext";
-import { CustomChipSelect, type ChipGroup } from "@/components/ui/CustomChipSelect";
+import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { API_BASE } from "@/lib/api-url";
+import { COUNTRY_GROUPS } from "@/lib/country-options";
 
-// "Any" at the top = no country filter applied
-const FILTER_CULTURAL_PRESETS = ["Any"];
+// "Open to all" = first chip, means no country filter applied
+const FILTER_CULTURAL_PRESETS = ["Open to all"];
 
-const FILTER_CULTURAL_GROUPS: ChipGroup[] = [
-  { group: "West Africa",    options: ["Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo", "Benin", "Guinea", "Sierra Leone", "Liberia"] },
-  { group: "East Africa",    options: ["Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia", "Eritrea", "Djibouti", "Burundi"] },
-  { group: "Southern Africa",options: ["South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique", "Malawi", "Namibia", "Lesotho", "Eswatini"] },
-  { group: "North Africa",   options: ["Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya"] },
-  { group: "Central Africa", options: ["DR Congo", "Congo", "Angola", "Chad", "Gabon"] },
-  { group: "Diaspora",       options: ["United Kingdom", "United States", "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland"] },
-];
-
-// "Any" first = top of Faith list, means "no filter"
-const FILTER_FAITH_PRESETS = ["Any", "Christian", "Muslim", "Traditional African"];
+// "Open to all" = first chip in Faith list, means no filter
+const FILTER_FAITH_PRESETS = ["Open to all", "Christian", "Muslim", "Traditional African"];
 
 // ── Tag label formatting ─────────────────────────────────────────────────────
 const TAG_LABELS: Record<string, string> = {
@@ -256,23 +248,23 @@ export default function Discover() {
 
   const handleCultureToggle = (value: string) => {
     setFilterCulture(prev => {
-      if (value === "Any") return prev.includes("Any") ? [] : ["Any"];
-      if (prev.includes("Any")) return [value];
+      if (value === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
+      if (prev.includes("Open to all")) return [value];
       return prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
     });
   };
   const handleFaithToggle = (value: string) => {
     setFilterFaith(prev => {
-      if (value === "Any") return prev.includes("Any") ? [] : ["Any"];
-      if (prev.includes("Any")) return [value];
+      if (value === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
+      if (prev.includes("Open to all")) return [value];
       return prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
     });
   };
   const clearFilters = () => { setFilterCulture([]); setFilterFaith([]); };
 
-  // Effective filters: "Any" selected = no filter for that dimension
-  const effectiveCultureFilter = filterCulture.filter(v => v !== "Any");
-  const effectiveFaithFilter   = filterFaith.filter(v => v !== "Any");
+  // Effective filters: "Open to all" = no filter on that dimension
+  const effectiveCultureFilter = filterCulture.filter(v => v !== "Open to all");
+  const effectiveFaithFilter   = filterFaith.filter(v => v !== "Open to all");
   const filtersActive = effectiveCultureFilter.length > 0 || effectiveFaithFilter.length > 0;
 
   // ── Infinite-scroll feed state ──────────────────────────────────────────────
@@ -402,11 +394,11 @@ export default function Discover() {
                   onChange={() => {}}
                   onToggleValue={handleCultureToggle}
                   presets={FILTER_CULTURAL_PRESETS}
-                  groups={FILTER_CULTURAL_GROUPS}
+                  groups={COUNTRY_GROUPS}
                   fieldType="heritage"
                   multiSelect
                   allowCustom
-                  customPlaceholder="e.g. Nubian, Wolof..."
+                  customPlaceholder="e.g. Congolese, Cape Verdean..."
                 />
               </div>
 

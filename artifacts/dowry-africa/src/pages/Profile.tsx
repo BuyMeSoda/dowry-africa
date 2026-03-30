@@ -3,29 +3,10 @@ import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
-import { CustomChipSelect, type ChipGroup } from "@/components/ui/CustomChipSelect";
+import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
 import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-// ── Country preference presets (grouped by region) ────────────────────────────
-const CULTURAL_PREF_GROUPS: ChipGroup[] = [
-  { group: "West Africa",    options: ["Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo", "Benin", "Guinea", "Sierra Leone", "Liberia"] },
-  { group: "East Africa",    options: ["Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia", "Eritrea", "Djibouti", "Burundi"] },
-  { group: "Southern Africa",options: ["South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique", "Malawi", "Namibia", "Lesotho", "Eswatini"] },
-  { group: "North Africa",   options: ["Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya"] },
-  { group: "Central Africa", options: ["DR Congo", "Congo", "Angola", "Chad", "Gabon"] },
-  { group: "Diaspora",       options: ["United Kingdom", "United States", "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland"] },
-];
-
-// Country chips for "My country of origin" in the profile section (flat)
-const MY_HERITAGE_OPTIONS = [
-  "Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo", "Benin", "Guinea", "Sierra Leone", "Liberia",
-  "Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia", "Eritrea", "Djibouti", "Burundi",
-  "South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique", "Malawi", "Namibia", "Lesotho", "Eswatini",
-  "Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya",
-  "DR Congo", "Congo", "Angola", "Chad", "Gabon",
-  "United Kingdom", "United States", "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland",
-];
+import { COUNTRY_GROUPS, ALL_COUNTRIES } from "@/lib/country-options";
 
 // ── Faith preference presets ─────────────────────────────────────────────────
 const FAITH_PREF_PRESETS = [
@@ -278,7 +259,7 @@ export default function Profile() {
                   user.minAge && user.maxAge ? `${user.minAge} – ${user.maxAge} yrs` :
                   user.minAge ? `${user.minAge}+ yrs` : "Any age"
                 } />
-                <PrefRow label="Country preference" value={preferredHeritage?.length ? preferredHeritage.join(", ") : "Any"} />
+                <PrefRow label="Country preference" value={preferredHeritage?.length ? preferredHeritage.join(", ") : "Open to all"} />
               </div>
 
               {/* Values */}
@@ -374,11 +355,11 @@ export default function Profile() {
                 <CustomChipSelect
                   selected={prefForm.preferredHeritage}
                   onChange={v => setPrefForm(f => ({ ...f, preferredHeritage: v }))}
-                  groups={CULTURAL_PREF_GROUPS}
+                  groups={COUNTRY_GROUPS}
                   fieldType="heritage"
                   multiSelect
                   allowCustom
-                  customPlaceholder="e.g. Nigerian-British, Congolese..."
+                  customPlaceholder="e.g. Congolese, Cape Verdean..."
                 />
               </div>
 
@@ -504,11 +485,11 @@ export default function Profile() {
                 <CustomChipSelect
                   selected={profileForm.heritage}
                   onChange={v => setProfileForm(f => ({ ...f, heritage: v }))}
-                  presets={MY_HERITAGE_OPTIONS}
+                  presets={ALL_COUNTRIES}
                   fieldType="heritage"
                   multiSelect
                   allowCustom
-                  customPlaceholder="e.g. Nigerian-British, DR Congolese..."
+                  customPlaceholder="e.g. Congolese, Cape Verdean..."
                 />
               </div>
 

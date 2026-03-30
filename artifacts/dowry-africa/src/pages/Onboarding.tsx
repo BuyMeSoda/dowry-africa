@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useUpdateProfile } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { ALL_COUNTRIES } from "@/lib/country-options";
 import { ChevronRight, Loader2 } from "lucide-react";
 
 export default function Onboarding() {
@@ -38,20 +39,7 @@ export default function Onboarding() {
     });
   };
 
-  const heritages = [
-    // West Africa
-    "Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo", "Benin", "Guinea", "Sierra Leone", "Liberia",
-    // East Africa
-    "Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia", "Eritrea", "Burundi",
-    // Southern Africa
-    "South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique", "Malawi", "Namibia",
-    // North Africa
-    "Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya",
-    // Central Africa
-    "DR Congo", "Congo", "Angola", "Chad", "Gabon",
-    // Diaspora
-    "United Kingdom", "United States", "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland",
-  ];
+  const heritages = ALL_COUNTRIES;
 
   const toggleHeritage = (h: string) => {
     setFormData(prev => ({

@@ -1,0 +1,138 @@
+Please do a complete audit of the entire codebase and replace ALL instances of tribal/ethnic heritage options with country-based options. This change must be applied everywhere without exception.
+
+Here is a checklist of every place this must change:
+
+═══════════════════════════════
+FRONTEND — every place to update
+═══════════════════════════════
+
+1. ONBOARDING FLOW
+- The heritage/cultural background step during signup/onboarding
+- Replace ethnic chips with country chips using the new country list
+
+2. PROFILE SETUP PAGE
+- Any heritage or cultural background field on the profile edit page
+- Replace with country selector
+
+3. PARTNER PREFERENCES MODAL
+- The "Cultural preference" or "Preferred heritage" section
+- Replace ethnic chips with country chips
+- Rename label to "Country preference"
+
+4. DISCOVER PAGE FILTERS SIDEBAR
+- The cultural preference filter section
+- Replace all ethnic/tribal chips with country chips
+- Rename to "Country preference"
+
+5. PROFILE DISPLAY CARDS on Discover feed
+- Where heritage/ethnicity currently shows as a badge on the card (e.g. "Igbo", "Akan")
+- This should now show the country instead
+
+6. FULL PROFILE VIEW PAGE
+- The heritage/cultural background detail row
+- Should show country not tribe
+
+7. COMING SOON PAGE
+- If any cultural/heritage reference exists, update it
+
+8. ANY OTHER COMPONENT
+- Search the entire frontend codebase for these words and replace:
+  * "heritage"
+  * "ethnicity" 
+  * "tribe"
+  * "tribal"
+  * "Igbo", "Yoruba", "Akan", "Zulu", "Kikuyu", "Hausa", "Luo", "Wolof", "Amhara", "Somali", "Xhosa", "Shona", "Ndebele", "Tswana", "Ewe", "Fante", "Tigrinya", "Baganda"
+  * "West African", "East African", "Southern African" (as ethnic groupings)
+  * "British-African", "American-African", "Caribbean-African"
+
+═══════════════════════════════
+BACKEND — every place to update
+═══════════════════════════════
+
+1. DATABASE SCHEMA
+- Rename the heritage/ethnicity column to country_preference or cultural_preference
+- Or keep the column name but change what values are stored in it
+
+2. SEED DATA
+- Update all demo user profiles to use countries instead of tribe names
+- e.g. Chidinma: "Nigeria" not "Igbo"
+- e.g. Amara: "Ghana" not "Akan"
+- e.g. Kofi: "Ghana" not "Akan"
+- e.g. Emeka: "Nigeria" not "Yoruba"
+
+3. MATCHING ALGORITHM
+- Update the cultural/heritage scoring to match on country instead of tribe
+- Nigeria matches Nigeria = high score
+- Nigeria matches Ghana = medium score (West African neighbours)
+- Nigeria matches Kenya = lower score
+- Any = no filter, matches everyone
+
+4. API ENDPOINTS
+- Any endpoint that accepts or returns heritage/ethnicity values
+- Update to accept country values
+- Update validation to accept country names not tribe names
+
+5. ADMIN PANEL
+- Any place heritage/ethnicity shows in user management
+- Update to show country
+
+═══════════════════════════════
+NEW COUNTRY LIST TO USE EVERYWHERE
+═══════════════════════════════
+
+WEST AFRICA:
+Nigeria, Ghana, Senegal, Côte d'Ivoire, Cameroon, Mali, Togo, Benin, Guinea, Sierra Leone, Liberia, Burkina Faso, Niger, Gambia, Guinea-Bissau, Cape Verde, Mauritania
+
+EAST AFRICA:
+Kenya, Ethiopia, Uganda, Tanzania, Rwanda, Somalia, Eritrea, Djibouti, Burundi, South Sudan, Madagascar, Comoros, Seychelles, Mauritius
+
+SOUTHERN AFRICA:
+South Africa, Zimbabwe, Zambia, Botswana, Mozambique, Malawi, Namibia, Lesotho, Eswatini, Angola
+
+NORTH AFRICA:
+Egypt, Morocco, Tunisia, Algeria, Sudan, Libya
+
+CENTRAL AFRICA:
+DR Congo, Republic of Congo, Angola, Chad, Gabon, Central African Republic, Equatorial Guinea, São Tomé and Príncipe
+
+DIASPORA:
+United Kingdom, United States, Canada, Australia, France, Germany, Netherlands, Ireland, Belgium, Portugal, Italy, Spain, Sweden, Norway, Denmark, Switzerland, New Zealand, UAE, Saudi Arabia
+
+Also include: "Open to all" as the first option (equivalent to "Any" — means no country filter)
+
+═══════════════════════════════
+LABELS TO USE CONSISTENTLY
+═══════════════════════════════
+Use these exact labels everywhere:
+- "Country of origin" — for the user's own background on their profile
+- "Country preference" — for what country they prefer in a partner
+- "Open to all" — instead of "Any"
+
+Do not use these words anywhere in the UI:
+- heritage
+- ethnicity  
+- tribe
+- tribal
+- cultural background (replace with "country of origin")
+
+═══════════════════════════════
+MATCHING LOGIC UPDATE
+═══════════════════════════════
+Update the compatibility scoring for country matching:
+
+- Same country = 100% score on this dimension
+- Same region (e.g. both West African) = 70% score
+- Different region but both African = 50% score
+- One diaspora one local, same origin country = 80% score
+- "Open to all" selected by either user = neutral, no penalty or boost
+- Different continents = 30% score
+
+═══════════════════════════════
+AFTER MAKING ALL CHANGES
+═══════════════════════════════
+Please confirm:
+1. Every instance of tribe/ethnicity has been replaced with country
+2. Demo user seed data has been updated
+3. The matching algorithm uses country scoring
+4. All labels are consistent across the entire app
+5. The database has been migrated successfully

@@ -102,7 +102,7 @@ export default function Premium() {
              <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-primary shrink-0" /> Unlimited profiles</li>
              <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-primary shrink-0" /> See who liked you</li>
              <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-primary shrink-0" /> Unlimited messaging</li>
-             <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-primary shrink-0" /> Advanced heritage filters</li>
+             <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-primary shrink-0" /> Advanced country filters</li>
            </ul>
            <button 
              onClick={() => handleCheckout('core')}
