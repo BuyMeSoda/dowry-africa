@@ -7,22 +7,24 @@ import { CustomChipSelect, type ChipGroup } from "@/components/ui/CustomChipSele
 import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// ── Cultural preference presets (grouped by region) ──────────────────────────
+// ── Country preference presets (grouped by region) ────────────────────────────
 const CULTURAL_PREF_GROUPS: ChipGroup[] = [
-  { group: "West African", options: ["Igbo", "Yoruba", "Akan", "Hausa", "Wolof", "Ewe", "Fante"] },
-  { group: "East African", options: ["Kikuyu", "Luo", "Baganda", "Amhara", "Somali", "Tigrinya"] },
-  { group: "Southern African", options: ["Zulu", "Xhosa", "Ndebele", "Shona", "Tswana"] },
-  { group: "North African", options: ["Amazigh", "Egyptian", "Sudanese"] },
-  { group: "Diaspora", options: ["British-African", "American-African", "Caribbean-African"] },
-  { group: "Open", options: ["Open to all"] },
+  { group: "West Africa",    options: ["Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo", "Benin", "Guinea", "Sierra Leone", "Liberia"] },
+  { group: "East Africa",    options: ["Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia", "Eritrea", "Djibouti", "Burundi"] },
+  { group: "Southern Africa",options: ["South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique", "Malawi", "Namibia", "Lesotho", "Eswatini"] },
+  { group: "North Africa",   options: ["Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya"] },
+  { group: "Central Africa", options: ["DR Congo", "Congo", "Angola", "Chad", "Gabon"] },
+  { group: "Diaspora",       options: ["United Kingdom", "United States", "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland"] },
 ];
 
-// Heritage chips for "My heritage" in the profile section (flat, broader)
+// Country chips for "My country of origin" in the profile section (flat)
 const MY_HERITAGE_OPTIONS = [
-  "Igbo", "Yoruba", "Akan", "Hausa", "Wolof", "Ewe", "Fante",
-  "Kikuyu", "Luo", "Baganda", "Amhara", "Somali", "Tigrinya",
-  "Zulu", "Xhosa", "Ndebele", "Shona", "Tswana",
-  "Amazigh", "Egyptian", "Sudanese",
+  "Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo", "Benin", "Guinea", "Sierra Leone", "Liberia",
+  "Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia", "Eritrea", "Djibouti", "Burundi",
+  "South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique", "Malawi", "Namibia", "Lesotho", "Eswatini",
+  "Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya",
+  "DR Congo", "Congo", "Angola", "Chad", "Gabon",
+  "United Kingdom", "United States", "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland",
 ];
 
 // ── Faith preference presets ─────────────────────────────────────────────────
@@ -209,7 +211,7 @@ export default function Profile() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xl font-display font-bold mb-3 border-b border-border pb-2">Background</h3>
-                  <PrefRow label="Cultural background" value={user.heritage?.join(", ") || "—"} />
+                  <PrefRow label="Country of origin" value={user.heritage?.join(", ") || "—"} />
                   <PrefRow label="Faith" value={user.faith || "—"} />
                   <PrefRow label="Languages" value={user.languages?.join(", ") || "—"} />
                 </div>
@@ -276,7 +278,7 @@ export default function Profile() {
                   user.minAge && user.maxAge ? `${user.minAge} – ${user.maxAge} yrs` :
                   user.minAge ? `${user.minAge}+ yrs` : "Any age"
                 } />
-                <PrefRow label="Cultural preference" value={preferredHeritage?.length ? preferredHeritage.join(", ") : "Any"} />
+                <PrefRow label="Country preference" value={preferredHeritage?.length ? preferredHeritage.join(", ") : "Any"} />
               </div>
 
               {/* Values */}
@@ -363,10 +365,10 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Cultural preference — grouped chips + custom */}
+              {/* Country preference — grouped chips + custom */}
               <div>
                 <div className="flex items-baseline justify-between mb-3">
-                  <label className="block font-semibold">Cultural preference</label>
+                  <label className="block font-semibold">Country preference</label>
                   <span className="text-xs text-muted-foreground">Select all that apply</span>
                 </div>
                 <CustomChipSelect
@@ -376,7 +378,7 @@ export default function Profile() {
                   fieldType="heritage"
                   multiSelect
                   allowCustom
-                  customPlaceholder="e.g. Igbo-American, Nubian..."
+                  customPlaceholder="e.g. Nigerian-British, Congolese..."
                 />
               </div>
 
@@ -498,7 +500,7 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">Cultural background</label>
+                <label className="block text-sm font-semibold mb-2">Country of origin</label>
                 <CustomChipSelect
                   selected={profileForm.heritage}
                   onChange={v => setProfileForm(f => ({ ...f, heritage: v }))}
@@ -506,7 +508,7 @@ export default function Profile() {
                   fieldType="heritage"
                   multiSelect
                   allowCustom
-                  customPlaceholder="e.g. Nubian, Afro-Caribbean..."
+                  customPlaceholder="e.g. Nigerian-British, DR Congolese..."
                 />
               </div>
 

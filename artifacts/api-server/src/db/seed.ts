@@ -26,7 +26,7 @@ const DEMO_USERS = [
     birthYear: 1996,
     city: "Lagos",
     country: "Nigeria",
-    heritage: ["Igbo"],
+    heritage: ["Nigeria"],
     faith: "Christianity",
     languages: ["English", "Igbo"],
     intent: "marriage_ready",
@@ -52,7 +52,7 @@ const DEMO_USERS = [
     birthYear: 1998,
     city: "London",
     country: "UK",
-    heritage: ["Akan"],
+    heritage: ["Ghana"],
     faith: "Christianity",
     languages: ["English", "Twi"],
     intent: "marriage_ready",
@@ -78,7 +78,7 @@ const DEMO_USERS = [
     birthYear: 1995,
     city: "Accra",
     country: "Ghana",
-    heritage: ["Ewe"],
+    heritage: ["Ghana"],
     faith: "Islam",
     languages: ["English", "Ewe", "Hausa"],
     intent: "marriage_ready",
@@ -105,7 +105,7 @@ const DEMO_USERS = [
     birthYear: 1992,
     city: "Nairobi",
     country: "Kenya",
-    heritage: ["Yoruba"],
+    heritage: ["Nigeria"],
     faith: "Islam",
     languages: ["English", "Yoruba", "Swahili"],
     intent: "serious_relationship",
@@ -131,7 +131,7 @@ const DEMO_USERS = [
     birthYear: 1994,
     city: "Johannesburg",
     country: "South Africa",
-    heritage: ["Akan"],
+    heritage: ["Ghana"],
     faith: "Christianity",
     languages: ["English", "Twi"],
     intent: "marriage_ready",
@@ -157,7 +157,7 @@ const DEMO_USERS = [
     birthYear: 1991,
     city: "Abuja",
     country: "Nigeria",
-    heritage: ["Yoruba"],
+    heritage: ["Nigeria"],
     faith: "Christianity",
     languages: ["English", "Yoruba"],
     intent: "marriage_ready",
@@ -183,7 +183,7 @@ const DEMO_USERS = [
     birthYear: 1993,
     city: "Toronto",
     country: "Canada",
-    heritage: ["Akan", "Ewe"],
+    heritage: ["Ghana"],
     faith: "Christianity",
     languages: ["English", "Twi", "French"],
     intent: "marriage_ready",
@@ -209,7 +209,7 @@ const DEMO_USERS = [
     birthYear: 1990,
     city: "Houston",
     country: "USA",
-    heritage: ["Igbo"],
+    heritage: ["Nigeria"],
     faith: "Christianity",
     languages: ["English", "Igbo"],
     intent: "marriage_ready",
@@ -235,7 +235,7 @@ const DEMO_USERS = [
     birthYear: 1995,
     city: "Manchester",
     country: "UK",
-    heritage: ["Yoruba"],
+    heritage: ["Nigeria"],
     faith: "Islam",
     languages: ["English", "Yoruba"],
     intent: "serious_relationship",
@@ -255,9 +255,20 @@ const DEMO_USERS = [
 ];
 
 export async function seedDatabase(): Promise<void> {
-  // ── 1. Upsert demo users ────────────────────────────────────────────────
+  // ── 1. Upsert demo users — update mutable fields so re-seeds pick up changes ──
   for (const user of DEMO_USERS) {
-    await db.insert(schema.users).values(user).onConflictDoNothing();
+    await db.insert(schema.users).values(user).onConflictDoUpdate({
+      target: schema.users.id,
+      set: {
+        heritage: user.heritage,
+        bio: user.bio,
+        quote: user.quote,
+        photoUrl: user.photoUrl,
+        completeness: user.completeness,
+        tier: user.tier,
+        hasBadge: user.hasBadge,
+      },
+    });
   }
 
   // ── 2. Reset all likes/passes among demo users so the feed is always fresh

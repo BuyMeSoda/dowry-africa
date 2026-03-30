@@ -87,14 +87,21 @@ function overlap(a: string[], b: string[]): number {
   return a.filter(x => b.includes(x)).length;
 }
 
-function culturalScore(a: User, b: User): number {
-  const heritageOverlap = overlap(a.heritage, b.heritage) > 0 ? 100 : 30;
-  const langOverlap = overlap(a.languages, b.languages) > 0 ? 80 : 40;
-  const countryMatch = a.country === b.country ? 100 : 50;
-  const diaspora = (["UK", "US", "Canada", "France", "Germany", "Netherlands", "Australia"].includes(a.country ?? "") &&
-    ["UK", "US", "Canada", "France", "Germany", "Netherlands", "Australia"].includes(b.country ?? "")) ? 80 : 50;
+// Diaspora countries (both abbreviated and full forms used across seed/user data)
+const DIASPORA_COUNTRIES = new Set([
+  "United Kingdom", "UK", "United States", "US", "USA",
+  "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland",
+]);
 
-  return Math.round((heritageOverlap * 0.4 + langOverlap * 0.3 + countryMatch * 0.15 + diaspora * 0.15));
+function culturalScore(a: User, b: User): number {
+  // heritage now stores country of origin (e.g. "Nigeria", "Ghana")
+  // Shared origin country → strong cultural signal
+  const originOverlap = overlap(a.heritage, b.heritage) > 0 ? 100 : 25;
+  const langOverlap = overlap(a.languages, b.languages) > 0 ? 80 : 40;
+  const residenceMatch = a.country === b.country ? 100 : 50;
+  const bothDiaspora = (DIASPORA_COUNTRIES.has(a.country ?? "") && DIASPORA_COUNTRIES.has(b.country ?? "")) ? 80 : 50;
+
+  return Math.round((originOverlap * 0.45 + langOverlap * 0.30 + residenceMatch * 0.15 + bothDiaspora * 0.10));
 }
 
 function practicalScore(a: User, b: User): number {
@@ -174,7 +181,8 @@ function generatePrompts(me: User, candidate: User, dims: ScoreDimensions): stri
   }
 
   if (dims.cultural >= 80 && overlap(me.heritage, candidate.heritage) > 0) {
-    prompts.push(`You share ${me.heritage.filter(h => candidate.heritage.includes(h)).join(", ")} heritage — you'll have a lot to talk about!`);
+    const shared = me.heritage.filter(h => candidate.heritage.includes(h));
+    prompts.push(`You're both connected to ${shared.join(" and ")} — you'll have so much to talk about!`);
   }
 
   if (dims.practical < 40) {

@@ -38,7 +38,20 @@ export default function Onboarding() {
     });
   };
 
-  const heritages = ["Igbo", "Yoruba", "Akan", "Zulu", "Kikuyu", "Hausa", "Amhara", "Shona", "Oromo", "Swahili", "Other"];
+  const heritages = [
+    // West Africa
+    "Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo", "Benin", "Guinea", "Sierra Leone", "Liberia",
+    // East Africa
+    "Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia", "Eritrea", "Burundi",
+    // Southern Africa
+    "South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique", "Malawi", "Namibia",
+    // North Africa
+    "Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya",
+    // Central Africa
+    "DR Congo", "Congo", "Angola", "Chad", "Gabon",
+    // Diaspora
+    "United Kingdom", "United States", "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland",
+  ];
 
   const toggleHeritage = (h: string) => {
     setFormData(prev => ({
@@ -86,12 +99,12 @@ export default function Onboarding() {
 
             {step === 2 && (
               <motion.div key="step2" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="space-y-6">
-                <h2 className="text-3xl font-display font-bold">Cultural Roots</h2>
-                <p className="text-muted-foreground text-lg">Shared heritage often forms a strong foundation.</p>
+                <h2 className="text-3xl font-display font-bold">Your Roots</h2>
+                <p className="text-muted-foreground text-lg">Shared background often forms a strong foundation.</p>
                 
                 <div className="mt-8 space-y-6">
                   <div>
-                    <label className="block font-medium mb-3">Heritage / Ethnicity</label>
+                    <label className="block font-medium mb-3">Country of origin</label>
                     <div className="flex flex-wrap gap-2">
                       {heritages.map(h => (
                         <button

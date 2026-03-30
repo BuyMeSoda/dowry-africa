@@ -10,14 +10,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { API_BASE } from "@/lib/api-url";
 
-// "Any" at the top = global no-filter option for Cultural preference
+// "Any" at the top = no country filter applied
 const FILTER_CULTURAL_PRESETS = ["Any"];
 
 const FILTER_CULTURAL_GROUPS: ChipGroup[] = [
-  { group: "West African", options: ["Igbo", "Yoruba", "Akan", "Hausa"] },
-  { group: "East African", options: ["Kikuyu", "Luo", "Amhara", "Somali"] },
-  { group: "Southern African", options: ["Zulu", "Xhosa", "Shona"] },
-  { group: "Diaspora", options: ["Any", "British-African", "American-African"] },
+  { group: "West Africa",    options: ["Nigeria", "Ghana", "Senegal", "Côte d'Ivoire", "Cameroon", "Mali", "Togo", "Benin", "Guinea", "Sierra Leone", "Liberia"] },
+  { group: "East Africa",    options: ["Kenya", "Ethiopia", "Uganda", "Tanzania", "Rwanda", "Somalia", "Eritrea", "Djibouti", "Burundi"] },
+  { group: "Southern Africa",options: ["South Africa", "Zimbabwe", "Zambia", "Botswana", "Mozambique", "Malawi", "Namibia", "Lesotho", "Eswatini"] },
+  { group: "North Africa",   options: ["Egypt", "Morocco", "Tunisia", "Algeria", "Sudan", "Libya"] },
+  { group: "Central Africa", options: ["DR Congo", "Congo", "Angola", "Chad", "Gabon"] },
+  { group: "Diaspora",       options: ["United Kingdom", "United States", "Canada", "Australia", "France", "Germany", "Netherlands", "Ireland"] },
 ];
 
 // "Any" first = top of Faith list, means "no filter"
@@ -392,9 +394,9 @@ export default function Discover() {
            <div className="sticky top-28 bg-white p-6 rounded-3xl border border-border shadow-sm space-y-6">
               <h3 className="font-display font-bold text-xl">Discover Filters</h3>
 
-              {/* Cultural preference filter */}
+              {/* Country preference filter */}
               <div>
-                <label className="text-sm font-semibold text-foreground block mb-2.5">Cultural preference</label>
+                <label className="text-sm font-semibold text-foreground block mb-2.5">Country preference</label>
                 <CustomChipSelect
                   selected={filterCulture}
                   onChange={() => {}}
