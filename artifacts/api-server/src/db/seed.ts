@@ -1,8 +1,22 @@
-import { v4 as uuidv4 } from "uuid";
 import { db } from "./connection.js";
 import * as schema from "./schema.js";
+import { sql } from "drizzle-orm";
+
+// All demo user IDs — kept stable so messages/notifications stay linked
+const DEMO_IDS = [
+  "demo-chidinma-0001-0000-000000000001",
+  "demo-amara-00001-0000-000000000002",
+  "demo-emeka-00001-0000-000000000003",
+  "demo-kofi-000001-0000-000000000004",
+  "demo-seun-000001-0000-000000000005",
+  "demo-kwame-00001-0000-000000000006",
+  "demo-tobenna-0001-0000-000000000007",
+  "demo-lekan-00001-0000-000000000008",
+  "demo-zara-000001-0000-000000000009",
+];
 
 const DEMO_USERS = [
+  // ── Women ──────────────────────────────────────────────────────────────────
   {
     id: "demo-chidinma-0001-0000-000000000001",
     email: "chidinma@demo.com",
@@ -13,7 +27,7 @@ const DEMO_USERS = [
     city: "Lagos",
     country: "Nigeria",
     heritage: ["Igbo"],
-    faith: "Christian",
+    faith: "Christianity",
     languages: ["English", "Igbo"],
     intent: "marriage_ready",
     lifeStage: "marriage_ready",
@@ -39,7 +53,7 @@ const DEMO_USERS = [
     city: "London",
     country: "UK",
     heritage: ["Akan"],
-    faith: "Christian",
+    faith: "Christianity",
     languages: ["English", "Twi"],
     intent: "marriage_ready",
     lifeStage: "marriage_ready",
@@ -56,6 +70,33 @@ const DEMO_USERS = [
     blocked: [] as string[],
   },
   {
+    id: "demo-zara-000001-0000-000000000009",
+    email: "zara@demo.com",
+    passwordHash: "$demo$",
+    name: "Zara",
+    gender: "woman",
+    birthYear: 1995,
+    city: "Accra",
+    country: "Ghana",
+    heritage: ["Ewe"],
+    faith: "Islam",
+    languages: ["English", "Ewe", "Hausa"],
+    intent: "marriage_ready",
+    lifeStage: "marriage_ready",
+    childrenPref: "yes",
+    marriageTimeline: "1_year",
+    familyInvolvement: "high",
+    bio: "Ghanaian Muslim woman who loves her faith and her culture in equal measure. Looking for a partner who is grounded, God-fearing, and growth-oriented.",
+    quote: "Seek knowledge, then seek your people.",
+    tier: "core",
+    hasBadge: false,
+    genderPref: "man",
+    photoUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop",
+    completeness: 100,
+    blocked: [] as string[],
+  },
+  // ── Men ────────────────────────────────────────────────────────────────────
+  {
     id: "demo-emeka-00001-0000-000000000003",
     email: "emeka@demo.com",
     passwordHash: "$demo$",
@@ -65,7 +106,7 @@ const DEMO_USERS = [
     city: "Nairobi",
     country: "Kenya",
     heritage: ["Yoruba"],
-    faith: "Muslim",
+    faith: "Islam",
     languages: ["English", "Yoruba", "Swahili"],
     intent: "serious_relationship",
     lifeStage: "serious_relationship",
@@ -91,7 +132,7 @@ const DEMO_USERS = [
     city: "Johannesburg",
     country: "South Africa",
     heritage: ["Akan"],
-    faith: "Christian",
+    faith: "Christianity",
     languages: ["English", "Twi"],
     intent: "marriage_ready",
     lifeStage: "marriage_ready",
@@ -107,31 +148,142 @@ const DEMO_USERS = [
     completeness: 100,
     blocked: [] as string[],
   },
+  {
+    id: "demo-seun-000001-0000-000000000005",
+    email: "seun@demo.com",
+    passwordHash: "$demo$",
+    name: "Seun",
+    gender: "man",
+    birthYear: 1991,
+    city: "Abuja",
+    country: "Nigeria",
+    heritage: ["Yoruba"],
+    faith: "Christianity",
+    languages: ["English", "Yoruba"],
+    intent: "marriage_ready",
+    lifeStage: "marriage_ready",
+    childrenPref: "yes",
+    marriageTimeline: "1_year",
+    familyInvolvement: "high",
+    bio: "Abuja-based architect with a passion for building — homes, communities, and now, something lasting. I believe a marriage is the greatest project you'll ever lead.",
+    quote: "Design your life with intention.",
+    tier: "core",
+    hasBadge: false,
+    genderPref: "woman",
+    photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    completeness: 100,
+    blocked: [] as string[],
+  },
+  {
+    id: "demo-kwame-00001-0000-000000000006",
+    email: "kwame@demo.com",
+    passwordHash: "$demo$",
+    name: "Kwame",
+    gender: "man",
+    birthYear: 1993,
+    city: "Toronto",
+    country: "Canada",
+    heritage: ["Akan", "Ewe"],
+    faith: "Christianity",
+    languages: ["English", "Twi", "French"],
+    intent: "marriage_ready",
+    lifeStage: "marriage_ready",
+    childrenPref: "yes",
+    marriageTimeline: "2_years",
+    familyInvolvement: "medium",
+    bio: "Ghanaian-Canadian navigating diaspora life. Family man at heart — I cook Sunday jollof and call my mother every day. Looking for someone to share those traditions with.",
+    quote: "Diaspora doesn't mean disconnected.",
+    tier: "free",
+    hasBadge: false,
+    genderPref: "woman",
+    photoUrl: "https://images.unsplash.com/photo-1530268729831-4b0b9e170218?w=400&h=400&fit=crop",
+    completeness: 90,
+    blocked: [] as string[],
+  },
+  {
+    id: "demo-tobenna-0001-0000-000000000007",
+    email: "tobenna@demo.com",
+    passwordHash: "$demo$",
+    name: "Tobenna",
+    gender: "man",
+    birthYear: 1990,
+    city: "Houston",
+    country: "USA",
+    heritage: ["Igbo"],
+    faith: "Christianity",
+    languages: ["English", "Igbo"],
+    intent: "marriage_ready",
+    lifeStage: "marriage_ready",
+    childrenPref: "yes",
+    marriageTimeline: "asap",
+    familyInvolvement: "high",
+    bio: "Nigerian-American doctor who still gets Mum's soup on his birthday. I want a partner who values both our heritage and our future together.",
+    quote: "Character is the foundation everything else is built on.",
+    tier: "badge",
+    hasBadge: true,
+    genderPref: "woman",
+    photoUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop",
+    completeness: 100,
+    blocked: [] as string[],
+  },
+  {
+    id: "demo-lekan-00001-0000-000000000008",
+    email: "lekan@demo.com",
+    passwordHash: "$demo$",
+    name: "Lekan",
+    gender: "man",
+    birthYear: 1995,
+    city: "Manchester",
+    country: "UK",
+    heritage: ["Yoruba"],
+    faith: "Islam",
+    languages: ["English", "Yoruba"],
+    intent: "serious_relationship",
+    lifeStage: "serious_relationship",
+    childrenPref: "open",
+    marriageTimeline: "2_years",
+    familyInvolvement: "medium",
+    bio: "British-Nigerian creative director. I love our culture's storytelling tradition — in work and in life. Looking for someone curious, grounded, and ready to grow.",
+    quote: "Every great story begins with two people who chose each other.",
+    tier: "core",
+    hasBadge: false,
+    genderPref: "woman",
+    photoUrl: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&h=400&fit=crop",
+    completeness: 95,
+    blocked: [] as string[],
+  },
 ];
 
 export async function seedDatabase(): Promise<void> {
-  const chidinmaId = "demo-chidinma-0001-0000-000000000001";
-  const amaraId = "demo-amara-00001-0000-000000000002";
-  const emekaId = "demo-emeka-00001-0000-000000000003";
-  const kofiId = "demo-kofi-000001-0000-000000000004";
-
+  // ── 1. Upsert demo users ────────────────────────────────────────────────
   for (const user of DEMO_USERS) {
     await db.insert(schema.users).values(user).onConflictDoNothing();
   }
 
-  const mutualLikes = [
+  // ── 2. Reset all likes/passes among demo users so the feed is always fresh
+  //    This undoes any likes that automated tests or demo sessions created.
+  const idList = DEMO_IDS.map(id => `'${id}'`).join(", ");
+  await db.execute(sql.raw(`DELETE FROM likes  WHERE from_id IN (${idList})`));
+  await db.execute(sql.raw(`DELETE FROM passes WHERE from_id IN (${idList})`));
+
+  // ── 3. Seed only the intended starter mutual matches ────────────────────
+  const chidinmaId = "demo-chidinma-0001-0000-000000000001";
+  const kofiId     = "demo-kofi-000001-0000-000000000004";
+  const amaraId    = "demo-amara-00001-0000-000000000002";
+  const emekaId    = "demo-emeka-00001-0000-000000000003";
+
+  // Chidinma ↔ Kofi and Amara ↔ Emeka are pre-matched for the messaging demo
+  const starterLikes = [
     { fromId: chidinmaId, toId: kofiId },
     { fromId: kofiId, toId: chidinmaId },
     { fromId: amaraId, toId: emekaId },
     { fromId: emekaId, toId: amaraId },
-    { fromId: amaraId, toId: kofiId },
-    { fromId: kofiId, toId: amaraId },
   ];
-
-  for (const like of mutualLikes) {
+  for (const like of starterLikes) {
     await db.insert(schema.likes).values(like).onConflictDoNothing();
   }
 
+  // ── 4. Seed starter conversation messages ──────────────────────────────
   const starterMessages = [
     {
       id: "seed-msg-kofi-chidinma-001",
@@ -148,7 +300,6 @@ export async function seedDatabase(): Promise<void> {
       createdAt: new Date(Date.now() - 7_200_000),
     },
   ];
-
   for (const msg of starterMessages) {
     await db.insert(schema.messages).values(msg).onConflictDoNothing();
   }

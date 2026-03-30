@@ -242,6 +242,26 @@ export default function Discover() {
   const [filterCulture, setFilterCulture] = useState<string[]>([]);
   const [filterFaith, setFilterFaith] = useState<string[]>([]);
 
+  const filtersActive = filterCulture.length > 0 || filterFaith.length > 0;
+
+  const filteredFeed = feed.filter(card => {
+    if (filterCulture.length > 0) {
+      const heritage: string[] = (card.user as any).heritage ?? [];
+      const hasMatch = filterCulture.some(f =>
+        heritage.some(h => h.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(h.toLowerCase()))
+      );
+      if (!hasMatch) return false;
+    }
+    if (filterFaith.length > 0) {
+      const faith: string = (card.user as any).faith ?? "";
+      const hasMatch = filterFaith.some(f =>
+        faith.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(faith.toLowerCase())
+      );
+      if (!hasMatch) return false;
+    }
+    return true;
+  });
+
   useEffect(() => {
     if (feedData?.feed) {
       setFeed(feedData.feed);
@@ -353,19 +373,34 @@ export default function Discover() {
               {/* Likes You section */}
               <LikesYouPanel />
 
-              {feed.length === 0 ? (
+              {filteredFeed.length === 0 ? (
                 <div className="bg-white p-12 rounded-3xl border border-border text-center shadow-sm">
                   <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mx-auto mb-6">
                     <Search className="w-8 h-8 text-muted-foreground" />
                   </div>
-                  <h2 className="text-2xl font-display font-bold mb-2">You're all caught up!</h2>
-                  <p className="text-muted-foreground mb-8">We're searching for more high-quality matches for you. Check back later or expand your filters.</p>
-                  <button onClick={() => refetch()} className="px-6 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors">Refresh Feed</button>
+                  <h2 className="text-2xl font-display font-bold mb-2">
+                    {filtersActive ? "No profiles match your filters" : "You're all caught up!"}
+                  </h2>
+                  <p className="text-muted-foreground mb-8">
+                    {filtersActive
+                      ? "Try removing some filters to see more profiles, or add a custom value."
+                      : "We're searching for more high-quality matches for you. Check back later."}
+                  </p>
+                  {filtersActive ? (
+                    <button
+                      onClick={() => { setFilterCulture([]); setFilterFaith([]); }}
+                      className="px-6 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      Clear all filters
+                    </button>
+                  ) : (
+                    <button onClick={() => refetch()} className="px-6 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors">Refresh Feed</button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-12">
                   <AnimatePresence>
-                    {feed.map((card) => (
+                    {filteredFeed.map((card) => (
                       <motion.div 
                         key={card.user.id}
                         layout

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { API_BASE } from "@/lib/api-url";
 
@@ -132,10 +132,11 @@ export function CustomChipSelect({
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
         isSelected
-          ? "bg-primary text-white border-primary"
-          : "bg-white border-border hover:border-primary/40 text-foreground"
+          ? "bg-[hsl(340,45%,45%)] text-white border-[hsl(340,45%,45%)] shadow-sm"
+          : "bg-white border-gray-200 text-gray-700 hover:border-[hsl(340,45%,45%)] hover:text-[hsl(340,45%,45%)]"
       }`}
     >
+      {isSelected && <Check className="w-3 h-3 shrink-0" />}
       {value}
       {removable && isSelected && (
         <span
