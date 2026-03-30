@@ -27,6 +27,7 @@ import AdminModeration from "@/pages/admin/AdminModeration";
 import AdminSettings from "@/pages/admin/AdminSettings";
 
 import { API_BASE } from "@/lib/api-url";
+import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
 
 // Global Fetch Interceptor for JWT token.
 const originalFetch = window.fetch;
@@ -123,6 +124,7 @@ function Router() {
 
         <Route component={NotFound} />
       </Switch>
+      <MobileBottomTabBar />
     </ComingSoonGate>
   );
 }

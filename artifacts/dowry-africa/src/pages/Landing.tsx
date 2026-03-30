@@ -18,32 +18,32 @@ export default function Landing() {
           </div>
           
           <div className="container mx-auto px-4 md:px-8 relative z-10">
-            <div className="flex flex-col lg:flex-row items-center gap-16">
+            <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
                 className="w-full lg:w-1/2"
               >
-                <p className="text-base tracking-wider text-foreground/65 font-semibold mb-9">
+                <p className="text-sm md:text-base tracking-wider text-foreground/65 font-semibold mb-5 md:mb-9">
                   For Africans ready for marriage — wherever they are in the world.
                 </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium mb-4 md:mb-6">
                   <Star className="w-4 h-4 text-primary" />
                   No games. Just intention.
                 </div>
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-bold leading-[1.1] text-foreground mb-6">
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-[1.1] text-foreground mb-4 md:mb-6">
                   Built for marriage.<br />
                   <span className="text-primary italic font-medium">Not for games.</span>
                 </h1>
-                <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl leading-relaxed">
+                <p className="text-base md:text-xl text-muted-foreground mb-7 md:mb-10 max-w-xl leading-relaxed">
                   Dowry.Africa is an exclusive matchmaking platform for Africans who are done with games and ready to build something real. Connect with people who share your values, your culture, and your vision for family.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href={applyHref} className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-semibold text-lg text-center shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                  <Link href={applyHref} className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-semibold text-base md:text-lg text-center shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                     Apply for Membership
                   </Link>
-                  <Link href="/login" className="px-8 py-4 bg-white text-foreground border border-border rounded-full font-semibold text-lg text-center hover:bg-secondary transition-all duration-300">
+                  <Link href="/login" className="px-8 py-4 bg-white text-foreground border border-border rounded-full font-semibold text-base md:text-lg text-center hover:bg-secondary transition-all duration-300">
                     Member Login
                   </Link>
                 </div>
@@ -55,7 +55,7 @@ export default function Landing() {
                 transition={{ duration: 0.8, delay: 0.2 }}
                 className="w-full lg:w-1/2 relative"
               >
-                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
+                <div className="relative aspect-[4/3] sm:aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
                   <img src={`${import.meta.env.BASE_URL}images/hero-couple.png`} alt="Elegant couple" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                   

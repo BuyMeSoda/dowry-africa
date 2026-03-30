@@ -5,7 +5,7 @@ import { useLikeUser, usePassUser, useGetPaymentStatus, useGetLikedMe, type Feed
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2 } from "lucide-react";
+import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { API_BASE } from "@/lib/api-url";
@@ -245,6 +245,10 @@ export default function Discover() {
   // ── Filter state ────────────────────────────────────────────────────────────
   const [filterCulture, setFilterCulture] = useState<string[]>([]);
   const [filterFaith, setFilterFaith] = useState<string[]>([]);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  // Draft state for mobile sheet (applied on "Apply" tap)
+  const [draftCulture, setDraftCulture] = useState<string[]>([]);
+  const [draftFaith, setDraftFaith] = useState<string[]>([]);
 
   const handleCultureToggle = (value: string) => {
     setFilterCulture(prev => {
@@ -261,6 +265,26 @@ export default function Discover() {
     });
   };
   const clearFilters = () => { setFilterCulture([]); setFilterFaith([]); };
+
+  const openFilterSheet = () => {
+    setDraftCulture([...filterCulture]);
+    setDraftFaith([...filterFaith]);
+    setFilterSheetOpen(true);
+  };
+
+  const applyFilterSheet = () => {
+    setFilterCulture(draftCulture);
+    setFilterFaith(draftFaith);
+    setFilterSheetOpen(false);
+  };
+
+  const clearFilterSheet = () => {
+    setDraftCulture([]);
+    setDraftFaith([]);
+  };
+
+  const draftFiltersActive = draftCulture.filter(v => v !== "Open to all").length > 0 ||
+                              draftFaith.filter(v => v !== "Open to all").length > 0;
 
   // Effective filters: "Open to all" = no filter on that dimension
   const effectiveCultureFilter = filterCulture.filter(v => v !== "Open to all");
@@ -455,6 +479,31 @@ export default function Discover() {
 
         {/* Main Feed */}
         <div className="flex-1 max-w-3xl mx-auto lg:mx-0 w-full">
+
+          {/* ── Mobile filter pill button ─────────────────────────── */}
+          <div className="flex items-center gap-3 mb-4 lg:hidden">
+            <button
+              onClick={openFilterSheet}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-white shadow-sm text-sm font-semibold hover:border-primary/40 transition-colors"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-primary" />
+              Filters
+              {filtersActive && (
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-white text-[9px] font-bold leading-none">
+                  {effectiveCultureFilter.length + effectiveFaithFilter.length}
+                </span>
+              )}
+            </button>
+            {filtersActive && (
+              <button
+                onClick={clearFilters}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+
           {isLoading ? (
              <div className="flex flex-col items-center justify-center py-32 text-primary">
                <Heart className="w-12 h-12 animate-pulse mb-4" />
@@ -622,6 +671,99 @@ export default function Discover() {
           )}
         </div>
       </main>
+
+      {/* ── Mobile Filter Bottom Sheet ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {filterSheetOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="filter-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setFilterSheetOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            />
+            {/* Sheet */}
+            <motion.div
+              key="filter-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl lg:hidden"
+              style={{ maxHeight: "82dvh", display: "flex", flexDirection: "column" }}
+            >
+              {/* Handle + header */}
+              <div className="shrink-0 flex items-center justify-between px-6 pt-4 pb-4 border-b border-border">
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-border rounded-full" />
+                <h3 className="font-display font-bold text-xl mt-1">Filters</h3>
+                {draftFiltersActive && (
+                  <button onClick={clearFilterSheet} className="text-sm text-primary font-semibold">
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+                <div>
+                  <label className="text-sm font-semibold text-foreground block mb-2.5">Country preference</label>
+                  <CustomChipSelect
+                    selected={draftCulture}
+                    onChange={() => {}}
+                    onToggleValue={v => {
+                      setDraftCulture(prev => {
+                        if (v === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
+                        if (prev.includes("Open to all")) return [v];
+                        return prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v];
+                      });
+                    }}
+                    presets={FILTER_CULTURAL_PRESETS}
+                    groups={COUNTRY_GROUPS}
+                    fieldType="heritage"
+                    multiSelect
+                    allowCustom
+                    customPlaceholder="e.g. Congolese, Cape Verdean..."
+                  />
+                </div>
+                <hr className="border-border" />
+                <div>
+                  <label className="text-sm font-semibold text-foreground block mb-2.5">Faith preference</label>
+                  <CustomChipSelect
+                    selected={draftFaith}
+                    onChange={() => {}}
+                    onToggleValue={v => {
+                      setDraftFaith(prev => {
+                        if (v === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
+                        if (prev.includes("Open to all")) return [v];
+                        return prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v];
+                      });
+                    }}
+                    presets={FILTER_FAITH_PRESETS}
+                    fieldType="faith"
+                    multiSelect
+                    allowCustom
+                    customPlaceholder="e.g. Anglican, Sunni..."
+                  />
+                </div>
+              </div>
+
+              {/* Apply button */}
+              <div className="shrink-0 px-6 py-4 border-t border-border bg-white"
+                   style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+                <button
+                  onClick={applyFilterSheet}
+                  className="w-full py-3.5 bg-primary text-white rounded-2xl font-semibold text-base shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Match celebration modal */}
       <AnimatePresence>

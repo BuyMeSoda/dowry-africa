@@ -1,0 +1,75 @@
+Please fix the mobile experience for the entire app. Currently the navigation and discover page are broken on mobile.
+
+═══════════════════════════════
+1. MOBILE NAVIGATION
+═══════════════════════════════
+The desktop nav (Discover, Messages, Premium) is hidden on mobile. Fix this with a BOTTOM TAB BAR on mobile — this is the standard for dating apps.
+
+Bottom tab bar should have 4 tabs:
+- Discover (home icon or flame icon)
+- Messages (chat bubble icon) — show red dot when unread messages
+- Premium (star icon)
+- Profile (person icon — links to the user's own profile)
+
+The bottom tab bar should:
+- Only show on mobile (below 768px)
+- Be fixed to the bottom of the screen
+- Use the brand rose/burgundy color for the active tab
+- Hide the top desktop navbar on mobile
+- Feel native and thumb-friendly
+
+═══════════════════════════════
+2. MOBILE DISCOVER PAGE
+═══════════════════════════════
+On mobile the discover page should work like this:
+
+- The filter sidebar should NOT show on mobile by default
+- Instead add a "Filters" button at the top of the feed (pill shaped, with a filter icon)
+- When tapped, the filters slide up as a bottom sheet / drawer modal
+- The bottom sheet shows all the same filters (Country preference, Faith preference)
+- Has a "Apply filters" button at the bottom of the sheet
+- Has a "Clear all" option
+- Closes when user taps Apply or taps outside
+
+Profile cards on mobile:
+- Full width cards (no sidebar taking space)
+- Photo on top, info below — stacked layout
+- Like and pass buttons large and thumb-friendly at the bottom of each card
+- Compatibility bar visible
+- Quote visible
+
+═══════════════════════════════
+3. MOBILE LANDING PAGE
+═══════════════════════════════
+The landing page on mobile currently shows the text but the couple image is missing/hidden. Fix this so:
+- Hero image shows on mobile below the headline text
+- Or use the image as a background with text overlay on mobile
+- "Apply for Membership" and "Member Login" buttons should be full width on mobile
+- Text sizes should be appropriate for mobile (not too large)
+
+═══════════════════════════════
+4. MOBILE PROFILE VIEW
+═══════════════════════════════
+When viewing someone's full profile on mobile:
+- Single column layout
+- Photo full width at top
+- Info sections stacked below
+- Like and pass buttons fixed at bottom of screen
+
+═══════════════════════════════
+5. MOBILE MESSAGES
+═══════════════════════════════
+On mobile the messages page should:
+- Show the conversation list full screen by default
+- When a conversation is tapped, slide to the full chat view
+- Back button to return to conversation list
+- No split panel on mobile
+
+═══════════════════════════════
+6. GENERAL MOBILE RULES
+═══════════════════════════════
+- Minimum tap target size: 44px height for all buttons
+- Font sizes: minimum 14px for body text on mobile
+- No horizontal scrolling anywhere
+- All modals and sheets should be mobile friendly
+- Test every page at 390px width (iPhone 14 size)

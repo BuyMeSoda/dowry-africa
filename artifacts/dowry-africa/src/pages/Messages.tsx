@@ -53,10 +53,12 @@ export default function Messages() {
   const freshMatches = conversations.filter(c => !c.lastMessage);
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="bg-background flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
       <Navbar />
       
-      <main className="flex-1 container mx-auto max-w-6xl w-full flex bg-white my-4 sm:my-8 rounded-3xl shadow-xl border border-border/50 overflow-hidden h-[calc(100vh-12rem)]">
+      <main className="flex-1 w-full flex bg-white overflow-hidden
+                       md:container md:mx-auto md:max-w-6xl md:my-8 md:rounded-3xl md:shadow-xl md:border md:border-border/50"
+            style={{ height: "inherit", maxHeight: "calc(100dvh - 64px)" }}>
         
         {/* Left List */}
         <div className={`${activeUserId ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 lg:w-96 flex-col border-r border-border`}>
