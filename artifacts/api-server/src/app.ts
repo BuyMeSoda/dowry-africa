@@ -54,7 +54,10 @@ app.use(
 // Stripe webhook needs the raw body for signature verification — must come before express.json()
 app.use("/api/payments/webhook", express.raw({ type: "*/*" }));
 
-app.use(express.json({ type: ["application/json", "text/plain", "*/*"] }));
+app.use((req, _res, next) => {
+  if (req.headers["content-type"]?.startsWith("multipart/")) return next();
+  express.json({ type: ["application/json", "text/plain", "*/*"] })(req, _res, next);
+});
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
