@@ -16,6 +16,9 @@ interface AutocompleteSuggestion {
 interface CustomChipSelectProps {
   selected: string[];
   onChange: (values: string[]) => void;
+  /** Alternative to onChange: parent receives just the toggled value and manages state itself.
+   *  Use this to avoid stale-prop races when the parent uses functional setState. */
+  onToggleValue?: (value: string) => void;
   presets?: string[];
   groups?: ChipGroup[];
   fieldType: "heritage" | "faith" | string;
@@ -27,6 +30,7 @@ interface CustomChipSelectProps {
 export function CustomChipSelect({
   selected,
   onChange,
+  onToggleValue,
   presets,
   groups,
   fieldType,
@@ -47,6 +51,11 @@ export function CustomChipSelect({
   ];
 
   const toggle = (value: string) => {
+    // If parent wants to handle state themselves (avoids stale-prop race conditions)
+    if (onToggleValue) {
+      onToggleValue(value);
+      return;
+    }
     if (multiSelect) {
       onChange(selected.includes(value)
         ? selected.filter(v => v !== value)
@@ -99,7 +108,11 @@ export function CustomChipSelect({
     if (!val) return;
     const titleCased = val.replace(/\b\w/g, c => c.toUpperCase());
     if (!selected.includes(titleCased)) {
-      onChange([...selected, titleCased]);
+      if (onToggleValue) {
+        onToggleValue(titleCased);
+      } else {
+        onChange([...selected, titleCased]);
+      }
       await saveCustomValue(titleCased, normalizedValue);
     }
     setInputVal("");
@@ -152,6 +165,15 @@ export function CustomChipSelect({
 
   return (
     <div ref={containerRef} className="space-y-3">
+      {/* Flat presets — always first (includes global "Any" option) */}
+      {presets && presets.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {presets.map(option =>
+            renderChip(option, selected.includes(option), () => toggle(option))
+          )}
+        </div>
+      )}
+
       {/* Grouped presets */}
       {groups?.map(group => (
         <div key={group.group}>
@@ -163,15 +185,6 @@ export function CustomChipSelect({
           </div>
         </div>
       ))}
-
-      {/* Flat presets */}
-      {presets && !groups && (
-        <div className="flex flex-wrap gap-1.5">
-          {presets.map(option =>
-            renderChip(option, selected.includes(option), () => toggle(option))
-          )}
-        </div>
-      )}
 
       {/* Custom selected chips (not in presets) */}
       {customSelected.length > 0 && (

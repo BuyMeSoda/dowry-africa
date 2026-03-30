@@ -9,14 +9,18 @@ import { Heart, X, Sparkles, MapPin, Search, Lock, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 
+// "Any" at the top = global no-filter option for Cultural preference
+const FILTER_CULTURAL_PRESETS = ["Any"];
+
 const FILTER_CULTURAL_GROUPS: ChipGroup[] = [
   { group: "West African", options: ["Igbo", "Yoruba", "Akan", "Hausa"] },
   { group: "East African", options: ["Kikuyu", "Luo", "Amhara", "Somali"] },
   { group: "Southern African", options: ["Zulu", "Xhosa", "Shona"] },
-  { group: "Diaspora", options: ["British-African", "American-African"] },
+  { group: "Diaspora", options: ["Any", "British-African", "American-African"] },
 ];
 
-const FILTER_FAITH_PRESETS = ["Christian", "Muslim", "Traditional African", "Any"];
+// "Any" first = top of Faith list, means "no filter"
+const FILTER_FAITH_PRESETS = ["Any", "Christian", "Muslim", "Traditional African"];
 
 // ── Tag label formatting ─────────────────────────────────────────────────────
 const TAG_LABELS: Record<string, string> = {
@@ -242,19 +246,59 @@ export default function Discover() {
   const [filterCulture, setFilterCulture] = useState<string[]>([]);
   const [filterFaith, setFilterFaith] = useState<string[]>([]);
 
-  const filtersActive = filterCulture.length > 0 || filterFaith.length > 0;
+  // Toggle handlers — use functional setState so we always read the latest state,
+  // avoiding stale-prop races when the user clicks chips faster than React re-renders.
+  const handleCultureToggle = (value: string) => {
+    setFilterCulture(prev => {
+      if (value === "Any") {
+        // Clicking "Any": if already selected → deselect (empty = all); else → select and clear specifics
+        return prev.includes("Any") ? [] : ["Any"];
+      }
+      if (prev.includes("Any")) {
+        // Was showing "Any"; user picked a specific → drop "Any", select the specific
+        return [value];
+      }
+      // Normal multi-select toggle
+      return prev.includes(value)
+        ? prev.filter(v => v !== value)
+        : [...prev, value];
+    });
+  };
+
+  const handleFaithToggle = (value: string) => {
+    setFilterFaith(prev => {
+      if (value === "Any") {
+        return prev.includes("Any") ? [] : ["Any"];
+      }
+      if (prev.includes("Any")) {
+        return [value];
+      }
+      return prev.includes(value)
+        ? prev.filter(v => v !== value)
+        : [...prev, value];
+    });
+  };
+
+  const clearFilters = () => { setFilterCulture([]); setFilterFaith([]); };
+
+  // Effective filters exclude "Any" — "Any" selected = no filter applied for that field
+  const effectiveCultureFilter = filterCulture.filter(v => v !== "Any");
+  const effectiveFaithFilter = filterFaith.filter(v => v !== "Any");
+
+  // "Active" only when SPECIFIC (non-Any) chips are selected
+  const filtersActive = effectiveCultureFilter.length > 0 || effectiveFaithFilter.length > 0;
 
   const filteredFeed = feed.filter(card => {
-    if (filterCulture.length > 0) {
+    if (effectiveCultureFilter.length > 0) {
       const heritage: string[] = (card.user as any).heritage ?? [];
-      const hasMatch = filterCulture.some(f =>
+      const hasMatch = effectiveCultureFilter.some(f =>
         heritage.some(h => h.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(h.toLowerCase()))
       );
       if (!hasMatch) return false;
     }
-    if (filterFaith.length > 0) {
+    if (effectiveFaithFilter.length > 0) {
       const faith: string = (card.user as any).faith ?? "";
-      const hasMatch = filterFaith.some(f =>
+      const hasMatch = effectiveFaithFilter.some(f =>
         faith.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(faith.toLowerCase())
       );
       if (!hasMatch) return false;
@@ -302,7 +346,9 @@ export default function Discover() {
                 <label className="text-sm font-semibold text-foreground block mb-2.5">Cultural preference</label>
                 <CustomChipSelect
                   selected={filterCulture}
-                  onChange={setFilterCulture}
+                  onChange={() => {}}
+                  onToggleValue={handleCultureToggle}
+                  presets={FILTER_CULTURAL_PRESETS}
                   groups={FILTER_CULTURAL_GROUPS}
                   fieldType="heritage"
                   multiSelect
@@ -318,7 +364,8 @@ export default function Discover() {
                 <label className="text-sm font-semibold text-foreground block mb-2.5">Faith preference</label>
                 <CustomChipSelect
                   selected={filterFaith}
-                  onChange={setFilterFaith}
+                  onChange={() => {}}
+                  onToggleValue={handleFaithToggle}
                   presets={FILTER_FAITH_PRESETS}
                   fieldType="faith"
                   multiSelect
@@ -329,7 +376,7 @@ export default function Discover() {
 
               {(filterCulture.length > 0 || filterFaith.length > 0) && (
                 <button
-                  onClick={() => { setFilterCulture([]); setFilterFaith([]); }}
+                  onClick={clearFilters}
                   className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1 text-center"
                 >
                   Clear all filters
@@ -388,7 +435,7 @@ export default function Discover() {
                   </p>
                   {filtersActive ? (
                     <button
-                      onClick={() => { setFilterCulture([]); setFilterFaith([]); }}
+                      onClick={clearFilters}
                       className="px-6 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors"
                     >
                       Clear all filters

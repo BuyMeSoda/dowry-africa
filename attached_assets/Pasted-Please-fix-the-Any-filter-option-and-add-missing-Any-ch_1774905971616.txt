@@ -1,0 +1,77 @@
+Please fix the "Any" filter option and add missing "Any" chips across all filter sections on the Discover page.
+
+═══════════════════════════════
+1. ADD MISSING "ANY" CHIPS
+═══════════════════════════════
+Add an "Any" chip to these filter sections:
+
+- Cultural preference section — add "Any" as the FIRST chip before the regional groups
+- Diaspora section — add "Any" as a chip in the Diaspora group
+- Faith preference already has "Any" but needs the logic fixed (see below)
+
+═══════════════════════════════
+2. WHAT "Any" ACTUALLY MEANS
+═══════════════════════════════
+"Any" means: "I have no preference — show me everyone regardless of this field"
+
+It should completely remove that filter from the API query. It does NOT mean "only match me with people who also selected Any in their profile."
+
+So when a user selects "Any" in Faith:
+- Show Christians ✅
+- Show Muslims ✅
+- Show Traditional African ✅
+- Show everyone regardless of faith ✅
+- Simply removes the faith filter entirely
+
+Same logic applies to Cultural preference "Any" and Diaspora "Any".
+
+═══════════════════════════════
+3. FILTER LOGIC FIX — FRONTEND
+═══════════════════════════════
+- When "Any" is selected → do NOT send that filter parameter to the API at all
+- When specific chips are selected (e.g. Christian, Muslim) → send those values as a filter
+- When nothing is selected → same as "Any" — no filter applied, show everyone
+- "Any" is simply a UI convenience that equals "no filter on this field"
+
+Chip behaviour:
+- "Any" should be mutually exclusive with specific selections
+- If user selects "Any" then clicks a specific chip → "Any" deselects automatically, specific chip activates
+- If user has specific chips selected and clicks "Any" → all specific chips deselect, only "Any" remains active and filter is removed
+- Style "Any" identically to other chips
+
+═══════════════════════════════
+4. FILTER LOGIC FIX — BACKEND
+═══════════════════════════════
+Fix the /api/matches/feed endpoint so that:
+- Missing or empty filter parameters = no filter applied = return all profiles
+- faith filter not sent → return all faiths
+- faith=["Christian","Muslim"] → return only Christian and Muslim profiles
+- cultural filter not sent → return all cultural backgrounds
+- cultural=["Igbo","Yoruba"] → return only Igbo and Yoruba profiles
+- diaspora filter not sent → return both local and diaspora members
+
+Empty arrays [] should be treated the same as no filter — never return zero results because of an empty filter array.
+
+═══════════════════════════════
+5. APPLY TO ALL THREE FILTER FIELDS
+═══════════════════════════════
+- Faith preference
+- Cultural preference
+- Diaspora preference
+
+═══════════════════════════════
+6. VISUAL BEHAVIOUR SUMMARY
+═══════════════════════════════
+- "Any" selected = chip appears active/filled BUT API call has no filter for that field
+- Specific chips selected = those exact values sent as filters to API
+- Switching from specific chips to "Any" = clears the filter, shows all profiles
+- Switching from "Any" to a specific chip = "Any" deselects automatically, specific filter applied
+- No chips selected at all = same as "Any" = show all profiles
+
+═══════════════════════════════
+7. DEFAULT STATE
+═══════════════════════════════
+When the Discover page first loads with no filters set:
+- Show ALL profiles by default
+- No chips should appear pre-selected
+- The feed should never be empty unless there are genuinely no profiles in the database
