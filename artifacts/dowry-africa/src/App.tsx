@@ -28,6 +28,7 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 
 import { API_BASE } from "@/lib/api-url";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
+import { MobileTopBar } from "@/components/layout/MobileTopBar";
 
 // Global Fetch Interceptor for JWT token.
 const originalFetch = window.fetch;
@@ -85,6 +86,7 @@ function ComingSoonGate({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <ComingSoonGate>
+      <MobileTopBar />
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />

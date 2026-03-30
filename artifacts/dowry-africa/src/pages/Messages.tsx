@@ -53,7 +53,7 @@ export default function Messages() {
   const freshMatches = conversations.filter(c => !c.lastMessage);
 
   return (
-    <div className="bg-background flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
+    <div className="bg-background flex flex-col overflow-hidden h-[calc(100dvh-3rem)] md:h-[100dvh]">
       <Navbar />
       
       <main className="flex-1 w-full flex bg-white overflow-hidden
