@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
-import { useGetMatchFeed, useLikeUser, usePassUser, useGetPaymentStatus, useGetLikedMe, type FeedCard } from "@workspace/api-client-react";
+import { useLikeUser, usePassUser, useGetPaymentStatus, useGetLikedMe, type FeedCard } from "@workspace/api-client-react";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { CustomChipSelect, type ChipGroup } from "@/components/ui/CustomChipSelect";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, X, Sparkles, MapPin, Search, Lock, Users } from "lucide-react";
+import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
+import { API_BASE } from "@/lib/api-url";
 
 // "Any" at the top = global no-filter option for Cultural preference
 const FILTER_CULTURAL_PRESETS = ["Any"];
@@ -231,86 +232,136 @@ function LikesYouPanel() {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Paginated feed response type ──────────────────────────────────────────────
+interface FeedPageResponse {
+  feed: FeedCard[];
+  total: number;
+  hasMore: boolean;
+  reachedTierLimit: boolean;
+  tier: string;
+}
+
 export default function Discover() {
-  const { data: feedData, isLoading, refetch } = useGetMatchFeed();
   const { data: paymentStatus } = useGetPaymentStatus();
   const { refresh: refreshNotifs } = useNotifications();
   const likeMutation = useLikeUser();
   const passMutation = usePassUser();
   const { toast } = useToast();
-  
-  const [feed, setFeed] = useState<FeedCard[]>([]);
-  const [matchModal, setMatchModal] = useState<{ name: string; photoUrl: string | null } | null>(null);
 
-  // Filter state (sidebar)
+  // ── Filter state ────────────────────────────────────────────────────────────
   const [filterCulture, setFilterCulture] = useState<string[]>([]);
   const [filterFaith, setFilterFaith] = useState<string[]>([]);
 
-  // Toggle handlers — use functional setState so we always read the latest state,
-  // avoiding stale-prop races when the user clicks chips faster than React re-renders.
   const handleCultureToggle = (value: string) => {
     setFilterCulture(prev => {
-      if (value === "Any") {
-        // Clicking "Any": if already selected → deselect (empty = all); else → select and clear specifics
-        return prev.includes("Any") ? [] : ["Any"];
-      }
-      if (prev.includes("Any")) {
-        // Was showing "Any"; user picked a specific → drop "Any", select the specific
-        return [value];
-      }
-      // Normal multi-select toggle
-      return prev.includes(value)
-        ? prev.filter(v => v !== value)
-        : [...prev, value];
+      if (value === "Any") return prev.includes("Any") ? [] : ["Any"];
+      if (prev.includes("Any")) return [value];
+      return prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
     });
   };
-
   const handleFaithToggle = (value: string) => {
     setFilterFaith(prev => {
-      if (value === "Any") {
-        return prev.includes("Any") ? [] : ["Any"];
-      }
-      if (prev.includes("Any")) {
-        return [value];
-      }
-      return prev.includes(value)
-        ? prev.filter(v => v !== value)
-        : [...prev, value];
+      if (value === "Any") return prev.includes("Any") ? [] : ["Any"];
+      if (prev.includes("Any")) return [value];
+      return prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
     });
   };
-
   const clearFilters = () => { setFilterCulture([]); setFilterFaith([]); };
 
-  // Effective filters exclude "Any" — "Any" selected = no filter applied for that field
+  // Effective filters: "Any" selected = no filter for that dimension
   const effectiveCultureFilter = filterCulture.filter(v => v !== "Any");
-  const effectiveFaithFilter = filterFaith.filter(v => v !== "Any");
-
-  // "Active" only when SPECIFIC (non-Any) chips are selected
+  const effectiveFaithFilter   = filterFaith.filter(v => v !== "Any");
   const filtersActive = effectiveCultureFilter.length > 0 || effectiveFaithFilter.length > 0;
 
-  const filteredFeed = feed.filter(card => {
-    if (effectiveCultureFilter.length > 0) {
-      const heritage: string[] = (card.user as any).heritage ?? [];
-      const hasMatch = effectiveCultureFilter.some(f =>
-        heritage.some(h => h.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(h.toLowerCase()))
-      );
-      if (!hasMatch) return false;
-    }
-    if (effectiveFaithFilter.length > 0) {
-      const faith: string = (card.user as any).faith ?? "";
-      const hasMatch = effectiveFaithFilter.some(f =>
-        faith.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(faith.toLowerCase())
-      );
-      if (!hasMatch) return false;
-    }
-    return true;
-  });
+  // ── Infinite-scroll feed state ──────────────────────────────────────────────
+  const [feed, setFeed]                       = useState<FeedCard[]>([]);
+  const [matchModal, setMatchModal]           = useState<{ name: string; photoUrl: string | null } | null>(null);
+  const [isLoading, setIsLoading]             = useState(true);
+  const [isLoadingMore, setIsLoadingMore]     = useState(false);
+  const [hasMore, setHasMore]                 = useState(false);
+  const [reachedTierLimit, setReachedTierLimit] = useState(false);
+  const [feedTier, setFeedTier]               = useState("free");
+  const sentinelRef  = useRef<HTMLDivElement>(null);
+  const offsetRef    = useRef(0);
+  const fetchingRef  = useRef(false);
 
-  useEffect(() => {
-    if (feedData?.feed) {
-      setFeed(feedData.feed);
+  // Always-fresh refs so async callbacks never close over stale filter arrays
+  const cultureRef = useRef(effectiveCultureFilter);
+  const faithRef   = useRef(effectiveFaithFilter);
+  cultureRef.current = effectiveCultureFilter;
+  faithRef.current   = effectiveFaithFilter;
+
+  const fetchPage = useCallback(async (reset: boolean) => {
+    if (fetchingRef.current && !reset) return;
+    fetchingRef.current = true;
+
+    const offset = reset ? 0 : offsetRef.current;
+    if (reset) {
+      offsetRef.current = 0;
+      setFeed([]);
+      setHasMore(false);
+      setReachedTierLimit(false);
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
     }
-  }, [feedData]);
+
+    try {
+      const heritage = cultureRef.current;
+      const faith    = faithRef.current;
+      const params   = new URLSearchParams({ offset: String(offset), limit: "10" });
+      if (heritage.length) params.set("heritage", heritage.join(","));
+      if (faith.length)    params.set("faith",    faith.join(","));
+
+      const token = localStorage.getItem("da_token");
+      const res = await fetch(`${API_BASE}/api/matches/feed?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Feed fetch failed");
+
+      const data: FeedPageResponse = await res.json();
+      setFeed(prev => reset ? data.feed : [...prev, ...data.feed]);
+      setHasMore(data.hasMore);
+      setReachedTierLimit(data.reachedTierLimit);
+      setFeedTier(data.tier);
+      offsetRef.current = offset + (data.feed?.length ?? 0);
+    } catch {
+      // keep current feed on error
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+      fetchingRef.current = false;
+    }
+  }, []); // reads latest filters via refs — no stale-closure risk
+
+  // Initial load on mount
+  useEffect(() => { fetchPage(true); }, []);
+
+  // Reset + reload whenever filters change
+  const filterKey = effectiveCultureFilter.slice().sort().join(",") + "|" + effectiveFaithFilter.slice().sort().join(",");
+  const prevFilterKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevFilterKey.current === null) { prevFilterKey.current = filterKey; return; }
+    if (prevFilterKey.current === filterKey) return;
+    prevFilterKey.current = filterKey;
+    fetchPage(true);
+  }, [filterKey]);
+
+  // IntersectionObserver: load next page when sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isLoadingMore && !isLoading && !reachedTierLimit) {
+          fetchPage(false);
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, isLoading, reachedTierLimit, fetchPage]);
 
   const handleAction = (id: string, action: 'like' | 'pass', card: FeedCard) => {
     setFeed(prev => prev.filter(c => c.user.id !== id));
@@ -420,7 +471,7 @@ export default function Discover() {
               {/* Likes You section */}
               <LikesYouPanel />
 
-              {filteredFeed.length === 0 ? (
+              {feed.length === 0 && !isLoading ? (
                 <div className="bg-white p-12 rounded-3xl border border-border text-center shadow-sm">
                   <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mx-auto mb-6">
                     <Search className="w-8 h-8 text-muted-foreground" />
@@ -441,13 +492,13 @@ export default function Discover() {
                       Clear all filters
                     </button>
                   ) : (
-                    <button onClick={() => refetch()} className="px-6 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors">Refresh Feed</button>
+                    <button onClick={() => fetchPage(true)} className="px-6 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors">Refresh Feed</button>
                   )}
                 </div>
               ) : (
                 <div className="space-y-12">
                   <AnimatePresence>
-                    {filteredFeed.map((card) => (
+                    {feed.map((card) => (
                       <motion.div 
                         key={card.user.id}
                         layout
@@ -535,6 +586,42 @@ export default function Discover() {
                       </motion.div>
                     ))}
                   </AnimatePresence>
+
+                  {/* ── Infinite scroll sentinel + bottom states ────────────── */}
+                  <div ref={sentinelRef} className="h-4" />
+
+                  {/* Loading more spinner */}
+                  {isLoadingMore && (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
+                    </div>
+                  )}
+
+                  {/* Free-tier: show upgrade prompt whenever they reach the end of their feed */}
+                  {feedTier === "free" && !hasMore && !isLoadingMore && (reachedTierLimit || feed.length > 0) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-gradient-to-br from-primary/10 via-background to-transparent border border-primary/20 rounded-3xl p-8 text-center"
+                    >
+                      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Sparkles className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-display font-bold mb-2">You've seen your 5 free profiles today</h3>
+                      <p className="text-muted-foreground mb-6">Upgrade to Core or Badge to unlock unlimited daily discoveries and see who liked you.</p>
+                      <Link href="/premium" className="inline-block px-8 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+                        Upgrade Now
+                      </Link>
+                    </motion.div>
+                  )}
+
+                  {/* All caught up (paid tier only, no more profiles) */}
+                  {!hasMore && feedTier !== "free" && !isLoadingMore && feed.length > 0 && (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <p className="font-display text-lg mb-1">You're all caught up!</p>
+                      <p className="text-sm">We're finding more high-quality matches for you. Check back later.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

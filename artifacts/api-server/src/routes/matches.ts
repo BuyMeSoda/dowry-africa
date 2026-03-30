@@ -9,7 +9,9 @@ import { scoreMatch, passesHardFilters, rankFeed } from "../lib/matching.js";
 
 const router = Router();
 
-const TIER_LIMITS: Record<string, number> = { free: 5, core: 50, badge: 50 };
+// Max total profiles a tier can see in one session
+const TIER_CAPS: Record<string, number> = { free: 5, core: 200, badge: 200 };
+const PAGE_SIZE_DEFAULT = 10;
 
 router.get("/feed", requireAuth, async (req, res) => {
   try {
@@ -22,7 +24,19 @@ router.get("/feed", requireAuth, async (req, res) => {
     if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
     const me = toUser(meRow);
 
-    const limit = TIER_LIMITS[me.tier] ?? 5;
+    // ── Pagination params ─────────────────────────────────────────────────
+    const offset   = Math.max(0, parseInt(req.query.offset as string ?? "0") || 0);
+    const pageSize = Math.min(50, Math.max(1, parseInt(req.query.limit  as string ?? String(PAGE_SIZE_DEFAULT)) || PAGE_SIZE_DEFAULT));
+
+    // ── Optional server-side filters (comma-separated values) ─────────────
+    const heritageFilter: string[] = req.query.heritage
+      ? (req.query.heritage as string).split(",").map(s => s.trim()).filter(Boolean)
+      : [];
+    const faithFilter: string[] = req.query.faith
+      ? (req.query.faith as string).split(",").map(s => s.trim()).filter(Boolean)
+      : [];
+
+    const tierCap = TIER_CAPS[me.tier] ?? 5;
 
     const [allUserRows, myPasses, myLikes] = await Promise.all([
       db.select().from(schema.users),
@@ -31,22 +45,48 @@ router.get("/feed", requireAuth, async (req, res) => {
     ]);
 
     const passedIds = new Set(myPasses.map(p => p.toId));
-    const likedIds = new Set(myLikes.map(l => l.toId));
+    const likedIds  = new Set(myLikes.map(l => l.toId));
 
+    // ── Score, filter, rank all eligible candidates ───────────────────────
     const scoredCandidates = [];
     for (const row of allUserRows) {
       const candidate = toUser(row);
       if (!passesHardFilters(me, candidate)) continue;
       if (passedIds.has(candidate.id)) continue;
-      if (likedIds.has(candidate.id)) continue; // hide already-liked profiles
+      if (likedIds.has(candidate.id)) continue;
+
+      // Server-side heritage filter (case-insensitive substring match)
+      if (heritageFilter.length > 0) {
+        const heritage: string[] = candidate.heritage ?? [];
+        const matches = heritageFilter.some(f =>
+          heritage.some(h => h.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(h.toLowerCase()))
+        );
+        if (!matches) continue;
+      }
+
+      // Server-side faith filter (case-insensitive substring match)
+      if (faithFilter.length > 0) {
+        const faith = candidate.faith ?? "";
+        const matches = faithFilter.some(f =>
+          faith.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(faith.toLowerCase())
+        );
+        if (!matches) continue;
+      }
+
       const { score, dimensions, prompts } = scoreMatch(me, candidate);
-      const now = Date.now();
-      const freshBoost = (now - candidate.lastActive.getTime()) < 48 * 60 * 60 * 1000;
+      const freshBoost = (Date.now() - candidate.lastActive.getTime()) < 48 * 60 * 60 * 1000;
       scoredCandidates.push({ user: candidate, score, dimensions, prompts, freshBoost });
     }
 
     const ranked = rankFeed(me, scoredCandidates);
-    const feed = ranked.slice(0, limit).map(({ user, score, dimensions, prompts, freshBoost }) => ({
+
+    // Apply tier cap to the full ranked list before paginating
+    const cappedRanked = ranked.slice(0, tierCap);
+    const totalAvailable = cappedRanked.length;
+
+    // Paginate
+    const page = cappedRanked.slice(offset, offset + pageSize);
+    const feed = page.map(({ user, score, dimensions, prompts, freshBoost }) => ({
       user: publicUser(user),
       score,
       dimensions,
@@ -54,7 +94,10 @@ router.get("/feed", requireAuth, async (req, res) => {
       freshBoost,
     }));
 
-    res.json({ feed, total: feed.length, tier: me.tier });
+    const reachedTierLimit = me.tier === "free" && (offset + feed.length) >= tierCap;
+    const hasMore = (offset + feed.length) < totalAvailable;
+
+    res.json({ feed, total: totalAvailable, hasMore, reachedTierLimit, tier: me.tier });
   } catch (err) {
     req.log.error(err, "Feed error");
     res.status(500).json({ error: "Internal server error" });

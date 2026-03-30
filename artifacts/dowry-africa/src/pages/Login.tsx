@@ -84,6 +84,7 @@ export default function Login() {
             <div className="flex flex-wrap justify-center gap-2">
               <button onClick={() => setDemo('chidinma@demo.com')} className="text-xs px-3 py-1 bg-secondary rounded-full hover:bg-secondary/80 transition-colors">Chidinma (W)</button>
               <button onClick={() => setDemo('emeka@demo.com')} className="text-xs px-3 py-1 bg-secondary rounded-full hover:bg-secondary/80 transition-colors">Emeka (M)</button>
+              <button onClick={() => setDemo('kwame@demo.com')} className="text-xs px-3 py-1 bg-secondary rounded-full hover:bg-secondary/80 transition-colors">Kwame (Free)</button>
             </div>
           </div>
 
