@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   familyInvolvement: text("family_involvement"),
   relocationOpen: boolean("relocation_open"),
   preferredFaith: text("preferred_faith"),
+  preferredFaiths: text("preferred_faiths").array().notNull().default(sql`ARRAY[]::text[]`),
   preferredCountry: text("preferred_country"),
   preferredHeritage: text("preferred_heritage").array(),
   bio: text("bio"),
@@ -79,6 +80,15 @@ export const messages = pgTable("messages", {
   toId: text("to_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   text: text("text").notNull(),
   readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const customValues = pgTable("custom_values", {
+  id: text("id").primaryKey(),
+  fieldType: text("field_type").notNull(), // 'heritage' | 'faith' | 'other'
+  displayValue: text("display_value").notNull(),
+  normalizedValue: text("normalized_value").notNull(),
+  usageCount: integer("usage_count").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -8,6 +8,7 @@ import paymentsRouter from "./payments.js";
 import adminRouter from "./admin.js";
 import earlyAccessRouter from "./earlyAccess.js";
 import notificationsRouter from "./notifications.js";
+import customValuesRouter from "./customValues.js";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use("/payments", paymentsRouter);
 router.use("/admin", adminRouter);
 router.use("/early-access", earlyAccessRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/custom-values", customValuesRouter);
 
 export default router;

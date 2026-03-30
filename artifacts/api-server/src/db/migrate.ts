@@ -112,6 +112,20 @@ export async function runMigrations(): Promise<void> {
       );
 
       CREATE INDEX IF NOT EXISTS notifications_user_unseen ON notifications (user_id, seen) WHERE seen = false;
+
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_faiths TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+      CREATE TABLE IF NOT EXISTS custom_values (
+        id TEXT PRIMARY KEY,
+        field_type TEXT NOT NULL,
+        display_value TEXT NOT NULL,
+        normalized_value TEXT NOT NULL,
+        usage_count INTEGER NOT NULL DEFAULT 1,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(field_type, display_value)
+      );
+
+      CREATE INDEX IF NOT EXISTS custom_values_field_prefix ON custom_values (field_type, display_value);
     `);
   } finally {
     client.release();

@@ -3,11 +3,38 @@ import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
+import { CustomChipSelect, type ChipGroup } from "@/components/ui/CustomChipSelect";
 import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const FAITH_OPTIONS = ["Christianity", "Islam", "Traditional", "Spiritual but not religious", "Any / Open", "Other"];
-const HERITAGE_OPTIONS = ["Igbo", "Yoruba", "Akan", "Zulu", "Kikuyu", "Hausa", "Amhara", "Shona", "Oromo", "Swahili", "Any", "Other"];
+// ── Cultural preference presets (grouped by region) ──────────────────────────
+const CULTURAL_PREF_GROUPS: ChipGroup[] = [
+  { group: "West African", options: ["Igbo", "Yoruba", "Akan", "Hausa", "Wolof", "Ewe", "Fante"] },
+  { group: "East African", options: ["Kikuyu", "Luo", "Baganda", "Amhara", "Somali", "Tigrinya"] },
+  { group: "Southern African", options: ["Zulu", "Xhosa", "Ndebele", "Shona", "Tswana"] },
+  { group: "North African", options: ["Amazigh", "Egyptian", "Sudanese"] },
+  { group: "Diaspora", options: ["British-African", "American-African", "Caribbean-African"] },
+  { group: "Open", options: ["Open to all"] },
+];
+
+// Heritage chips for "My heritage" in the profile section (flat, broader)
+const MY_HERITAGE_OPTIONS = [
+  "Igbo", "Yoruba", "Akan", "Hausa", "Wolof", "Ewe", "Fante",
+  "Kikuyu", "Luo", "Baganda", "Amhara", "Somali", "Tigrinya",
+  "Zulu", "Xhosa", "Ndebele", "Shona", "Tswana",
+  "Amazigh", "Egyptian", "Sudanese",
+];
+
+// ── Faith preference presets ─────────────────────────────────────────────────
+const FAITH_PREF_PRESETS = [
+  "Christian", "Muslim", "Traditional African", "No preference", "Prefer not to say",
+];
+
+// Faith options for profile faith field
+const FAITH_PROFILE_OPTIONS = [
+  "Christianity", "Islam", "Traditional", "Spiritual but not religious", "Any / Open", "Other",
+];
+
 const GENDER_OPTIONS = [
   { value: "man", label: "Men" },
   { value: "woman", label: "Women" },
@@ -52,7 +79,7 @@ export default function Profile() {
     genderPref: user?.genderPref ?? "any",
     minAge: user?.minAge ?? 24,
     maxAge: user?.maxAge ?? 45,
-    preferredFaith: user?.preferredFaith ?? "",
+    preferredFaiths: (user as any)?.preferredFaiths ?? [] as string[],
     preferredCountry: user?.preferredCountry ?? "",
     preferredHeritage: (user as any)?.preferredHeritage ?? [] as string[],
     childrenPref: user?.childrenPref ?? "open",
@@ -115,11 +142,8 @@ export default function Profile() {
     }
   }
 
-  function toggleHeritage(h: string, form: string[], setForm: (v: string[]) => void) {
-    setForm(form.includes(h) ? form.filter(x => x !== h) : [...form, h]);
-  }
-
   const preferredHeritage = (user as any)?.preferredHeritage as string[] | undefined;
+  const preferredFaiths = (user as any)?.preferredFaiths as string[] | undefined;
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,7 +209,7 @@ export default function Profile() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xl font-display font-bold mb-3 border-b border-border pb-2">Background</h3>
-                  <PrefRow label="Heritage" value={user.heritage?.join(", ") || "—"} />
+                  <PrefRow label="Cultural background" value={user.heritage?.join(", ") || "—"} />
                   <PrefRow label="Faith" value={user.faith || "—"} />
                   <PrefRow label="Languages" value={user.languages?.join(", ") || "—"} />
                 </div>
@@ -221,7 +245,7 @@ export default function Profile() {
                     genderPref: user?.genderPref ?? "any",
                     minAge: user?.minAge ?? 24,
                     maxAge: user?.maxAge ?? 45,
-                    preferredFaith: (user as any)?.preferredFaith ?? "",
+                    preferredFaiths: (user as any)?.preferredFaiths ?? [],
                     preferredCountry: (user as any)?.preferredCountry ?? "",
                     preferredHeritage: (user as any)?.preferredHeritage ?? [],
                     childrenPref: user?.childrenPref ?? "open",
@@ -248,11 +272,11 @@ export default function Profile() {
                   user.genderPref === "woman" ? "Women" :
                   "Any"
                 } />
-                <PrefRow label="Age Range" value={
+                <PrefRow label="Age range" value={
                   user.minAge && user.maxAge ? `${user.minAge} – ${user.maxAge} yrs` :
                   user.minAge ? `${user.minAge}+ yrs` : "Any age"
                 } />
-                <PrefRow label="Heritage" value={preferredHeritage?.length ? preferredHeritage.join(", ") : "Any"} />
+                <PrefRow label="Cultural preference" value={preferredHeritage?.length ? preferredHeritage.join(", ") : "Any"} />
               </div>
 
               {/* Values */}
@@ -261,7 +285,10 @@ export default function Profile() {
                   <Heart className="w-4 h-4 text-primary" />
                   <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Values</h4>
                 </div>
-                <PrefRow label="Faith" value={(user as any)?.preferredFaith || "Any / Open"} />
+                <PrefRow label="Faith preference" value={
+                  preferredFaiths?.length ? preferredFaiths.join(", ") :
+                  (user as any)?.preferredFaith || "Any / Open"
+                } />
                 <PrefRow label="Children" value={formatValue(user.childrenPref)} />
                 <PrefRow label="Timeline" value={formatValue(user.marriageTimeline)} />
               </div>
@@ -272,15 +299,15 @@ export default function Profile() {
                   <MapPin className="w-4 h-4 text-primary" />
                   <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Location</h4>
                 </div>
-                <PrefRow label="Preferred Country" value={(user as any)?.preferredCountry || "Anywhere"} />
-                <PrefRow label="Open to Relocate" value={user.relocationOpen ? "Yes" : "No"} />
+                <PrefRow label="Preferred country" value={(user as any)?.preferredCountry || "Anywhere"} />
+                <PrefRow label="Open to relocate" value={user.relocationOpen ? "Yes" : "No"} />
               </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Partner Preferences Edit Modal */}
+      {/* ── Partner Preferences Edit Modal ─────────────────────────────────── */}
       {showPrefEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -291,7 +318,7 @@ export default function Profile() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-8">
               {/* Gender */}
               <div>
                 <label className="block font-semibold mb-3">I'm looking for</label>
@@ -308,7 +335,7 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Age range */}
+              {/* Age range — structured, no custom */}
               <div>
                 <label className="block font-semibold mb-3">Age range</label>
                 <div className="flex gap-4 items-center">
@@ -336,39 +363,41 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Heritage */}
+              {/* Cultural preference — grouped chips + custom */}
               <div>
-                <label className="block font-semibold mb-3">Preferred heritage <span className="font-normal text-muted-foreground text-sm">(select all that apply)</span></label>
-                <div className="flex flex-wrap gap-2">
-                  {HERITAGE_OPTIONS.map(h => (
-                    <button
-                      key={h}
-                      onClick={() => toggleHeritage(h, prefForm.preferredHeritage, v => setPrefForm(f => ({ ...f, preferredHeritage: v })))}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${prefForm.preferredHeritage.includes(h) ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/40"}`}
-                    >
-                      {h}
-                    </button>
-                  ))}
+                <div className="flex items-baseline justify-between mb-3">
+                  <label className="block font-semibold">Cultural preference</label>
+                  <span className="text-xs text-muted-foreground">Select all that apply</span>
                 </div>
+                <CustomChipSelect
+                  selected={prefForm.preferredHeritage}
+                  onChange={v => setPrefForm(f => ({ ...f, preferredHeritage: v }))}
+                  groups={CULTURAL_PREF_GROUPS}
+                  fieldType="heritage"
+                  multiSelect
+                  allowCustom
+                  customPlaceholder="e.g. Igbo-American, Nubian..."
+                />
               </div>
 
-              {/* Faith */}
+              {/* Faith preference — multi-select chips + custom */}
               <div>
-                <label className="block font-semibold mb-3">Preferred faith</label>
-                <div className="flex flex-wrap gap-2">
-                  {FAITH_OPTIONS.map(f => (
-                    <button
-                      key={f}
-                      onClick={() => setPrefForm(p => ({ ...p, preferredFaith: p.preferredFaith === f ? "" : f }))}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${prefForm.preferredFaith === f ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/40"}`}
-                    >
-                      {f}
-                    </button>
-                  ))}
+                <div className="flex items-baseline justify-between mb-3">
+                  <label className="block font-semibold">Faith preference</label>
+                  <span className="text-xs text-muted-foreground">Select all that apply</span>
                 </div>
+                <CustomChipSelect
+                  selected={prefForm.preferredFaiths}
+                  onChange={v => setPrefForm(f => ({ ...f, preferredFaiths: v }))}
+                  presets={FAITH_PREF_PRESETS}
+                  fieldType="faith"
+                  multiSelect
+                  allowCustom
+                  customPlaceholder="e.g. Anglican, Sunni, Pentecostal..."
+                />
               </div>
 
-              {/* Children */}
+              {/* Children — structured, no custom */}
               <div>
                 <label className="block font-semibold mb-3">Children preference</label>
                 <div className="space-y-2">
@@ -399,7 +428,7 @@ export default function Profile() {
                 </select>
               </div>
 
-              {/* Location */}
+              {/* Country */}
               <div>
                 <label className="block font-semibold mb-2">Preferred country / region</label>
                 <input
@@ -437,7 +466,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Profile Edit Modal */}
+      {/* ── Profile Edit Modal ──────────────────────────────────────────────── */}
       {showProfileEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -464,23 +493,21 @@ export default function Profile() {
                 <label className="block text-sm font-semibold mb-1.5">Faith</label>
                 <select value={profileForm.faith} onChange={e => setProfileForm(f => ({ ...f, faith: e.target.value }))} className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary">
                   <option value="">Select faith</option>
-                  {FAITH_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                  {FAITH_PROFILE_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">Heritage</label>
-                <div className="flex flex-wrap gap-2">
-                  {HERITAGE_OPTIONS.filter(h => h !== "Any").map(h => (
-                    <button
-                      key={h}
-                      onClick={() => toggleHeritage(h, profileForm.heritage, v => setProfileForm(f => ({ ...f, heritage: v })))}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${profileForm.heritage.includes(h) ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/40"}`}
-                    >
-                      {h}
-                    </button>
-                  ))}
-                </div>
+                <label className="block text-sm font-semibold mb-2">Cultural background</label>
+                <CustomChipSelect
+                  selected={profileForm.heritage}
+                  onChange={v => setProfileForm(f => ({ ...f, heritage: v }))}
+                  presets={MY_HERITAGE_OPTIONS}
+                  fieldType="heritage"
+                  multiSelect
+                  allowCustom
+                  customPlaceholder="e.g. Nubian, Afro-Caribbean..."
+                />
               </div>
 
               <div>

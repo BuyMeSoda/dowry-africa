@@ -3,10 +3,20 @@ import { Link, useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { useGetMatchFeed, useLikeUser, usePassUser, useGetPaymentStatus, useGetLikedMe, type FeedCard } from "@workspace/api-client-react";
 import { useNotifications } from "@/contexts/NotificationsContext";
+import { CustomChipSelect, type ChipGroup } from "@/components/ui/CustomChipSelect";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search, Lock, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
+
+const FILTER_CULTURAL_GROUPS: ChipGroup[] = [
+  { group: "West African", options: ["Igbo", "Yoruba", "Akan", "Hausa"] },
+  { group: "East African", options: ["Kikuyu", "Luo", "Amhara", "Somali"] },
+  { group: "Southern African", options: ["Zulu", "Xhosa", "Shona"] },
+  { group: "Diaspora", options: ["British-African", "American-African"] },
+];
+
+const FILTER_FAITH_PRESETS = ["Christian", "Muslim", "Traditional African", "Any"];
 
 // ── Tag label formatting ─────────────────────────────────────────────────────
 const TAG_LABELS: Record<string, string> = {
@@ -228,6 +238,10 @@ export default function Discover() {
   const [feed, setFeed] = useState<FeedCard[]>([]);
   const [matchModal, setMatchModal] = useState<{ name: string; photoUrl: string | null } | null>(null);
 
+  // Filter state (sidebar)
+  const [filterCulture, setFilterCulture] = useState<string[]>([]);
+  const [filterFaith, setFilterFaith] = useState<string[]>([]);
+
   useEffect(() => {
     if (feedData?.feed) {
       setFeed(feedData.feed);
@@ -260,37 +274,59 @@ export default function Discover() {
       <main className="flex-1 container mx-auto px-4 md:px-8 py-8 flex gap-8">
         {/* Left Sidebar - Desktop */}
         <aside className="hidden lg:block w-72 shrink-0">
-           <div className="sticky top-28 bg-white p-6 rounded-3xl border border-border shadow-sm">
-              <h3 className="font-display font-bold text-xl mb-4">Discover Filters</h3>
-              <div className="space-y-4">
-                 <div>
-                   <label className="text-sm font-medium text-muted-foreground block mb-2">Intent</label>
-                   <div className="flex flex-wrap gap-2">
-                     <span className="px-3 py-1 bg-primary text-white text-xs rounded-full cursor-pointer">Marriage Ready</span>
-                     <span className="px-3 py-1 bg-secondary text-foreground text-xs rounded-full cursor-pointer hover:bg-secondary/80">Serious</span>
-                   </div>
-                 </div>
-                 <hr className="border-border" />
-                 <div>
-                   <label className="text-sm font-medium text-muted-foreground block mb-2">Heritage</label>
-                   <button className="w-full flex items-center justify-between px-3 py-2 border border-border rounded-xl text-sm hover:bg-secondary transition-colors">
-                     <span>Any Heritage</span>
-                     <Search className="w-4 h-4 text-muted-foreground" />
-                   </button>
-                 </div>
+           <div className="sticky top-28 bg-white p-6 rounded-3xl border border-border shadow-sm space-y-6">
+              <h3 className="font-display font-bold text-xl">Discover Filters</h3>
+
+              {/* Cultural preference filter */}
+              <div>
+                <label className="text-sm font-semibold text-foreground block mb-2.5">Cultural preference</label>
+                <CustomChipSelect
+                  selected={filterCulture}
+                  onChange={setFilterCulture}
+                  groups={FILTER_CULTURAL_GROUPS}
+                  fieldType="heritage"
+                  multiSelect
+                  allowCustom
+                  customPlaceholder="e.g. Nubian, Wolof..."
+                />
               </div>
+
+              <hr className="border-border" />
+
+              {/* Faith filter */}
+              <div>
+                <label className="text-sm font-semibold text-foreground block mb-2.5">Faith preference</label>
+                <CustomChipSelect
+                  selected={filterFaith}
+                  onChange={setFilterFaith}
+                  presets={FILTER_FAITH_PRESETS}
+                  fieldType="faith"
+                  multiSelect
+                  allowCustom
+                  customPlaceholder="e.g. Anglican, Sunni..."
+                />
+              </div>
+
+              {(filterCulture.length > 0 || filterFaith.length > 0) && (
+                <button
+                  onClick={() => { setFilterCulture([]); setFilterFaith([]); }}
+                  className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1 text-center"
+                >
+                  Clear all filters
+                </button>
+              )}
               
               {(!paymentStatus || paymentStatus.tier === 'free') ? (
-                <div className="mt-8 bg-gradient-to-br from-primary/10 to-transparent p-5 rounded-2xl border border-primary/20">
+                <div className="bg-gradient-to-br from-primary/10 to-transparent p-5 rounded-2xl border border-primary/20">
                   <div className="flex items-center gap-2 text-primary font-bold mb-2">
                     <Sparkles className="w-4 h-4" />
                     <span>Serious Badge</span>
                   </div>
-                  <p className="text-sm text-foreground/80 mb-4">Upgrade to Core or Badge tier to see who liked you and get priority matching.</p>
+                  <p className="text-sm text-foreground/80 mb-4">Upgrade to Core or Badge to see who liked you and get priority matching.</p>
                   <Link href="/premium" className="text-xs font-bold uppercase tracking-wider text-primary hover:underline">View Plans</Link>
                 </div>
               ) : (
-                <div className="mt-8 bg-gradient-to-br from-yellow-50 to-transparent p-5 rounded-2xl border border-yellow-200">
+                <div className="bg-gradient-to-br from-yellow-50 to-transparent p-5 rounded-2xl border border-yellow-200">
                   <div className="flex items-center gap-2 font-bold mb-1 text-yellow-700">
                     <Sparkles className="w-4 h-4" />
                     <span>{paymentStatus.tier === 'badge' ? 'Serious Badge' : 'Core Member'}</span>

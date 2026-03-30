@@ -1,0 +1,124 @@
+Please make the Partner Preferences modal more flexible by allowing users to add custom options in selected fields, while keeping the experience structured and clean.
+
+═══════════════════════════════
+GOAL
+═══════════════════════════════
+Keep the current quick-select chip UI, but allow users to add custom values where preset options may not be enough. The experience should feel premium, minimal and easy to scan at all times.
+
+═══════════════════════════════
+1. RENAME LABELS
+═══════════════════════════════
+Rename "Preferred heritage" to "Cultural preference" everywhere in the app — in the preferences modal, profile page, filters, and any other place it appears.
+
+═══════════════════════════════
+2. CULTURAL PREFERENCE FIELD
+═══════════════════════════════
+Replace the current heritage chip list with these preset chips organised by region:
+
+West African: Igbo, Yoruba, Akan, Hausa, Wolof, Ewe, Fante
+East African: Kikuyu, Luo, Baganda, Amhara, Somali, Tigrinya
+Southern African: Zulu, Xhosa, Ndebele, Shona, Tswana
+North African: Amazigh, Egyptian, Sudanese
+Diaspora: British-African, American-African, Caribbean-African
+Open to all
+
+Then below the preset chips add:
++ Add custom cultural background
+
+When clicked:
+- Show a small text input field inline
+- As the user types, show autocomplete suggestions from existing values in the database
+- User can select a suggestion OR create a brand new custom value
+- After confirming, convert it into a selected chip that looks identical to the preset chips
+- User can remove it by clicking X on the chip
+- Allow multiple selections including mix of preset and custom chips
+
+═══════════════════════════════
+3. PREFERRED FAITH FIELD
+═══════════════════════════════
+Keep these preset chips:
+Christian, Muslim, Traditional African, No preference, Prefer not to say
+
+Add below:
++ Add custom faith / denomination
+
+When clicked:
+- Show a small text input field inline
+- Autocomplete suggestions from existing values
+- User can type a specific denomination e.g. "Anglican", "Sunni", "Pentecostal", "Catholic"
+- After confirming, convert to a selected chip
+- Allow multiple selections
+
+═══════════════════════════════
+4. FIELDS THAT MUST STAY STRUCTURED
+═══════════════════════════════
+Do NOT add custom entry to these fields — keep them as fixed structured options only:
+- Age range (min/max number inputs)
+- Gender preference (Men / Women / Open)
+- Wants children / Does not want children / Open
+- Location / distance preference
+- Subscription tier filters
+
+These fields are critical for matching logic and must stay clean and structured.
+
+═══════════════════════════════
+5. UX REQUIREMENTS
+═══════════════════════════════
+- Preset chips remain the primary and most prominent interaction
+- Custom entry feels secondary — only appears when user taps + Add custom
+- The + Add custom option should be visually smaller and less prominent than the preset chips
+- Custom input field should appear inline below the chips, not in a separate modal
+- Custom chips must visually match preset chips exactly (same size, color, X button)
+- Users can remove any chip (preset or custom) by clicking X
+- The modal should not feel cluttered — inputs only appear when actively adding
+- Smooth animation when the custom input appears and disappears
+- If user clicks away without submitting, the input closes cleanly
+
+═══════════════════════════════
+6. AUTOCOMPLETE BEHAVIOUR
+═══════════════════════════════
+- When user starts typing in the custom field, query existing values from the database
+- Show up to 5 suggestions in a small dropdown below the input
+- If their exact input already exists as a preset or previously entered custom value, suggest it first
+- If no match found, show option: Create "[their input]"
+- This prevents duplicate or near-duplicate values cluttering the database
+
+═══════════════════════════════
+7. BACKEND / DATABASE
+═══════════════════════════════
+For all custom entries store both:
+- display_value: the original text the user typed e.g. "Born Again Christian"
+- normalized_value: a cleaned/mapped version for matching e.g. "Christian"
+
+Normalization rules:
+- Trim whitespace
+- Title case the display value
+- For faith: map common variations to normalized categories
+  * "Born again", "Pentecostal", "Baptist", "Anglican", "Catholic" → normalized: "Christian"
+  * "Sunni", "Shia", "Ahmadiyya" → normalized: "Muslim"
+  * Keep unusual values as-is if no clear mapping exists
+- For heritage: store as-is but title cased, no normalization needed
+
+The matching algorithm should use normalized_value for compatibility scoring, but display display_value to users.
+
+Add a custom_values table to store reusable custom entries:
+- id
+- field_type (heritage / faith / other)
+- display_value
+- normalized_value
+- usage_count (increment each time someone selects this value — used for autocomplete ranking)
+- created_at
+
+═══════════════════════════════
+8. DISCOVER FILTERS
+═══════════════════════════════
+Update the Discover page filter panel to use the same chip + custom entry pattern for:
+- Cultural preference filter
+- Faith filter
+
+So users can filter their discover feed by both preset and custom values.
+
+═══════════════════════════════
+9. DESIGN NOTE
+═══════════════════════════════
+The overall modal should still feel premium and minimal. The additions should feel like a natural extension of the existing UI, not a new feature bolted on. Use the existing rose/burgundy color palette and font system throughout. The + Add custom link should use a subtle muted color, not the primary brand color, so it does not compete visually with the preset chips.
