@@ -168,12 +168,7 @@ export default function UserProfileView() {
                   )}
                   {profile.faith && (
                     <span className="px-3 py-1.5 bg-secondary text-secondary-foreground text-sm font-medium rounded-full border border-border/50">
-                      {profile.faith}
-                    </span>
-                  )}
-                  {profile.lifeStage && (
-                    <span className="px-3 py-1.5 bg-secondary text-secondary-foreground text-sm font-medium rounded-full border border-border/50">
-                      {profile.lifeStage}
+                      {formatTag(profile.faith)}
                     </span>
                   )}
                   {profile.heritage?.map((h: string) => (
