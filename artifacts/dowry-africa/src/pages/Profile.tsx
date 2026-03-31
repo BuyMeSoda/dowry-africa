@@ -15,7 +15,7 @@ import { useGetBlockedUsers, useUnblockUser } from "@workspace/api-client-react"
 
 // ── Faith preference presets ─────────────────────────────────────────────────
 const FAITH_PREF_PRESETS = [
-  "Christian", "Muslim", "Traditional African", "No preference", "Prefer not to say",
+  "Christian", "Muslim", "Traditional African", "No preference",
 ];
 
 // Faith options for profile faith field

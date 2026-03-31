@@ -15,8 +15,8 @@ import { API_BASE } from "@/lib/api-url";
 import { formatTag } from "@/lib/format-tags";
 
 
-// "Open to all" = first chip in Faith list, means no filter
-const FILTER_FAITH_PRESETS = ["Open to all", "Christian", "Muslim", "Traditional African"];
+// "No preference" = first chip in Faith list, means no filter
+const FILTER_FAITH_PRESETS = ["No preference", "Christian", "Muslim", "Traditional African"];
 
 interface MatchModalProps {
   userId: string;
@@ -227,8 +227,8 @@ export default function Discover() {
 
   const handleFaithToggle = (value: string) => {
     setFilterFaith(prev => {
-      if (value === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
-      if (prev.includes("Open to all")) return [value];
+      if (value === "No preference") return prev.includes("No preference") ? [] : ["No preference"];
+      if (prev.includes("No preference")) return [value];
       return prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
     });
   };
@@ -256,12 +256,12 @@ export default function Discover() {
 
   const effectiveOriginFilter    = filterOrigin.filter(v => v !== "Open to all");
   const effectiveResidenceFilter = filterResidence.filter(v => v !== "Open to all");
-  const effectiveFaithFilter     = filterFaith.filter(v => v !== "Open to all");
+  const effectiveFaithFilter     = filterFaith.filter(v => v !== "No preference");
   const filtersActive = effectiveOriginFilter.length > 0 || effectiveResidenceFilter.length > 0 || effectiveFaithFilter.length > 0;
 
   const draftFiltersActive = draftOrigin.filter(v => v !== "Open to all").length > 0 ||
                               draftResidence.filter(v => v !== "Open to all").length > 0 ||
-                              draftFaith.filter(v => v !== "Open to all").length > 0;
+                              draftFaith.filter(v => v !== "No preference").length > 0;
 
   // ── Infinite-scroll feed state ──────────────────────────────────────────────
   const [feed, setFeed]                       = useState<FeedCard[]>([]);
@@ -725,8 +725,8 @@ export default function Discover() {
                     onChange={() => {}}
                     onToggleValue={v => {
                       setDraftFaith(prev => {
-                        if (v === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
-                        if (prev.includes("Open to all")) return [v];
+                        if (v === "No preference") return prev.includes("No preference") ? [] : ["No preference"];
+                        if (prev.includes("No preference")) return [v];
                         return prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v];
                       });
                     }}
