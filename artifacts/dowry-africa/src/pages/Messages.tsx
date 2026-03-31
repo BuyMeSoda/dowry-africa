@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useRoute } from "wouter";
+import { Link, useRoute, useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { useGetConversations, useGetMessages, useSendMessage } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 export default function Messages() {
   const { user } = useAuth();
   const { refresh: refreshNotifs } = useNotifications();
+  const [, setLocation] = useLocation();
   const [match, params] = useRoute("/messages/:id");
   const activeUserId = match ? params?.id : null;
   
@@ -87,7 +88,7 @@ export default function Messages() {
                     </div>
                     <div className="flex gap-3 px-4 pb-4 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
                       {freshMatches.map((c) => (
-                        <Link key={c.userId} href={`/messages/${c.userId}`}>
+                        <Link key={c.userId} href={`/members/${c.userId}`}>
                           <div className="flex flex-col items-center gap-2 cursor-pointer group w-16 shrink-0">
                             <div className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${activeUserId === c.userId ? 'border-primary' : 'border-primary/40 group-hover:border-primary'}`}>
                               <UserAvatar name={c.name} photoUrl={c.photoUrl} className="w-full h-full" textClassName="text-xl font-bold" />
@@ -110,27 +111,41 @@ export default function Messages() {
                     )}
                     <div className="divide-y divide-border/50">
                       {withMessages.map((c) => (
-                        <Link key={c.userId} href={`/messages/${c.userId}`}>
-                          <div className={`p-4 flex gap-4 cursor-pointer hover:bg-secondary/30 transition-colors ${activeUserId === c.userId ? 'bg-secondary/50 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}>
-                            <div className="relative shrink-0">
-                              <UserAvatar name={c.name} photoUrl={c.photoUrl} size={56} className="rounded-full" textClassName="text-xl font-bold" />
-                              {c.unread > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                  {c.unread > 9 ? "9+" : c.unread}
-                                </span>
-                              )}
+                        <div
+                          key={c.userId}
+                          onClick={() => setLocation(`/messages/${c.userId}`)}
+                          className={`p-4 flex gap-4 cursor-pointer hover:bg-secondary/30 transition-colors ${activeUserId === c.userId ? 'bg-secondary/50 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+                        >
+                          {/* Avatar → profile */}
+                          <Link
+                            href={`/members/${c.userId}`}
+                            onClick={e => e.stopPropagation()}
+                            className="relative shrink-0"
+                          >
+                            <UserAvatar name={c.name} photoUrl={c.photoUrl} size={56} className="rounded-full hover:opacity-90 transition-opacity" textClassName="text-xl font-bold" />
+                            {c.unread > 0 && (
+                              <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                {c.unread > 9 ? "9+" : c.unread}
+                              </span>
+                            )}
+                          </Link>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-center mb-1">
+                              {/* Name → profile */}
+                              <Link
+                                href={`/members/${c.userId}`}
+                                onClick={e => e.stopPropagation()}
+                                className={`truncate hover:text-primary transition-colors ${c.unread > 0 ? 'font-bold text-foreground' : 'font-semibold text-foreground'}`}
+                              >
+                                {c.name}
+                              </Link>
+                              {c.lastMessageAt && <span className="text-xs text-muted-foreground shrink-0 ml-2">{format(new Date(c.lastMessageAt), 'MMM d')}</span>}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-center mb-1">
-                                <h4 className={`truncate ${c.unread > 0 ? 'font-bold text-foreground' : 'font-semibold text-foreground'}`}>{c.name}</h4>
-                                {c.lastMessageAt && <span className="text-xs text-muted-foreground shrink-0 ml-2">{format(new Date(c.lastMessageAt), 'MMM d')}</span>}
-                              </div>
-                              <p className={`text-sm truncate ${c.unread > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                                {c.lastMessage || 'Say hello!'}
-                              </p>
-                            </div>
+                            <p className={`text-sm truncate ${c.unread > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                              {c.lastMessage || 'Say hello!'}
+                            </p>
                           </div>
-                        </Link>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -164,10 +179,14 @@ export default function Messages() {
                 <Link href="/messages" className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center hover:bg-secondary">
                   <ChevronLeft className="w-6 h-6" />
                 </Link>
-                <UserAvatar name={activeConvo?.name ?? ""} photoUrl={activeConvo?.photoUrl} size={48} className="rounded-full" textClassName="text-lg font-bold" />
+                <Link href={`/members/${activeUserId}`} className="shrink-0 hover:opacity-90 transition-opacity">
+                  <UserAvatar name={activeConvo?.name ?? ""} photoUrl={activeConvo?.photoUrl} size={48} className="rounded-full" textClassName="text-lg font-bold" />
+                </Link>
                 <div>
-                  <h3 className="font-display font-bold text-lg">{activeConvo?.name || 'Match'}</h3>
-                  <p className="text-xs text-muted-foreground">Matched recently</p>
+                  <Link href={`/members/${activeUserId}`} className="hover:text-primary transition-colors">
+                    <h3 className="font-display font-bold text-lg">{activeConvo?.name || 'Match'}</h3>
+                  </Link>
+                  <p className="text-xs text-muted-foreground">Tap name to view profile</p>
                 </div>
               </div>
               

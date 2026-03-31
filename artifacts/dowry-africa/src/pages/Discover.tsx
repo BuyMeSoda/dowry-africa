@@ -51,12 +51,13 @@ function formatTag(raw: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface MatchModalProps {
+  userId: string;
   name: string;
   photoUrl: string | null;
   onClose: () => void;
 }
 
-function MatchModal({ name, photoUrl, onClose }: MatchModalProps) {
+function MatchModal({ userId, name, photoUrl, onClose }: MatchModalProps) {
   const [, setLocation] = useLocation();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
@@ -85,9 +86,12 @@ function MatchModal({ name, photoUrl, onClose }: MatchModalProps) {
                 <Heart className="w-5 h-5 text-primary fill-primary" style={{ marginLeft: `${(i - 2) * 30}px` }} />
               </motion.div>
             ))}
-            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-primary shadow-xl shadow-primary/30 relative z-10">
+            <button
+              onClick={() => { onClose(); setLocation(`/members/${userId}`); }}
+              className="w-28 h-28 rounded-full overflow-hidden border-4 border-primary shadow-xl shadow-primary/30 relative z-10 hover:opacity-90 transition-opacity"
+            >
               <UserAvatar name={name} photoUrl={photoUrl} className="w-full h-full" textClassName="text-5xl font-bold" />
-            </div>
+            </button>
           </div>
 
           <div className="mb-2">
@@ -102,14 +106,20 @@ function MatchModal({ name, photoUrl, onClose }: MatchModalProps) {
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { onClose(); setLocation("/messages"); }}
+              onClick={() => { onClose(); setLocation(`/messages/${userId}`); }}
               className="w-full py-3.5 bg-primary text-white rounded-full font-bold shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all hover:-translate-y-0.5"
             >
               Send a Message
             </button>
             <button
+              onClick={() => { onClose(); setLocation(`/members/${userId}`); }}
+              className="w-full py-3 border border-border rounded-full text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
+            >
+              View Profile
+            </button>
+            <button
               onClick={onClose}
-              className="w-full py-3 text-muted-foreground text-sm hover:text-foreground transition-colors"
+              className="w-full py-2 text-muted-foreground text-sm hover:text-foreground transition-colors"
             >
               Keep Discovering
             </button>
@@ -126,7 +136,7 @@ function LikesYouPanel() {
   const { counts } = useNotifications();
   const likeMutation = useLikeUser();
   const { toast } = useToast();
-  const [matchModal, setMatchModal] = useState<{ name: string; photoUrl: string | null } | null>(null);
+  const [matchModal, setMatchModal] = useState<{ userId: string; name: string; photoUrl: string | null } | null>(null);
 
   const likedBy = likedMeData?.likedBy ?? [];
   const count = likedMeData?.count ?? 0;
@@ -139,7 +149,7 @@ function LikesYouPanel() {
     likeMutation.mutate({ id: userId }, {
       onSuccess: (res: any) => {
         if (res.mutual) {
-          setMatchModal({ name, photoUrl });
+          setMatchModal({ userId, name, photoUrl });
         } else {
           toast({ title: "Liked!", description: `You liked ${name} back.` });
         }
@@ -208,6 +218,7 @@ function LikesYouPanel() {
       <AnimatePresence>
         {matchModal && (
           <MatchModal
+            userId={matchModal.userId}
             name={matchModal.name}
             photoUrl={matchModal.photoUrl}
             onClose={() => setMatchModal(null)}
@@ -231,6 +242,7 @@ interface FeedPageResponse {
 export default function Discover() {
   const { data: paymentStatus } = useGetPaymentStatus();
   const { refresh: refreshNotifs } = useNotifications();
+  const [, setLocation] = useLocation();
   const likeMutation = useLikeUser();
   const passMutation = usePassUser();
   const { toast } = useToast();
@@ -286,7 +298,7 @@ export default function Discover() {
 
   // ── Infinite-scroll feed state ──────────────────────────────────────────────
   const [feed, setFeed]                       = useState<FeedCard[]>([]);
-  const [matchModal, setMatchModal]           = useState<{ name: string; photoUrl: string | null } | null>(null);
+  const [matchModal, setMatchModal]           = useState<{ userId: string; name: string; photoUrl: string | null } | null>(null);
   const [isLoading, setIsLoading]             = useState(true);
   const [isLoadingMore, setIsLoadingMore]     = useState(false);
   const [hasMore, setHasMore]                 = useState(false);
@@ -382,7 +394,7 @@ export default function Discover() {
         onSuccess: (res: any) => {
           refreshNotifs();
           if (res.mutual) {
-            setMatchModal({ name: card.user.name, photoUrl: card.user.photoUrl ?? null });
+            setMatchModal({ userId: card.user.id, name: card.user.name, photoUrl: card.user.photoUrl ?? null });
           } else {
             toast({ title: "Like sent!", description: "We'll let you know if they like you back." });
           }
@@ -541,7 +553,8 @@ export default function Discover() {
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                        className="bg-white rounded-[2rem] shadow-xl border border-border/60 overflow-hidden flex flex-col md:flex-row group"
+                        onClick={() => setLocation(`/members/${card.user.id}`)}
+                        className="bg-white rounded-[2rem] shadow-xl border border-border/60 overflow-hidden flex flex-col md:flex-row group cursor-pointer"
                       >
                         {/* Photo Side */}
                         <div className="w-full md:w-5/12 aspect-[4/5] md:aspect-auto md:h-[500px] relative shrink-0">
@@ -600,7 +613,7 @@ export default function Discover() {
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex justify-end gap-4 mt-8">
+                          <div className="flex justify-end gap-4 mt-8" onClick={e => e.stopPropagation()}>
                             <button 
                               onClick={() => handleAction(card.user.id, 'pass', card)}
                               className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white border-2 border-border flex items-center justify-center text-muted-foreground hover:border-foreground hover:text-foreground transition-all shadow-sm"
@@ -758,6 +771,7 @@ export default function Discover() {
       <AnimatePresence>
         {matchModal && (
           <MatchModal
+            userId={matchModal.userId}
             name={matchModal.name}
             photoUrl={matchModal.photoUrl}
             onClose={() => setMatchModal(null)}

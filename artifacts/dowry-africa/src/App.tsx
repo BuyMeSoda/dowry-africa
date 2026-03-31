@@ -25,6 +25,7 @@ import AdminSubscriptions from "@/pages/admin/AdminSubscriptions";
 import AdminActivity from "@/pages/admin/AdminActivity";
 import AdminModeration from "@/pages/admin/AdminModeration";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import UserProfileView from "@/pages/UserProfileView";
 
 import { API_BASE } from "@/lib/api-url";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
@@ -122,6 +123,9 @@ function Router() {
         </Route>
         <Route path="/premium">
           {() => <ProtectedRoute component={Premium} />}
+        </Route>
+        <Route path="/members/:id">
+          {() => <ProtectedRoute component={UserProfileView} />}
         </Route>
 
         <Route component={NotFound} />
