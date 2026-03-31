@@ -56,7 +56,7 @@ function MatchModal({ userId, name, photoUrl, onClose }: MatchModalProps) {
               </motion.div>
             ))}
             <button
-              onClick={() => { onClose(); setLocation(`/members/${userId}`); }}
+              onClick={() => { onClose(); setLocation(`/members/${userId}?from=discover`); }}
               className="w-28 h-28 rounded-full overflow-hidden border-4 border-primary shadow-xl shadow-primary/30 relative z-10 hover:opacity-90 transition-opacity"
             >
               <UserAvatar name={name} photoUrl={photoUrl} className="w-full h-full" textClassName="text-5xl font-bold" />
@@ -81,7 +81,7 @@ function MatchModal({ userId, name, photoUrl, onClose }: MatchModalProps) {
               Send a Message
             </button>
             <button
-              onClick={() => { onClose(); setLocation(`/members/${userId}`); }}
+              onClick={() => { onClose(); setLocation(`/members/${userId}?from=discover`); }}
               className="w-full py-3 border border-border rounded-full text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
             >
               View Profile
@@ -522,7 +522,7 @@ export default function Discover() {
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                        onClick={() => setLocation(`/members/${card.user.id}`)}
+                        onClick={() => setLocation(`/members/${card.user.id}?from=discover`)}
                         className="bg-white rounded-[2rem] shadow-xl border border-border/60 overflow-hidden flex flex-col md:flex-row group cursor-pointer"
                       >
                         {/* Photo Side */}

@@ -88,7 +88,7 @@ export default function Messages() {
                     </div>
                     <div className="flex gap-3 px-4 pb-4 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
                       {freshMatches.map((c) => (
-                        <Link key={c.userId} href={`/members/${c.userId}`}>
+                        <Link key={c.userId} href={`/members/${c.userId}?from=messages`}>
                           <div className="flex flex-col items-center gap-2 cursor-pointer group w-16 shrink-0">
                             <div className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${activeUserId === c.userId ? 'border-primary' : 'border-primary/40 group-hover:border-primary'}`}>
                               <UserAvatar name={c.name} photoUrl={c.photoUrl} className="w-full h-full" textClassName="text-xl font-bold" />
@@ -118,7 +118,7 @@ export default function Messages() {
                         >
                           {/* Avatar → profile */}
                           <Link
-                            href={`/members/${c.userId}`}
+                            href={`/members/${c.userId}?from=messages`}
                             onClick={e => e.stopPropagation()}
                             className="relative shrink-0"
                           >
@@ -133,7 +133,7 @@ export default function Messages() {
                             <div className="flex justify-between items-center mb-1">
                               {/* Name → profile */}
                               <Link
-                                href={`/members/${c.userId}`}
+                                href={`/members/${c.userId}?from=messages`}
                                 onClick={e => e.stopPropagation()}
                                 className={`truncate hover:text-primary transition-colors ${c.unread > 0 ? 'font-bold text-foreground' : 'font-semibold text-foreground'}`}
                               >
@@ -179,11 +179,11 @@ export default function Messages() {
                 <Link href="/messages" className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center hover:bg-secondary">
                   <ChevronLeft className="w-6 h-6" />
                 </Link>
-                <Link href={`/members/${activeUserId}`} className="shrink-0 hover:opacity-90 transition-opacity">
+                <Link href={`/members/${activeUserId}?from=messages`} className="shrink-0 hover:opacity-90 transition-opacity">
                   <UserAvatar name={activeConvo?.name ?? ""} photoUrl={activeConvo?.photoUrl} size={48} className="rounded-full" textClassName="text-lg font-bold" />
                 </Link>
                 <div>
-                  <Link href={`/members/${activeUserId}`} className="hover:text-primary transition-colors">
+                  <Link href={`/members/${activeUserId}?from=messages`} className="hover:text-primary transition-colors">
                     <h3 className="font-display font-bold text-lg">{activeConvo?.name || 'Match'}</h3>
                   </Link>
                   <p className="text-xs text-muted-foreground">Tap name to view profile</p>

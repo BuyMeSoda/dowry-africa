@@ -80,8 +80,9 @@ export default function UserProfileView() {
   const handleMessage = () => setLocation(`/messages/${userId}`);
 
   const goBack = () => {
-    if (window.history.length > 1) {
-      window.history.back();
+    const from = new URLSearchParams(window.location.search).get("from");
+    if (from === "messages") {
+      setLocation("/messages");
     } else {
       setLocation("/discover");
     }
