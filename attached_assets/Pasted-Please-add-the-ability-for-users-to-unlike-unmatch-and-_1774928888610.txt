@@ -1,0 +1,101 @@
+Please add the ability for users to unlike, unmatch, and block other users. These are essential safety and control features.
+
+═══════════════════════════════
+1. UNLIKE (withdraw a like)
+═══════════════════════════════
+If User A liked User B but they haven't matched yet:
+- User A should be able to withdraw their like
+- This removes the like from the database
+- User B will no longer see User A in their "liked you" section
+- User A can like User B again in the future if they change their mind
+
+Where to add this:
+- On the Discover feed card: if user has already liked someone, show the heart as filled/active — clicking it again withdraws the like
+- On the member profile page: if already liked, show "Unlike" option
+
+═══════════════════════════════
+2. UNMATCH (end a mutual match)
+═══════════════════════════════
+If User A and User B are mutually matched:
+- Either user can unmatch at any time
+- Unmatching removes the match and deletes the conversation
+- Both users lose access to the message history
+- The unmatched person disappears from both users' Messages tab
+- The unmatched person can appear again in Discover feed (they are strangers again)
+
+Where to add this:
+- In the Messages page: three dots menu (⋮) on a conversation → "Unmatch"
+- On the member profile page: "Unmatch" option in a menu
+- Show a confirmation dialog before unmatching: "Are you sure you want to unmatch with [Name]? This will delete your conversation and cannot be undone."
+
+═══════════════════════════════
+3. BLOCK (prevent all contact)
+═══════════════════════════════
+Blocking is more serious than unmatching:
+- The blocked person can no longer see the blocking user's profile
+- The blocked person disappears from the blocking user's Discover feed
+- Any existing match/conversation is removed
+- The blocked person cannot like or message the blocking user
+- The blocker can unblock from their settings/profile page
+
+Where to add block:
+- Member profile page: three dots menu (⋮) → "Block [Name]"
+- Messages page: three dots menu on conversation → "Block [Name]"
+- After blocking show confirmation: "[Name] has been blocked. They will no longer be able to see your profile or contact you."
+
+═══════════════════════════════
+4. REPORT + BLOCK TOGETHER
+═══════════════════════════════
+When a user reports someone, give them the option to also block at the same time:
+- "Report [Name]" → opens report modal with reason options
+- At the bottom of the report modal: checkbox "Also block this person"
+- If checked, block happens automatically after report is submitted
+
+Report reasons:
+- Inappropriate photos
+- Harassment or abusive messages
+- Fake profile / impersonation
+- Spam
+- Underage
+- Other (free text)
+
+═══════════════════════════════
+5. DATABASE
+═══════════════════════════════
+Add a blocks table:
+- id
+- blocker_user_id
+- blocked_user_id
+- created_at
+
+Update the matching/feed algorithm to:
+- Never show blocked users in the Discover feed
+- Never show users who have blocked you in the Discover feed
+- Filter blocked users from all API responses
+
+═══════════════════════════════
+6. BACKEND API
+═══════════════════════════════
+- DELETE /api/likes/:userId — withdraw a like
+- POST /api/matches/:matchId/unmatch — unmatch and delete conversation
+- POST /api/users/:userId/block — block a user
+- DELETE /api/users/:userId/block — unblock a user
+- GET /api/users/blocked — list of blocked users
+
+All feed and match endpoints must filter out blocked users in both directions.
+
+═══════════════════════════════
+7. SETTINGS PAGE
+═══════════════════════════════
+Add a "Privacy & Safety" section to the user's profile/settings page:
+- "Blocked users" list showing who they have blocked
+- Ability to unblock from this list
+- Clear explanation: "Blocked users cannot see your profile or contact you"
+
+═══════════════════════════════
+8. ADMIN PANEL
+═══════════════════════════════
+In the admin moderation section:
+- Show block counts per user (how many times they've been blocked)
+- High block counts should flag a user for review
+- If a user has been blocked by 5+ people, automatically flag their account for admin review

@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import multer from "multer";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
@@ -136,6 +137,74 @@ router.post("/me/photo", requireAuth, (req, res, next) => {
   } catch (err) {
     req.log.error(err, "Photo upload error");
     res.status(500).json({ error: "Failed to upload photo" });
+  }
+});
+
+// Get list of users this user has blocked
+router.get("/me/blocked", requireAuth, async (req, res) => {
+  try {
+    const myId = req.userId!;
+    const blockRows = await db
+      .select({ blockedUserId: schema.blocks.blockedUserId })
+      .from(schema.blocks)
+      .where(eq(schema.blocks.blockerUserId, myId));
+
+    const blockedUsers = [];
+    for (const { blockedUserId } of blockRows) {
+      const [row] = await db.select().from(schema.users).where(eq(schema.users.id, blockedUserId)).limit(1);
+      if (row) blockedUsers.push(publicUser(toUser(row)));
+    }
+
+    res.json({ blocked: blockedUsers });
+  } catch (err) {
+    req.log.error(err, "Get blocked error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Block a user — also removes mutual likes, messages, and notifications
+router.post("/:userId/block", requireAuth, async (req, res) => {
+  try {
+    const myId = req.userId!;
+    const theirId = req.params.userId;
+
+    if (myId === theirId) { res.status(400).json({ error: "Cannot block yourself" }); return; }
+
+    await db.insert(schema.blocks)
+      .values({ blockerUserId: myId, blockedUserId: theirId })
+      .onConflictDoNothing();
+
+    // Also unmatch: delete likes in both directions, all messages, and match/like/message notifications
+    await db.execute(
+      sql`DELETE FROM likes WHERE (from_id = ${myId} AND to_id = ${theirId}) OR (from_id = ${theirId} AND to_id = ${myId})`
+    );
+    await db.execute(
+      sql`DELETE FROM messages WHERE (from_id = ${myId} AND to_id = ${theirId}) OR (from_id = ${theirId} AND to_id = ${myId})`
+    );
+    await db.execute(
+      sql`DELETE FROM notifications WHERE ((user_id = ${myId} AND from_user_id = ${theirId}) OR (user_id = ${theirId} AND from_user_id = ${myId})) AND type IN ('like', 'match', 'message')`
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err, "Block user error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Unblock a user
+router.delete("/:userId/block", requireAuth, async (req, res) => {
+  try {
+    const myId = req.userId!;
+    const theirId = req.params.userId;
+
+    await db.delete(schema.blocks)
+      .where(and(eq(schema.blocks.blockerUserId, myId), eq(schema.blocks.blockedUserId, theirId)));
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err, "Unblock user error");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

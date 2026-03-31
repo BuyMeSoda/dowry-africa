@@ -1,14 +1,37 @@
 import { useRoute, useLocation } from "wouter";
-import { useGetUserById, useGetConversations, useLikeUser } from "@workspace/api-client-react";
+import {
+  useGetUserById,
+  useGetConversations,
+  useLikeUser,
+  useGetMatchStatus,
+  useUnlikeUser,
+  useUnmatch,
+  useBlockUser,
+  useSubmitReport,
+} from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
-import { ChevronLeft, Heart, MessageCircle, MapPin, Loader2, Sparkles, Users, Baby, Clock, Home } from "lucide-react";
+import {
+  ChevronLeft, Heart, MessageCircle, MapPin, Loader2, Sparkles,
+  Baby, Clock, Home, MoreVertical, X, AlertCircle, ShieldOff,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatTag } from "@/lib/format-tags";
+import { useQueryClient } from "@tanstack/react-query";
+
+const REPORT_REASONS = [
+  { value: "fake_profile",          label: "Fake or misleading profile" },
+  { value: "harassment",            label: "Harassment or threats" },
+  { value: "inappropriate_content", label: "Inappropriate photos or content" },
+  { value: "scam",                  label: "Scam or fraud" },
+  { value: "spam",                  label: "Spam" },
+  { value: "underage",              label: "Appears to be underage" },
+  { value: "other",                 label: "Other" },
+];
 
 function MatchBanner({ name, onClose, onMessage }: { name: string; onClose: () => void; onMessage: () => void }) {
   return (
@@ -43,6 +66,166 @@ function MatchBanner({ name, onClose, onMessage }: { name: string; onClose: () =
   );
 }
 
+function ConfirmDialog({
+  title,
+  description,
+  confirmLabel,
+  confirmClass,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmClass?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading?: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10"
+      >
+        <h3 className="font-display font-bold text-lg mb-2">{title}</h3>
+        <p className="text-sm text-muted-foreground mb-5">{description}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 border border-border rounded-full text-sm font-medium hover:bg-secondary transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`flex-1 py-2.5 rounded-full text-sm font-bold text-white transition-colors disabled:opacity-60 ${confirmClass ?? "bg-red-500 hover:bg-red-600"}`}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : confirmLabel}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function ReportModal({
+  name,
+  userId,
+  onClose,
+  onBlock,
+}: {
+  name: string;
+  userId: string;
+  onClose: () => void;
+  onBlock: () => void;
+}) {
+  const { toast } = useToast();
+  const reportMutation = useSubmitReport();
+  const blockMutation = useBlockUser();
+
+  const [reason, setReason] = useState("");
+  const [details, setDetails] = useState("");
+  const [alsoBlock, setAlsoBlock] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reason) return;
+    try {
+      await reportMutation.mutateAsync({ reportedUserId: userId, reason, details: details.trim() || undefined });
+      if (alsoBlock) {
+        await blockMutation.mutateAsync(userId);
+        onBlock();
+        return;
+      }
+      toast({ title: "Report submitted", description: "Thank you. Our team will review this." });
+      onClose();
+    } catch {
+      toast({ variant: "destructive", title: "Could not submit report", description: "Please try again." });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display font-bold text-lg flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            Report {name}
+          </h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-secondary">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Reason</label>
+            <select
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              required
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 bg-white"
+            >
+              <option value="">Select a reason…</option>
+              {REPORT_REASONS.map(r => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Additional details (optional)</label>
+            <textarea
+              value={details}
+              onChange={e => setDetails(e.target.value)}
+              placeholder="Tell us more about what happened…"
+              rows={3}
+              maxLength={500}
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+            />
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={alsoBlock}
+              onChange={e => setAlsoBlock(e.target.checked)}
+              className="w-4 h-4 accent-primary"
+            />
+            <span className="text-sm font-medium">Also block {name}</span>
+          </label>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-border rounded-full text-sm font-medium hover:bg-secondary">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!reason || reportMutation.isPending || blockMutation.isPending}
+              className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full text-sm font-bold disabled:opacity-60 transition-colors"
+            >
+              {reportMutation.isPending || blockMutation.isPending
+                ? <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                : "Submit Report"
+              }
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
 function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center gap-3 py-2.5 border-b border-border/40 last:border-0">
@@ -58,25 +241,47 @@ export default function UserProfileView() {
   const [, setLocation] = useLocation();
   const { user: me } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const userId = params?.id ?? "";
 
   const { data: profile, isLoading, isError } = useGetUserById(userId, { query: { enabled: !!userId } });
-  const { data: convosData } = useGetConversations();
-  const likeMutation = useLikeUser();
+  const { data: convosData, refetch: refetchConvos } = useGetConversations();
+  const { data: statusData, refetch: refetchStatus } = useGetMatchStatus(userId);
+  const likeMutation    = useLikeUser();
+  const unlikeMutation  = useUnlikeUser();
+  const unmatchMutation = useUnmatch();
+  const blockMutation   = useBlockUser();
 
   const [matchBanner, setMatchBanner] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [confirmUnmatch, setConfirmUnmatch] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const conversations = convosData?.conversations ?? [];
   const isMatched = conversations.some((c: any) => c.userId === userId);
   const isOwnProfile = me?.id === userId;
+  const alreadyLiked = statusData?.liked ?? false;
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const handleLike = () => {
-    if (liked) return;
+    if (alreadyLiked) return;
     likeMutation.mutate({ id: userId }, {
       onSuccess: (res: any) => {
-        setLiked(true);
+        refetchStatus();
         if (res.mutual) {
+          refetchConvos();
           setMatchBanner(true);
         } else {
           toast({ title: "Liked!", description: `You liked ${profile?.name}.` });
@@ -84,6 +289,49 @@ export default function UserProfileView() {
       },
       onError: () => {
         toast({ variant: "destructive", title: "Could not send like", description: "Please try again." });
+      }
+    });
+  };
+
+  const handleUnlike = () => {
+    unlikeMutation.mutate(userId, {
+      onSuccess: () => {
+        refetchStatus();
+        toast({ title: "Like removed" });
+      },
+      onError: () => {
+        toast({ variant: "destructive", title: "Could not remove like", description: "Please try again." });
+      }
+    });
+  };
+
+  const handleUnmatch = () => {
+    unmatchMutation.mutate(userId, {
+      onSuccess: () => {
+        setConfirmUnmatch(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+        refetchConvos();
+        refetchStatus();
+        toast({ title: "Unmatched", description: `You've been unmatched with ${profile?.name}.` });
+        goBack();
+      },
+      onError: () => {
+        toast({ variant: "destructive", title: "Could not unmatch", description: "Please try again." });
+      }
+    });
+  };
+
+  const handleBlock = () => {
+    blockMutation.mutate(userId, {
+      onSuccess: () => {
+        setConfirmBlock(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+        refetchConvos();
+        toast({ title: `${profile?.name} blocked`, description: "You won't see each other anymore." });
+        goBack();
+      },
+      onError: () => {
+        toast({ variant: "destructive", title: "Could not block user", description: "Please try again." });
       }
     });
   };
@@ -109,6 +357,44 @@ export default function UserProfileView() {
             name={profile?.name ?? ""}
             onClose={() => setMatchBanner(false)}
             onMessage={() => { setMatchBanner(false); handleMessage(); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {confirmUnmatch && (
+          <ConfirmDialog
+            title={`Unmatch with ${profile?.name}?`}
+            description="This will remove the match and delete all messages between you. This cannot be undone."
+            confirmLabel="Unmatch"
+            onConfirm={handleUnmatch}
+            onCancel={() => setConfirmUnmatch(false)}
+            loading={unmatchMutation.isPending}
+          />
+        )}
+        {confirmBlock && (
+          <ConfirmDialog
+            title={`Block ${profile?.name}?`}
+            description="You won't see each other in the app. The match and all messages will be removed."
+            confirmLabel="Block"
+            onConfirm={handleBlock}
+            onCancel={() => setConfirmBlock(false)}
+            loading={blockMutation.isPending}
+          />
+        )}
+        {showReport && (
+          <ReportModal
+            name={profile?.name ?? "this user"}
+            userId={userId}
+            onClose={() => setShowReport(false)}
+            onBlock={() => {
+              setShowReport(false);
+              queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+              refetchConvos();
+              toast({ title: `${profile?.name} blocked`, description: "You won't see each other anymore." });
+              goBack();
+            }}
           />
         )}
       </AnimatePresence>
@@ -153,7 +439,54 @@ export default function UserProfileView() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-                {/* Floating action button — top right of photo */}
+                {/* Three-dots menu — top left of photo */}
+                {!isOwnProfile && (
+                  <div className="absolute top-4 left-4" ref={menuRef}>
+                    <button
+                      onClick={() => setShowMenu(v => !v)}
+                      className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/60 transition-colors"
+                      title="Options"
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                    <AnimatePresence>
+                      {showMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                          className="absolute top-12 left-0 bg-white rounded-2xl shadow-xl border border-border min-w-[180px] z-20 overflow-hidden"
+                        >
+                          {isMatched && (
+                            <button
+                              onClick={() => { setShowMenu(false); setConfirmUnmatch(true); }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors text-left border-b border-border/50"
+                            >
+                              <X className="w-4 h-4 text-orange-500" />
+                              <span className="font-medium">Unmatch</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { setShowMenu(false); setConfirmBlock(true); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors text-left border-b border-border/50"
+                          >
+                            <ShieldOff className="w-4 h-4 text-red-500" />
+                            <span className="font-medium">Block {profile.name}</span>
+                          </button>
+                          <button
+                            onClick={() => { setShowMenu(false); setShowReport(true); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors text-left"
+                          >
+                            <AlertCircle className="w-4 h-4 text-red-400" />
+                            <span className="font-medium text-muted-foreground">Report {profile.name}</span>
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* Heart / Message button — top right of photo */}
                 {!isOwnProfile && (
                   <div className="absolute top-4 right-4">
                     {isMatched ? (
@@ -164,22 +497,29 @@ export default function UserProfileView() {
                         <MessageCircle className="w-4 h-4" />
                         Message
                       </button>
+                    ) : alreadyLiked ? (
+                      <button
+                        onClick={handleUnlike}
+                        disabled={unlikeMutation.isPending}
+                        className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:opacity-60 bg-primary text-white"
+                        title="Unlike"
+                      >
+                        {unlikeMutation.isPending
+                          ? <Loader2 className="w-5 h-5 animate-spin" />
+                          : <Heart className="w-5 h-5 fill-white" />
+                        }
+                      </button>
                     ) : (
                       <button
                         onClick={handleLike}
-                        disabled={liked || likeMutation.isPending}
-                        className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:opacity-60 disabled:scale-100 ${
-                          liked
-                            ? "bg-primary text-white"
-                            : "bg-white/90 backdrop-blur-sm text-primary hover:bg-white"
-                        }`}
-                        title={liked ? "Liked" : "Like"}
+                        disabled={likeMutation.isPending}
+                        className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:opacity-60 bg-white/90 backdrop-blur-sm text-primary hover:bg-white"
+                        title="Like"
                       >
-                        {likeMutation.isPending ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <Heart className={`w-5 h-5 ${liked ? "fill-white" : ""}`} />
-                        )}
+                        {likeMutation.isPending
+                          ? <Loader2 className="w-5 h-5 animate-spin" />
+                          : <Heart className="w-5 h-5" />
+                        }
                       </button>
                     )}
                   </div>
@@ -327,11 +667,11 @@ export default function UserProfileView() {
               </div>
             )}
 
-            {/* ── Report link ────────────────────────────────────────────── */}
+            {/* ── Report / safety footer ──────────────────────────────────── */}
             {!isOwnProfile && (
               <div className="flex justify-center pt-4 pb-2">
                 <button
-                  onClick={() => toast({ title: "Report submitted", description: "Thank you. Our team will review this profile." })}
+                  onClick={() => setShowReport(true)}
                   className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors underline underline-offset-2"
                 >
                   Report this profile

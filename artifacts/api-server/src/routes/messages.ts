@@ -28,7 +28,7 @@ router.get("/", requireAuth, async (req, res) => {
     if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
     const me = toUser(meRow);
 
-    const [myLikes, myMessages] = await Promise.all([
+    const [myLikes, myMessages, myBlocks, blockedByOthers] = await Promise.all([
       db.select().from(schema.likes).where(eq(schema.likes.fromId, me.id)),
       db.select().from(schema.messages).where(
         or(
@@ -36,12 +36,20 @@ router.get("/", requireAuth, async (req, res) => {
           eq(schema.messages.toId, me.id),
         )
       ),
+      db.select({ blockedUserId: schema.blocks.blockedUserId }).from(schema.blocks).where(eq(schema.blocks.blockerUserId, me.id)),
+      db.select({ blockerUserId: schema.blocks.blockerUserId }).from(schema.blocks).where(eq(schema.blocks.blockedUserId, me.id)),
+    ]);
+
+    const blockSet = new Set([
+      ...myBlocks.map(b => b.blockedUserId),
+      ...blockedByOthers.map(b => b.blockerUserId),
     ]);
 
     const mutualIds = new Set<string>();
     const matchedAtMap = new Map<string, Date>();
 
     for (const like of myLikes) {
+      if (blockSet.has(like.toId)) continue;
       const reverseCheck = await db
         .select({ fromId: schema.likes.fromId })
         .from(schema.likes)

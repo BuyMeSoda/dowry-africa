@@ -100,3 +100,9 @@ export const notifications = pgTable("notifications", {
   seen: boolean("seen").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const blocks = pgTable("blocks", {
+  blockerUserId: text("blocker_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  blockedUserId: text("blocked_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.blockerUserId, t.blockedUserId] })]);

@@ -126,6 +126,16 @@ export async function runMigrations(): Promise<void> {
       );
 
       CREATE INDEX IF NOT EXISTS custom_values_field_prefix ON custom_values (field_type, display_value);
+
+      CREATE TABLE IF NOT EXISTS blocks (
+        blocker_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        blocked_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (blocker_user_id, blocked_user_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS blocks_blocker ON blocks (blocker_user_id);
+      CREATE INDEX IF NOT EXISTS blocks_blocked ON blocks (blocked_user_id);
     `);
   } finally {
     client.release();

@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
@@ -13,6 +14,17 @@ const router = Router();
 const TIER_CAPS: Record<string, number> = { free: 5, core: 200, badge: 200 };
 const PAGE_SIZE_DEFAULT = 10;
 
+async function getBlockSet(userId: string): Promise<Set<string>> {
+  const [myBlocks, blockedByOthers] = await Promise.all([
+    db.select({ blockedUserId: schema.blocks.blockedUserId }).from(schema.blocks).where(eq(schema.blocks.blockerUserId, userId)),
+    db.select({ blockerUserId: schema.blocks.blockerUserId }).from(schema.blocks).where(eq(schema.blocks.blockedUserId, userId)),
+  ]);
+  return new Set([
+    ...myBlocks.map(b => b.blockedUserId),
+    ...blockedByOthers.map(b => b.blockerUserId),
+  ]);
+}
+
 router.get("/feed", requireAuth, async (req, res) => {
   try {
     const [meRow] = await db
@@ -24,11 +36,9 @@ router.get("/feed", requireAuth, async (req, res) => {
     if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
     const me = toUser(meRow);
 
-    // ── Pagination params ─────────────────────────────────────────────────
     const offset   = Math.max(0, parseInt(req.query.offset as string ?? "0") || 0);
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.limit  as string ?? String(PAGE_SIZE_DEFAULT)) || PAGE_SIZE_DEFAULT));
 
-    // ── Optional server-side filters (comma-separated values) ─────────────
     const heritageFilter: string[] = req.query.heritage
       ? (req.query.heritage as string).split(",").map(s => s.trim()).filter(Boolean)
       : [];
@@ -38,24 +48,24 @@ router.get("/feed", requireAuth, async (req, res) => {
 
     const tierCap = TIER_CAPS[me.tier] ?? 5;
 
-    const [allUserRows, myPasses, myLikes] = await Promise.all([
+    const [allUserRows, myPasses, myLikes, blockSet] = await Promise.all([
       db.select().from(schema.users),
       db.select({ toId: schema.passes.toId }).from(schema.passes).where(eq(schema.passes.fromId, me.id)),
       db.select({ toId: schema.likes.toId }).from(schema.likes).where(eq(schema.likes.fromId, me.id)),
+      getBlockSet(me.id),
     ]);
 
     const passedIds = new Set(myPasses.map(p => p.toId));
     const likedIds  = new Set(myLikes.map(l => l.toId));
 
-    // ── Score, filter, rank all eligible candidates ───────────────────────
     const scoredCandidates = [];
     for (const row of allUserRows) {
       const candidate = toUser(row);
       if (!passesHardFilters(me, candidate)) continue;
       if (passedIds.has(candidate.id)) continue;
       if (likedIds.has(candidate.id)) continue;
+      if (blockSet.has(candidate.id)) continue;
 
-      // Server-side heritage filter (case-insensitive substring match)
       if (heritageFilter.length > 0) {
         const heritage: string[] = candidate.heritage ?? [];
         const matches = heritageFilter.some(f =>
@@ -64,7 +74,6 @@ router.get("/feed", requireAuth, async (req, res) => {
         if (!matches) continue;
       }
 
-      // Server-side faith filter (case-insensitive substring match)
       if (faithFilter.length > 0) {
         const faith = candidate.faith ?? "";
         const matches = faithFilter.some(f =>
@@ -79,12 +88,8 @@ router.get("/feed", requireAuth, async (req, res) => {
     }
 
     const ranked = rankFeed(me, scoredCandidates);
-
-    // Apply tier cap to the full ranked list before paginating
     const cappedRanked = ranked.slice(0, tierCap);
     const totalAvailable = cappedRanked.length;
-
-    // Paginate
     const page = cappedRanked.slice(offset, offset + pageSize);
     const feed = page.map(({ user, score, dimensions, prompts, freshBoost }) => ({
       user: publicUser(user),
@@ -117,20 +122,18 @@ router.get("/liked-me", requireAuth, async (req, res) => {
 
     const blurFree = me.tier === "free";
 
-    const likerRows = await db
-      .select({ fromId: schema.likes.fromId })
-      .from(schema.likes)
-      .where(eq(schema.likes.toId, me.id));
+    const [likerRows, myLikedRows, blockSet] = await Promise.all([
+      db.select({ fromId: schema.likes.fromId }).from(schema.likes).where(eq(schema.likes.toId, me.id)),
+      db.select({ toId: schema.likes.toId }).from(schema.likes).where(eq(schema.likes.fromId, me.id)),
+      getBlockSet(me.id),
+    ]);
 
-    // Exclude people we've already mutually matched with
-    const myLikedIds = new Set(
-      (await db.select({ toId: schema.likes.toId }).from(schema.likes).where(eq(schema.likes.fromId, me.id)))
-        .map(l => l.toId)
-    );
+    const myLikedIds = new Set(myLikedRows.map(l => l.toId));
 
     const likedBy = [];
     for (const { fromId } of likerRows) {
-      if (myLikedIds.has(fromId)) continue; // already mutual — skip from "likes you" list
+      if (myLikedIds.has(fromId)) continue;
+      if (blockSet.has(fromId)) continue;
       const [likerRow] = await db
         .select()
         .from(schema.users)
@@ -144,6 +147,27 @@ router.get("/liked-me", requireAuth, async (req, res) => {
     res.json({ likedBy, count: likedBy.length });
   } catch (err) {
     req.log.error(err, "Liked-me error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Check whether the current user has liked or is matched with a specific user
+router.get("/status/:userId", requireAuth, async (req, res) => {
+  try {
+    const myId = req.userId!;
+    const theirId = req.params.userId;
+
+    const [iLikedThem, theyLikedMe] = await Promise.all([
+      db.select().from(schema.likes).where(and(eq(schema.likes.fromId, myId), eq(schema.likes.toId, theirId))).limit(1),
+      db.select().from(schema.likes).where(and(eq(schema.likes.fromId, theirId), eq(schema.likes.toId, myId))).limit(1),
+    ]);
+
+    const liked = iLikedThem.length > 0;
+    const matched = liked && theyLikedMe.length > 0;
+
+    res.json({ liked, matched });
+  } catch (err) {
+    req.log.error(err, "Match status error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -187,9 +211,8 @@ router.post("/like/:id", requireAuth, async (req, res) => {
     const mutual = reverseCheck.length > 0;
 
     if (mutual) {
-      // Remove any pending 'like' notification — replace with 'match' for both
       await db.execute(
-        (await import("drizzle-orm")).sql`
+        sql`
           DELETE FROM notifications
           WHERE (user_id = ${meRow.id}   AND from_user_id = ${targetRow.id} AND type = 'like')
              OR (user_id = ${targetRow.id} AND from_user_id = ${meRow.id}   AND type = 'like')
@@ -200,9 +223,8 @@ router.post("/like/:id", requireAuth, async (req, res) => {
         { id: uuidv4(), userId: targetRow.id, type: "match", fromUserId: meRow.id   },
       ]);
     } else {
-      // Notify target that someone liked them (upsert — one unseen like notif per person pair)
       await db.execute(
-        (await import("drizzle-orm")).sql`
+        sql`
           INSERT INTO notifications (id, user_id, type, from_user_id, seen)
           VALUES (${uuidv4()}, ${targetRow.id}, 'like', ${meRow.id}, false)
           ON CONFLICT DO NOTHING
@@ -213,6 +235,65 @@ router.post("/like/:id", requireAuth, async (req, res) => {
     res.json({ ok: true, mutual, matchedUser: mutual ? publicUser(toUser(targetRow)) : null });
   } catch (err) {
     req.log.error(err, "Like error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Unlike — remove a like that has not yet become a mutual match
+router.delete("/like/:userId", requireAuth, async (req, res) => {
+  try {
+    const myId = req.userId!;
+    const theirId = req.params.userId;
+
+    await db.delete(schema.likes)
+      .where(and(eq(schema.likes.fromId, myId), eq(schema.likes.toId, theirId)));
+
+    // Remove any pending like notification
+    await db.execute(
+      sql`DELETE FROM notifications WHERE user_id = ${theirId} AND from_user_id = ${myId} AND type = 'like'`
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err, "Unlike error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Unmatch — remove mutual likes and all messages between the two users
+router.post("/unmatch/:userId", requireAuth, async (req, res) => {
+  try {
+    const myId = req.userId!;
+    const theirId = req.params.userId;
+
+    await db.execute(
+      sql`
+        DELETE FROM likes
+        WHERE (from_id = ${myId} AND to_id = ${theirId})
+           OR (from_id = ${theirId} AND to_id = ${myId})
+      `
+    );
+
+    await db.execute(
+      sql`
+        DELETE FROM messages
+        WHERE (from_id = ${myId} AND to_id = ${theirId})
+           OR (from_id = ${theirId} AND to_id = ${myId})
+      `
+    );
+
+    await db.execute(
+      sql`
+        DELETE FROM notifications
+        WHERE ((user_id = ${myId}    AND from_user_id = ${theirId}) OR
+               (user_id = ${theirId} AND from_user_id = ${myId}))
+          AND type IN ('like', 'match', 'message')
+      `
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err, "Unmatch error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

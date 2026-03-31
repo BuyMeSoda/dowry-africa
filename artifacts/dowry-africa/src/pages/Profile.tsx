@@ -4,12 +4,13 @@ import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
-import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users, Camera } from "lucide-react";
+import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users, Camera, ShieldOff, Shield } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { COUNTRY_GROUPS, ALL_COUNTRIES } from "@/lib/country-options";
 import { formatIntentLabel } from "@/lib/format-tags";
+import { useGetBlockedUsers, useUnblockUser } from "@workspace/api-client-react";
 
 // ── Faith preference presets ─────────────────────────────────────────────────
 const FAITH_PREF_PRESETS = [
@@ -62,6 +63,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
   const { uploading, progress, triggerPicker, inputRef, upload } = usePhotoUpload();
+  const { data: blockedData, refetch: refetchBlocked } = useGetBlockedUsers();
+  const unblockMutation = useUnblockUser();
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
   const [prefForm, setPrefForm] = useState({
     genderPref: user?.genderPref ?? "any",
@@ -331,6 +335,51 @@ export default function Profile() {
                 <PrefRow label="Open to relocate" value={user.relocationOpen ? "Yes" : "No"} />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ── Privacy & Safety card ──────────────────────────────────────────── */}
+        <div className="bg-white rounded-[2rem] shadow-xl border border-border overflow-hidden">
+          <div className="px-8 py-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-display font-bold">Privacy &amp; Safety</h2>
+                <p className="text-sm text-muted-foreground">Accounts you've blocked</p>
+              </div>
+            </div>
+
+            {!blockedData?.blocked?.length ? (
+              <p className="text-sm text-muted-foreground py-2">You haven't blocked anyone.</p>
+            ) : (
+              <div className="space-y-3">
+                {blockedData.blocked.map((blocked: any) => (
+                  <div key={blocked.id} className="flex items-center gap-4 py-2 border-b border-border/50 last:border-0">
+                    <UserAvatar name={blocked.name} photoUrl={blocked.photoUrl} size={44} className="rounded-full shrink-0" textClassName="text-sm font-bold" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{blocked.name}</p>
+                      {blocked.city && <p className="text-xs text-muted-foreground">{[blocked.city, blocked.country].filter(Boolean).join(", ")}</p>}
+                    </div>
+                    <button
+                      disabled={unblockingId === blocked.id}
+                      onClick={() => {
+                        setUnblockingId(blocked.id);
+                        unblockMutation.mutate(blocked.id, {
+                          onSuccess: () => { refetchBlocked(); setUnblockingId(null); toast({ title: `${blocked.name} unblocked` }); },
+                          onError: () => { setUnblockingId(null); toast({ variant: "destructive", title: "Could not unblock" }); },
+                        });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-border rounded-full hover:bg-secondary transition-colors disabled:opacity-50"
+                    >
+                      {unblockingId === blocked.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldOff className="w-3 h-3" />}
+                      Unblock
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

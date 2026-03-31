@@ -58,13 +58,29 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ### Key Features
 - JWT auth (30d expiry), stored as `da_token` in localStorage
-- PostgreSQL persistence via Drizzle ORM (tables: users, likes, passes, messages)
+- PostgreSQL persistence via Drizzle ORM (tables: users, likes, passes, messages, blocks, reports, notifications)
 - Migrations run automatically on startup via `runMigrations()` (CREATE TABLE IF NOT EXISTS — idempotent)
 - Demo users seeded on first boot via `seedDatabase()` (INSERT ... ON CONFLICT DO NOTHING)
 - 5-dimension matching algorithm (values 30%, lifeStage 25%, cultural 20%, practical 15%, engagement 10%)
-- Subscription tiers: free (5 matches), core ($7/mo), badge ($15/mo)
+- Subscription tiers: free (5 matches), core ($12.99/mo), badge ($19.99/mo)
 - Stripe in demo mode (no STRIPE_SECRET_KEY needed)
 - Partner Preferences on Profile: gender, age range, heritage, faith, children, timeline, location, relocation
+
+### Safety & Moderation
+- **Unlike**: `DELETE /api/matches/like/:userId` — undo a non-mutual like
+- **Unmatch**: `POST /api/matches/unmatch/:userId` — delete both likes, all messages, and related notifications
+- **Block**: `POST /api/users/:userId/block` — adds to `blocks` table, also unmatches
+- **Unblock**: `DELETE /api/users/:userId/block`
+- **Blocked list**: `GET /api/users/me/blocked`
+- **Match status**: `GET /api/matches/status/:userId` — returns `{ liked, matched }`
+- **User report**: `POST /api/reports` — reason + optional details, "also block" option
+- Feed, liked-me, and conversations all filter blocked users in both directions
+
+### Frontend UX
+- Profile page (`/members/:id`): ⋮ menu (top-left of photo) with Unmatch / Block / Report; heart toggles unlike state
+- Report modal: reason dropdown, details textarea, "Also block" checkbox
+- Messages page (`/messages/:id`): ⋮ button in chat header with View Profile / Unmatch / Block (both with confirmation dialogs)
+- Profile page (`/profile`): Privacy & Safety section shows blocked users with Unblock button
 
 ### New Fields (added to User model)
 - `preferredFaith` — partner's preferred faith

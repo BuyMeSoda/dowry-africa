@@ -10,6 +10,7 @@ import earlyAccessRouter from "./earlyAccess.js";
 import notificationsRouter from "./notifications.js";
 import customValuesRouter from "./customValues.js";
 import settingsRouter from "./settings.js";
+import reportsRouter from "./reports.js";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use("/early-access", earlyAccessRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/custom-values", customValuesRouter);
 router.use("/settings", settingsRouter);
+router.use("/reports", reportsRouter);
 
 export default router;
