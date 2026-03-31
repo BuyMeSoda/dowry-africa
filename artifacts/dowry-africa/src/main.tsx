@@ -8,7 +8,7 @@ import "./index.css";
 if (API_BASE) setBaseUrl(API_BASE);
 setAuthTokenGetter(() => localStorage.getItem("da_token"));
 
-const queryClient = new QueryClient();
+export const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>

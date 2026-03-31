@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { useGetMe, type User } from "@workspace/api-client-react";
+import { queryClient } from "@/main";
 
 interface AuthContextType {
   user: User | null;
@@ -34,6 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem("da_token");
     setToken(null);
+    queryClient.clear();
+    window.location.href = "/";
   };
 
   return (
