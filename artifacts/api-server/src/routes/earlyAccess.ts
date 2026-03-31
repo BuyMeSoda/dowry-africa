@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { requireAdmin } from "../middlewares/adminAuth.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -58,7 +59,7 @@ router.post("/", async (req, res) => {
       res.status(200).json({ success: true, alreadyRegistered: true });
       return;
     }
-    console.error("Early access submit error", err);
+    logger.error({ err }, "Early access submit error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

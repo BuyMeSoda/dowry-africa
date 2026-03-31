@@ -130,6 +130,43 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+## Production Environment Variables (Railway / Deployment)
+
+### API Server — Required
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Random 64-char secret for signing JWTs |
+| `ADMIN_SECRET` | Password for the `/admin` panel |
+| `SESSION_SECRET` | Session signing secret |
+| `NODE_ENV` | Set to `production` |
+
+### API Server — Stripe (set for real payments; omit for demo mode)
+| Variable | Description |
+|---|---|
+| `STRIPE_SECRET_KEY` | Stripe secret key (`sk_live_...`) |
+| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_live_...`) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `STRIPE_CORE_PRICE_ID` | Price ID for the $12.99/mo Core plan |
+| `STRIPE_BADGE_PRICE_ID` | Price ID for the $19.99/mo Serious Badge plan |
+
+### API Server — Cloudinary (set for real photo uploads; omit to disable)
+| Variable | Description |
+|---|---|
+| `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
+
+### API Server — CORS (set in production)
+| Variable | Description |
+|---|---|
+| `CORS_ORIGINS` | Comma-separated list of allowed origins, e.g. `https://dowry.africa` |
+
+### Frontend (`artifacts/dowry-africa`) — Build-time
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Full URL of the API server, e.g. `https://api.dowry.africa` |
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

@@ -64,13 +64,7 @@ router.post("/create-checkout", requireAuth, async (req, res) => {
     res.json({ url: session.url, demo: false, tier });
   } catch (err) {
     req.log.error(err, "Stripe checkout error");
-    if (req.userId) {
-      const { tier } = req.body;
-      await db.update(schema.users)
-        .set({ tier, hasBadge: tier === "badge" })
-        .where(eq(schema.users.id, req.userId));
-    }
-    res.json({ demo: true, tier: req.body.tier, url: null });
+    res.status(500).json({ error: "Could not create checkout session. Please try again." });
   }
 });
 

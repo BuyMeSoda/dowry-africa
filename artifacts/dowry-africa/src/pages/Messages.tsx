@@ -74,8 +74,8 @@ export default function Messages() {
   const activeUserId = match ? params?.id : null;
   const queryClient = useQueryClient();
 
-  const { data: convosData, isLoading: convosLoading, refetch: refetchConvos } = useGetConversations();
-  const { data: msgsData, isLoading: msgsLoading, refetch } = useGetMessages(activeUserId || "", { query: { enabled: !!activeUserId } });
+  const { data: convosData, isLoading: convosLoading, refetch: refetchConvos } = useGetConversations({ query: { refetchInterval: 15_000 } });
+  const { data: msgsData, isLoading: msgsLoading, refetch } = useGetMessages(activeUserId || "", { query: { enabled: !!activeUserId, refetchInterval: activeUserId ? 5_000 : false } });
   const sendMutation  = useSendMessage();
   const unmatchMutation = useUnmatch();
   const blockMutation   = useBlockUser();

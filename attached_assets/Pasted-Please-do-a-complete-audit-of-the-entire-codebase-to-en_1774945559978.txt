@@ -1,0 +1,208 @@
+Please do a complete audit of the entire codebase to ensure the app is production-ready. Go through every file systematically and fix all issues found.
+
+═══════════════════════════════
+1. HARDCODED VALUES AUDIT
+═══════════════════════════════
+Search the entire codebase for hardcoded values that should be environment variables or dynamic:
+
+- Any hardcoded URLs (localhost, railway URLs, specific domains)
+- Any hardcoded API keys or secrets
+- Any hardcoded prices ($7, $15, $12.99, $19.99) that should come from the database/API
+- Any hardcoded user IDs or demo data references in production code
+- Any hardcoded email addresses
+- Any hardcoded Stripe price IDs or product IDs
+- Any hardcoded Cloudinary URLs or cloud names
+
+For each hardcoded value found:
+- If it should be an environment variable: replace with process.env.VARIABLE_NAME (backend) or import.meta.env.VITE_VARIABLE_NAME (frontend)
+- If it should come from the database/API: replace with a dynamic fetch
+- If it is legitimate (e.g. a UI label): leave it but note it in a comment
+
+═══════════════════════════════
+2. ENVIRONMENT VARIABLES AUDIT
+═══════════════════════════════
+Verify every environment variable is properly used:
+
+Backend (should all use process.env):
+- DATABASE_URL
+- JWT_SECRET
+- STRIPE_SECRET_KEY
+- STRIPE_PUBLISHABLE_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_CORE_PRICE_ID
+- STRIPE_BADGE_PRICE_ID
+- CLOUDINARY_CLOUD_NAME
+- CLOUDINARY_API_KEY
+- CLOUDINARY_API_SECRET
+- ADMIN_SECRET
+- NODE_ENV
+- PORT
+
+Frontend (should all use import.meta.env):
+- VITE_API_URL
+
+For each variable:
+- Confirm it is being read correctly
+- Confirm there is a sensible fallback or error if missing
+- Confirm it is not being exposed to the frontend when it should be backend-only
+
+═══════════════════════════════
+3. API ENDPOINTS AUDIT
+═══════════════════════════════
+Go through every API endpoint and verify:
+
+- All endpoints that require authentication have the auth middleware applied
+- All admin endpoints are protected by ADMIN_SECRET
+- No sensitive user data is returned that shouldn't be (passwords, tokens, internal IDs)
+- All endpoints handle errors gracefully and return proper HTTP status codes
+- All endpoints validate input before processing
+- No endpoint crashes the server on unexpected input
+
+List of endpoints to check:
+- POST /api/auth/login
+- POST /api/auth/register
+- GET /api/users/me
+- PATCH /api/users/me
+- POST /api/users/me/photo
+- GET /api/matches/feed
+- POST /api/likes/:userId
+- DELETE /api/likes/:userId
+- POST /api/matches/:matchId/unmatch
+- POST /api/users/:userId/block
+- DELETE /api/users/:userId/block
+- GET /api/messages/:matchId
+- POST /api/messages/:matchId
+- POST /api/payments/subscribe
+- POST /api/payments/webhook
+- POST /api/early-access
+- GET /api/coming-soon/status
+- GET /api/admin/* (all admin routes)
+
+═══════════════════════════════
+4. DATABASE AUDIT
+═══════════════════════════════
+Verify the database schema is correct and complete:
+
+- All tables exist: users, profiles, likes, passes, messages, blocks, early_access, settings, reports, custom_values
+- All foreign keys are properly set
+- All indexes exist on frequently queried columns (user_id, email, created_at)
+- Migrations run cleanly on fresh database
+- Seed data uses realistic values and no test/debug data in production seed
+- No sensitive data in seed file that shouldn't be there
+
+═══════════════════════════════
+5. AUTHENTICATION & SECURITY AUDIT
+═══════════════════════════════
+- JWT tokens are properly signed with JWT_SECRET
+- JWT expiry is set (should be 7 days or less)
+- Passwords are hashed with bcrypt (never stored plain text)
+- No user can access another user's private data
+- Admin routes cannot be accessed without ADMIN_SECRET
+- CORS is configured to only allow the frontend domain in production
+- Rate limiting exists on auth endpoints (login, register) to prevent brute force
+- File upload endpoint validates file type (only images allowed) and file size limit
+
+═══════════════════════════════
+6. FRONTEND AUDIT
+═══════════════════════════════
+Go through every page and check:
+
+LANDING PAGE (/)
+- All buttons work correctly
+- Coming soon mode toggle works
+- Email capture form works and saves to database
+- Mobile responsive
+
+LOGIN PAGE (/login)
+- Form validation works
+- Error messages display correctly
+- Redirects to /discover after login
+- Demo account buttons work
+
+DISCOVER PAGE (/discover)
+- Feed loads profiles correctly
+- Filters work (country preference, faith)
+- Like button works
+- Pass button works
+- Clicking card opens member profile
+- Empty state shows when no profiles
+- Infinite scroll works
+
+MEMBER PROFILE (/members/:id)
+- All profile data displays correctly
+- Like button works
+- Send message button works if matched
+- Back button works
+- Report option works
+- Block option works
+
+MESSAGES PAGE (/messages)
+- Conversation list loads
+- Clicking conversation opens chat
+- Sending message works
+- Real time or polling for new messages
+- Unread indicator works
+- Clicking avatar goes to member profile
+
+PREMIUM PAGE (/premium)
+- Pricing displays correctly ($12.99 and $19.99)
+- Subscription buttons work
+- Stripe checkout opens correctly
+- Current plan is highlighted if subscribed
+
+PROFILE PAGE (/profile)
+- Profile data displays correctly
+- Edit profile works
+- Photo upload works
+- Partner preferences work
+- Logout works
+
+ADMIN PANEL (/admin)
+- Login with ADMIN_SECRET works
+- Dashboard metrics load
+- Early access emails list works
+- User management works
+- Coming soon toggle works
+- Settings save correctly
+
+═══════════════════════════════
+7. ERROR HANDLING AUDIT
+═══════════════════════════════
+- Every API call in the frontend has error handling
+- Error messages shown to users are friendly (not raw error objects or stack traces)
+- Network errors are handled gracefully
+- Loading states exist for all async operations
+- Empty states exist for all lists that could be empty
+- 404 page exists for unknown routes
+
+═══════════════════════════════
+8. PERFORMANCE AUDIT
+═══════════════════════════════
+- Images are not oversized (profile photos should be compressed)
+- No unnecessary API calls on every render
+- API calls are not duplicated
+- Pagination or infinite scroll is used for long lists
+- No console.log statements left in production code
+
+═══════════════════════════════
+9. MOBILE AUDIT
+═══════════════════════════════
+Check every page works correctly at 390px width (iPhone 14):
+- Bottom tab bar shows on mobile
+- Logo header shows on mobile
+- No horizontal scrolling
+- All buttons are thumb-friendly (min 44px)
+- Filter drawer works on mobile
+- Messages slide view works on mobile
+- Forms are usable on mobile keyboard
+
+═══════════════════════════════
+10. FINAL CHECKLIST
+═══════════════════════════════
+After completing all audits above, please provide a summary report:
+
+- List every issue found
+- List every fix applied
+- List any issues that could not be fixed automatically and need manual attention
+- List any environment variables that need to be set in Railway
+- Confirm the app is ready for production deployment

@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { eq, sql, and, desc, gte } from "drizzle-orm";
-import { v4 as uuidv4 } from "uuid";
+import { eq, sql, and, or, desc, gte, ilike } from "drizzle-orm";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { requireAdmin } from "../middlewares/adminAuth.js";
 import { getPricing } from "./settings.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 router.use(requireAdmin);
@@ -61,7 +61,7 @@ router.get("/dashboard", async (_req, res) => {
       subscriptionRate,
     });
   } catch (err) {
-    console.error("Admin dashboard error", err);
+    logger.error({ err }, "Admin dashboard error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -101,7 +101,7 @@ router.get("/users", async (req, res) => {
 
     res.json({ rows, total: count });
   } catch (err) {
-    console.error("Admin users error", err);
+    logger.error({ err }, "Admin users error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -217,7 +217,7 @@ router.get("/activity", async (_req, res) => {
       geoBreakdown: geoBreakdown.rows,
     });
   } catch (err) {
-    console.error("Admin activity error", err);
+    logger.error({ err }, "Admin activity error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

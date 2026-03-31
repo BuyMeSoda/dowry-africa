@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
+import rateLimit from "express-rate-limit";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, sanitizeUser, calcCompleteness } from "../db/database.js";
@@ -10,12 +11,20 @@ import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
 
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts. Please try again in 15 minutes." },
+});
+
 function makeToken(userId: string) {
   const secret = process.env["JWT_SECRET"]!;
-  return jwt.sign({ userId }, secret, { expiresIn: "30d" });
+  return jwt.sign({ userId }, secret, { expiresIn: "7d" });
 }
 
-router.post("/register", async (req, res) => {
+router.post("/register", authRateLimit, async (req, res) => {
   try {
     const { email, password, name, gender, birthYear } = req.body;
 
@@ -81,7 +90,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {

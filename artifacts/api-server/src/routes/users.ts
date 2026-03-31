@@ -6,7 +6,7 @@ import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, sanitizeUser, publicUser, calcCompleteness } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
-import { cloudinary } from "../lib/cloudinary.js";
+import { cloudinary, cloudinaryEnabled } from "../lib/cloudinary.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -97,6 +97,11 @@ router.post("/me/photo", requireAuth, (req, res, next) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: "No image file provided" });
+      return;
+    }
+
+    if (!cloudinaryEnabled) {
+      res.status(503).json({ error: "Photo uploads are not configured on this server. Please contact support." });
       return;
     }
 
