@@ -136,6 +136,8 @@ export async function runMigrations(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS blocks_blocker ON blocks (blocker_user_id);
       CREATE INDEX IF NOT EXISTS blocks_blocked ON blocks (blocked_user_id);
+
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_residence TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
     `);
   } finally {
     client.release();

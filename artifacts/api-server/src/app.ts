@@ -8,6 +8,9 @@ import { seedDatabase } from "./db/seed.js";
 
 const app: Express = express();
 
+// Required for correct IP detection behind Railway / Replit reverse proxies
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

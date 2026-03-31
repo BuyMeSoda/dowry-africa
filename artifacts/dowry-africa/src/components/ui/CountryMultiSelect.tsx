@@ -71,26 +71,27 @@ export function CountryMultiSelect({
 
   return (
     <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:outline-none focus:border-primary flex items-center justify-between gap-2 text-left"
-      >
-        <span className="flex-1 min-w-0 truncate">{buttonLabel()}</span>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {realCountries.length > 0 && (
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); onChange([]); }}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear selection"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-        </div>
-      </button>
+      {/* Trigger row — split into two sibling buttons to avoid nesting */}
+      <div className="w-full flex items-center rounded-xl bg-background border border-border focus-within:border-primary">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="flex-1 min-w-0 px-4 py-2.5 text-left flex items-center gap-2 focus:outline-none"
+        >
+          <span className="flex-1 min-w-0 truncate">{buttonLabel()}</span>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${open ? "rotate-180" : ""}`} />
+        </button>
+        {realCountries.length > 0 && (
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onChange([]); }}
+            className="px-3 py-2.5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+            aria-label="Clear selection"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
 
       {open && (
         <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-background border border-border rounded-xl shadow-lg overflow-hidden">
