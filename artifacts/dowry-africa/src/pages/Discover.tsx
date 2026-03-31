@@ -546,10 +546,12 @@ export default function Discover() {
                               )}
                             </div>
                             
-                            <div className="flex items-center gap-1.5 text-muted-foreground mb-6">
-                              <MapPin className="w-4 h-4" />
-                              <span className="font-medium">{card.user.city}, {card.user.country}</span>
-                            </div>
+                            {(card.user.city || card.user.country) && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground mb-6">
+                                <MapPin className="w-4 h-4" />
+                                <span className="font-medium">{[card.user.city, card.user.country].filter(Boolean).join(", ")}</span>
+                              </div>
+                            )}
                             
                             <div className="flex flex-wrap gap-2 mb-6">
                               {card.user.intent && (
@@ -559,7 +561,9 @@ export default function Discover() {
                                 <span className="px-3 py-1 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg border border-border/50">{formatTag(card.user.faith)}</span>
                               )}
                               {card.user.heritage?.map(h => (
-                                <span key={h} className="px-3 py-1 bg-secondary text-secondary-foreground text-sm font-medium rounded-lg border border-border/50">{formatTag(h)}</span>
+                                <span key={h} className="px-3 py-1 bg-primary/10 text-primary text-sm font-semibold rounded-lg border border-primary/20 flex items-center gap-1">
+                                  <span className="text-base leading-none">🌍</span> {h}
+                                </span>
                               ))}
                             </div>
 

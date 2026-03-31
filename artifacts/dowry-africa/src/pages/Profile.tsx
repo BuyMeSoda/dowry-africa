@@ -238,8 +238,13 @@ export default function Profile() {
             <div>
               <h1 className="text-4xl font-display font-bold mb-1">{user.name}, {user.age}</h1>
               <p className="text-lg text-muted-foreground flex items-center gap-2 flex-wrap">
-                {user.city && user.country && <span>{user.city}, {user.country}</span>}
-                {user.city && <span className="w-1.5 h-1.5 rounded-full bg-border inline-block" />}
+                {(user.city || user.country) && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4" />
+                    {[user.city, user.country].filter(Boolean).join(", ")}
+                  </span>
+                )}
+                {(user.city || user.country) && <span className="w-1.5 h-1.5 rounded-full bg-border inline-block" />}
                 <span>{formatIntentLabel(user.intent)}</span>
               </p>
             </div>
@@ -259,6 +264,7 @@ export default function Profile() {
                 <div>
                   <h3 className="text-xl font-display font-bold mb-3 border-b border-border pb-2">Background</h3>
                   <PrefRow label="Country of origin" value={user.heritage?.join(", ") || "—"} />
+                  <PrefRow label="Country of residence" value={user.country || "—"} />
                   <PrefRow label="Faith" value={user.faith || "—"} />
                   <PrefRow label="Languages" value={user.languages?.join(", ") || "—"} />
                 </div>
@@ -607,25 +613,48 @@ export default function Profile() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5">City</label>
-                  <input
-                    type="text"
-                    value={profileForm.city}
-                    onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))}
-                    placeholder="e.g. Lagos, London, Atlanta"
-                    className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary"
-                  />
+              {/* Location section */}
+              <div className="rounded-2xl border border-border bg-secondary/10 p-4 space-y-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Location</p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-1.5">City</label>
+                    <input
+                      type="text"
+                      value={profileForm.city}
+                      onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))}
+                      placeholder="e.g. London, Lagos, Nairobi"
+                      className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:outline-none focus:border-primary"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Where you live now</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-1.5">Country of residence</label>
+                    <input
+                      type="text"
+                      value={profileForm.country}
+                      onChange={e => setProfileForm(f => ({ ...f, country: e.target.value }))}
+                      placeholder="e.g. United Kingdom, Nigeria, USA"
+                      className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:outline-none focus:border-primary"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Country you live in</p>
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Country of residence</label>
-                  <input
-                    type="text"
-                    value={profileForm.country}
-                    onChange={e => setProfileForm(f => ({ ...f, country: e.target.value }))}
-                    placeholder="e.g. Nigeria, UK, USA"
-                    className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary"
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <label className="block text-sm font-semibold">Country of origin</label>
+                    <span className="text-xs text-muted-foreground">Where you're originally from · select one</span>
+                  </div>
+                  <CustomChipSelect
+                    selected={profileForm.heritage}
+                    onChange={v => setProfileForm(f => ({ ...f, heritage: v }))}
+                    presets={ALL_COUNTRIES}
+                    fieldType="heritage"
+                    multiSelect={false}
+                    allowCustom
+                    customPlaceholder="e.g. Cape Verdean, Congolese..."
                   />
                 </div>
               </div>
@@ -636,22 +665,6 @@ export default function Profile() {
                   <option value="">Select faith</option>
                   {FAITH_PROFILE_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
-              </div>
-
-              <div>
-                <div className="flex items-baseline justify-between mb-2">
-                  <label className="block text-sm font-semibold">Country of origin</label>
-                  <span className="text-xs text-muted-foreground">Select one</span>
-                </div>
-                <CustomChipSelect
-                  selected={profileForm.heritage}
-                  onChange={v => setProfileForm(f => ({ ...f, heritage: v }))}
-                  presets={ALL_COUNTRIES}
-                  fieldType="heritage"
-                  multiSelect={false}
-                  allowCustom
-                  customPlaceholder="e.g. Cape Verdean, Congolese..."
-                />
               </div>
 
               <div>
