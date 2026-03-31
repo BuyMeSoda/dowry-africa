@@ -7,6 +7,11 @@ import {
   useSendMessage,
   useUnmatch,
   useBlockUser,
+  useGetLikedMe,
+  useLikeUser,
+  usePassLiker,
+  useGetSentLikes,
+  useUnlikeUser,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/contexts/NotificationsContext";
@@ -14,16 +19,21 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Send, MessageCircle, ChevronLeft, Heart, Sparkles,
   MoreVertical, X, ShieldOff, AlertCircle, Loader2,
+  Clock, Undo2, Lock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 
+type Tab = "matches" | "liked-you" | "pending";
+
+// ── Shared confirm dialog ──────────────────────────────────────────────────
 function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  confirmClassName,
   onConfirm,
   onCancel,
   loading,
@@ -31,6 +41,7 @@ function ConfirmDialog({
   title: string;
   description: string;
   confirmLabel: string;
+  confirmClassName?: string;
   onConfirm: () => void;
   onCancel: () => void;
   loading?: boolean;
@@ -55,7 +66,7 @@ function ConfirmDialog({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 py-2.5 rounded-full text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-60"
+            className={`flex-1 py-2.5 rounded-full text-sm font-bold text-white transition-colors disabled:opacity-60 ${confirmClassName ?? "bg-red-500 hover:bg-red-600"}`}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : confirmLabel}
           </button>
@@ -65,6 +76,59 @@ function ConfirmDialog({
   );
 }
 
+// ── Match celebration modal ────────────────────────────────────────────────
+function MatchModal({
+  name,
+  photoUrl,
+  userId,
+  onMessage,
+  onClose,
+}: {
+  name: string;
+  photoUrl: string | null;
+  userId: string;
+  onMessage: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm z-10 text-center"
+      >
+        <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-primary mx-auto mb-4 shadow-lg shadow-primary/20">
+          <UserAvatar name={name} photoUrl={photoUrl} className="w-full h-full" textClassName="text-2xl font-bold" />
+        </div>
+        <div className="flex items-center justify-center gap-2 text-primary mb-2">
+          <Heart className="w-5 h-5 fill-primary" />
+          <span className="text-sm font-bold uppercase tracking-widest">It's a Match!</span>
+          <Heart className="w-5 h-5 fill-primary" />
+        </div>
+        <h3 className="font-display font-bold text-2xl mb-2">You and {name}</h3>
+        <p className="text-muted-foreground text-sm mb-6">Both liked each other. Start a meaningful conversation.</p>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={onMessage}
+            className="w-full py-3 bg-primary text-white rounded-full font-bold shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all"
+          >
+            Send a message
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Keep discovering
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Main Messages page ─────────────────────────────────────────────────────
 export default function Messages() {
   const { user } = useAuth();
   const { refresh: refreshNotifs } = useNotifications();
@@ -74,9 +138,13 @@ export default function Messages() {
   const activeUserId = match ? params?.id : null;
   const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState<Tab>("matches");
+  const [matchModal, setMatchModal] = useState<{ userId: string; name: string; photoUrl: string | null } | null>(null);
+
+  // ── Matches / conversations ──────────────────────────────────────────────
   const { data: convosData, isLoading: convosLoading, refetch: refetchConvos } = useGetConversations({ query: { refetchInterval: 15_000 } });
   const { data: msgsData, isLoading: msgsLoading, refetch } = useGetMessages(activeUserId || "", { query: { enabled: !!activeUserId, refetchInterval: activeUserId ? 5_000 : false } });
-  const sendMutation  = useSendMessage();
+  const sendMutation    = useSendMessage();
   const unmatchMutation = useUnmatch();
   const blockMutation   = useBlockUser();
 
@@ -86,6 +154,22 @@ export default function Messages() {
   const [confirmUnmatch, setConfirmUnmatch] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // ── Liked You (received) ─────────────────────────────────────────────────
+  const { data: likedMeData, isLoading: likedMeLoading, refetch: refetchLikedMe } = useGetLikedMe({ query: { refetchInterval: 30_000 } });
+  const likeMutation = useLikeUser();
+  const passLikerMutation = usePassLiker();
+  const [likingBackId, setLikingBackId] = useState<string | null>(null);
+  const [passingId,    setPassingId]    = useState<string | null>(null);
+
+  // ── Pending (sent) ───────────────────────────────────────────────────────
+  const { data: sentData, isLoading: sentLoading, refetch: refetchSent } = useGetSentLikes({ query: { refetchInterval: 30_000 } });
+  const withdrawMutation = useUnlikeUser();
+  const [withdrawTarget, setWithdrawTarget] = useState<{ userId: string; name: string } | null>(null);
+
+  // ── Tab counts for badges ────────────────────────────────────────────────
+  const likedMeCount = likedMeData?.count ?? 0;
+  const sentCount    = sentData?.count ?? 0;
 
   useEffect(() => {
     if (msgsData?.messages) {
@@ -106,19 +190,16 @@ export default function Messages() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Close menu when changing conversations
   useEffect(() => { setShowHeaderMenu(false); }, [activeUserId]);
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !activeUserId) return;
-
     const newText = text;
     setText("");
-
     const tempId = Date.now().toString();
     setLocalMsgs(prev => [...prev, { id: tempId, text: newText, fromId: user?.id, createdAt: new Date().toISOString() }]);
-
     sendMutation.mutate({ userId: activeUserId, data: { text: newText } }, {
       onSuccess: () => refetch(),
       onError: () => setLocalMsgs(localMsgs),
@@ -153,17 +234,67 @@ export default function Messages() {
     });
   };
 
-  const conversations = convosData?.conversations || [];
-  const activeConvo = conversations.find(c => c.userId === activeUserId);
+  const handleLikeBack = (targetUserId: string, name: string, photoUrl: string | null) => {
+    setLikingBackId(targetUserId);
+    likeMutation.mutate(targetUserId, {
+      onSuccess: (data: any) => {
+        setLikingBackId(null);
+        refetchLikedMe();
+        refetchConvos();
+        queryClient.invalidateQueries({ queryKey: ["/api/matches/sent"] });
+        if (data?.mutual) {
+          setMatchModal({ userId: targetUserId, name, photoUrl });
+        } else {
+          toast({ title: "Liked!", description: `You liked ${name} back.` });
+        }
+      },
+      onError: () => {
+        setLikingBackId(null);
+        toast({ variant: "destructive", title: "Could not like", description: "Please try again." });
+      },
+    });
+  };
 
-  const withMessages = conversations.filter(c => c.lastMessage);
-  const freshMatches = conversations.filter(c => !c.lastMessage);
+  const handlePassLiker = (targetUserId: string) => {
+    setPassingId(targetUserId);
+    passLikerMutation.mutate(targetUserId, {
+      onSuccess: () => {
+        setPassingId(null);
+        refetchLikedMe();
+      },
+      onError: () => {
+        setPassingId(null);
+        toast({ variant: "destructive", title: "Could not pass", description: "Please try again." });
+      },
+    });
+  };
+
+  const handleWithdraw = () => {
+    if (!withdrawTarget) return;
+    withdrawMutation.mutate(withdrawTarget.userId, {
+      onSuccess: () => {
+        setWithdrawTarget(null);
+        refetchSent();
+        toast({ title: "Like withdrawn", description: `Your like for ${withdrawTarget.name} has been removed.` });
+      },
+      onError: () => toast({ variant: "destructive", title: "Could not withdraw", description: "Please try again." }),
+    });
+  };
+
+  const conversations = convosData?.conversations || [];
+  const activeConvo   = conversations.find(c => c.userId === activeUserId);
+  const withMessages  = conversations.filter(c => c.lastMessage);
+  const freshMatches  = conversations.filter(c => !c.lastMessage);
+  const likedBy       = likedMeData?.likedBy ?? [];
+  const sentLikes     = sentData?.sent ?? [];
+
+  const isFree = !user || (user as any).tier === "free";
 
   return (
     <div className="bg-background flex flex-col overflow-hidden h-[calc(100dvh-3rem)] md:h-[100dvh]">
       <Navbar />
 
-      {/* Confirmation dialogs */}
+      {/* Global dialogs */}
       <AnimatePresence>
         {confirmUnmatch && (
           <ConfirmDialog
@@ -185,126 +316,251 @@ export default function Messages() {
             loading={blockMutation.isPending}
           />
         )}
+        {withdrawTarget && (
+          <ConfirmDialog
+            title={`Withdraw like from ${withdrawTarget.name}?`}
+            description="Your like will be removed. They may reappear in your Discover feed."
+            confirmLabel="Withdraw"
+            confirmClassName="bg-muted-foreground hover:bg-foreground"
+            onConfirm={handleWithdraw}
+            onCancel={() => setWithdrawTarget(null)}
+            loading={withdrawMutation.isPending}
+          />
+        )}
+        {matchModal && (
+          <MatchModal
+            name={matchModal.name}
+            photoUrl={matchModal.photoUrl}
+            userId={matchModal.userId}
+            onMessage={() => {
+              setMatchModal(null);
+              setActiveTab("matches");
+              setLocation(`/messages/${matchModal.userId}`);
+            }}
+            onClose={() => setMatchModal(null)}
+          />
+        )}
       </AnimatePresence>
 
       <main className="flex-1 w-full flex bg-white overflow-hidden
                        md:container md:mx-auto md:max-w-6xl md:my-8 md:rounded-3xl md:shadow-xl md:border md:border-border/50"
             style={{ height: "inherit", maxHeight: "calc(100dvh - 64px)" }}>
 
-        {/* Left List */}
-        <div className={`${activeUserId ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 lg:w-96 flex-col border-r border-border`}>
-          <div className="p-6 border-b border-border bg-secondary/10">
-            <h2 className="text-2xl font-display font-bold">Messages</h2>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {convosLoading ? (
-              <div className="p-6 text-center text-muted-foreground">Loading...</div>
-            ) : conversations.length === 0 ? (
-              <div className="p-12 text-center flex flex-col items-center">
-                <MessageCircle className="w-12 h-12 text-muted/50 mb-4" />
-                <p className="text-muted-foreground font-medium">No matches yet.</p>
-                <p className="text-sm text-muted-foreground mt-1">Keep swiping to find your person.</p>
-                <Link href="/discover" className="mt-4 text-sm font-bold text-primary hover:underline">Go to Discover</Link>
-              </div>
-            ) : (
-              <div>
-                {/* Fresh Matches (no messages yet) */}
-                {freshMatches.length > 0 && (
-                  <div className="border-b border-border/50">
-                    <div className="px-4 pt-4 pb-2 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-bold uppercase tracking-widest text-primary">New Matches</span>
-                    </div>
-                    <div className="flex gap-3 px-4 pb-4 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
-                      {freshMatches.map((c) => (
-                        <Link key={c.userId} href={`/members/${c.userId}?from=messages`}>
-                          <div className="flex flex-col items-center gap-2 cursor-pointer group w-16 shrink-0">
-                            <div className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${activeUserId === c.userId ? 'border-primary' : 'border-primary/40 group-hover:border-primary'}`}>
-                              <UserAvatar name={c.name} photoUrl={c.photoUrl} className="w-full h-full" textClassName="text-xl font-bold" />
-                            </div>
-                            <span className="text-xs text-center text-foreground font-medium truncate w-full text-center leading-tight">{c.name.split(' ')[0]}</span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        {/* ── Left Panel ─────────────────────────────────────────────────── */}
+        <div className={`${activeUserId && activeTab === "matches" ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 lg:w-96 flex-col border-r border-border`}>
 
-                {/* Conversations with messages */}
-                {withMessages.length > 0 && (
+          {/* Header + tabs */}
+          <div className="border-b border-border bg-secondary/10">
+            <div className="px-6 pt-5 pb-3">
+              <h2 className="text-2xl font-display font-bold">Messages</h2>
+            </div>
+            <div className="flex px-2 pb-0">
+              {(["matches", "liked-you", "pending"] as Tab[]).map(tab => {
+                const labels: Record<Tab, string> = { matches: "Matches", "liked-you": "Liked You", pending: "Pending" };
+                const counts: Record<Tab, number> = { matches: 0, "liked-you": likedMeCount, pending: sentCount };
+                const isActive = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => { setActiveTab(tab); if (tab !== "matches") setLocation("/messages"); }}
+                    className={`flex-1 py-2.5 text-sm font-semibold border-b-2 transition-all flex items-center justify-center gap-1.5 ${
+                      isActive ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {labels[tab]}
+                    {counts[tab] > 0 && (
+                      <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold leading-none ${
+                        isActive ? "bg-primary text-white" : "bg-muted-foreground/20 text-muted-foreground"
+                      }`}>
+                        {counts[tab] > 9 ? "9+" : counts[tab]}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tab content */}
+          <div className="flex-1 overflow-y-auto">
+
+            {/* ── MATCHES TAB ───────────────────────────────────────── */}
+            {activeTab === "matches" && (
+              <>
+                {convosLoading ? (
+                  <div className="p-6 text-center text-muted-foreground">Loading...</div>
+                ) : conversations.length === 0 ? (
+                  <div className="p-12 text-center flex flex-col items-center">
+                    <MessageCircle className="w-12 h-12 text-muted/50 mb-4" />
+                    <p className="text-muted-foreground font-medium">No matches yet.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Keep swiping to find your person.</p>
+                    <Link href="/discover" className="mt-4 text-sm font-bold text-primary hover:underline">Go to Discover</Link>
+                  </div>
+                ) : (
                   <div>
                     {freshMatches.length > 0 && (
-                      <div className="px-4 pt-4 pb-2">
-                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conversations</span>
+                      <div className="border-b border-border/50">
+                        <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-widest text-primary">New Matches</span>
+                        </div>
+                        <div className="flex gap-3 px-4 pb-4 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
+                          {freshMatches.map((c) => (
+                            <Link key={c.userId} href={`/messages/${c.userId}`}>
+                              <div className="flex flex-col items-center gap-2 cursor-pointer group w-16 shrink-0">
+                                <div className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${activeUserId === c.userId ? 'border-primary' : 'border-primary/40 group-hover:border-primary'}`}>
+                                  <UserAvatar name={c.name} photoUrl={c.photoUrl} className="w-full h-full" textClassName="text-xl font-bold" />
+                                </div>
+                                <span className="text-xs text-center font-medium truncate w-full leading-tight">{c.name.split(' ')[0]}</span>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    <div className="divide-y divide-border/50">
-                      {withMessages.map((c) => (
-                        <div
-                          key={c.userId}
-                          onClick={() => setLocation(`/messages/${c.userId}`)}
-                          className={`p-4 flex gap-4 cursor-pointer hover:bg-secondary/30 transition-colors ${activeUserId === c.userId ? 'bg-secondary/50 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
-                        >
-                          <Link
-                            href={`/members/${c.userId}?from=messages`}
-                            onClick={e => e.stopPropagation()}
-                            className="relative shrink-0"
-                          >
-                            <UserAvatar name={c.name} photoUrl={c.photoUrl} size={56} className="rounded-full hover:opacity-90 transition-opacity" textClassName="text-xl font-bold" />
-                            {c.unread > 0 && (
-                              <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                {c.unread > 9 ? "9+" : c.unread}
-                              </span>
-                            )}
-                          </Link>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-center mb-1">
-                              <Link
-                                href={`/members/${c.userId}?from=messages`}
-                                onClick={e => e.stopPropagation()}
-                                className={`truncate hover:text-primary transition-colors ${c.unread > 0 ? 'font-bold text-foreground' : 'font-semibold text-foreground'}`}
-                              >
-                                {c.name}
-                              </Link>
-                              {c.lastMessageAt && <span className="text-xs text-muted-foreground shrink-0 ml-2">{format(new Date(c.lastMessageAt), 'MMM d')}</span>}
-                            </div>
-                            <p className={`text-sm truncate ${c.unread > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                              {c.lastMessage || 'Say hello!'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {freshMatches.length > 0 && withMessages.length === 0 && (
-                  <div className="p-6 text-center">
-                    <p className="text-sm text-muted-foreground">You have {freshMatches.length} new {freshMatches.length === 1 ? 'match' : 'matches'}. Say hello!</p>
+                    {withMessages.length > 0 && (
+                      <div>
+                        {freshMatches.length > 0 && (
+                          <div className="px-4 pt-4 pb-2">
+                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conversations</span>
+                          </div>
+                        )}
+                        <div className="divide-y divide-border/50">
+                          {withMessages.map((c) => (
+                            <div
+                              key={c.userId}
+                              onClick={() => setLocation(`/messages/${c.userId}`)}
+                              className={`p-4 flex gap-4 cursor-pointer hover:bg-secondary/30 transition-colors ${activeUserId === c.userId ? 'bg-secondary/50 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+                            >
+                              <Link href={`/members/${c.userId}?from=messages`} onClick={e => e.stopPropagation()} className="relative shrink-0">
+                                <UserAvatar name={c.name} photoUrl={c.photoUrl} size={56} className="rounded-full hover:opacity-90 transition-opacity" textClassName="text-xl font-bold" />
+                                {c.unread > 0 && (
+                                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                    {c.unread > 9 ? "9+" : c.unread}
+                                  </span>
+                                )}
+                              </Link>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center mb-1">
+                                  <Link href={`/members/${c.userId}?from=messages`} onClick={e => e.stopPropagation()} className={`truncate hover:text-primary transition-colors ${c.unread > 0 ? 'font-bold' : 'font-semibold'}`}>
+                                    {c.name}
+                                  </Link>
+                                  {c.lastMessageAt && <span className="text-xs text-muted-foreground shrink-0 ml-2">{format(new Date(c.lastMessageAt), 'MMM d')}</span>}
+                                </div>
+                                <p className={`text-sm truncate ${c.unread > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                                  {c.lastMessage || 'Say hello!'}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {freshMatches.length > 0 && withMessages.length === 0 && (
+                      <div className="p-6 text-center">
+                        <p className="text-sm text-muted-foreground">You have {freshMatches.length} new {freshMatches.length === 1 ? 'match' : 'matches'}. Say hello!</p>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
+              </>
             )}
+
+            {/* ── LIKED YOU TAB ─────────────────────────────────────── */}
+            {activeTab === "liked-you" && (
+              <>
+                {likedMeLoading ? (
+                  <div className="p-6 text-center text-muted-foreground">Loading...</div>
+                ) : likedBy.length === 0 ? (
+                  <div className="p-12 text-center flex flex-col items-center">
+                    <Heart className="w-12 h-12 text-muted/40 mb-4" />
+                    <p className="text-muted-foreground font-medium">No likes yet.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Keep your profile updated to attract meaningful connections.</p>
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-3">
+                    {isFree && (
+                      <div className="bg-gradient-to-br from-primary/8 to-transparent border border-primary/20 rounded-2xl p-4 mb-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Lock className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-bold text-primary">{likedMeData?.count} {likedMeData?.count === 1 ? "person" : "people"} liked your profile</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">Upgrade to see who they are and like them back.</p>
+                        <Link href="/premium" className="inline-block text-xs font-bold uppercase tracking-wider text-primary hover:underline">
+                          View Plans →
+                        </Link>
+                      </div>
+                    )}
+                    {likedBy.map((item: any) => (
+                      <LikedYouCard
+                        key={item.user.id}
+                        item={item}
+                        isLikingBack={likingBackId === item.user.id}
+                        isPassing={passingId === item.user.id}
+                        onLikeBack={() => handleLikeBack(item.user.id, item.user.name, item.user.photoUrl ?? null)}
+                        onPass={() => handlePassLiker(item.user.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── PENDING TAB ───────────────────────────────────────── */}
+            {activeTab === "pending" && (
+              <>
+                {sentLoading ? (
+                  <div className="p-6 text-center text-muted-foreground">Loading...</div>
+                ) : sentLikes.length === 0 ? (
+                  <div className="p-12 text-center flex flex-col items-center">
+                    <Clock className="w-12 h-12 text-muted/40 mb-4" />
+                    <p className="text-muted-foreground font-medium">No pending likes.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Profiles you like will appear here until they respond.</p>
+                    <Link href="/discover" className="mt-4 text-sm font-bold text-primary hover:underline">Go to Discover</Link>
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-3">
+                    {sentLikes.map((item: any) => (
+                      <PendingCard
+                        key={item.user.id}
+                        item={item}
+                        isWithdrawing={withdrawMutation.isPending && withdrawTarget?.userId === item.user.id}
+                        onWithdraw={() => setWithdrawTarget({ userId: item.user.id, name: item.user.name })}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
           </div>
         </div>
 
-        {/* Right Chat Area */}
-        <div className={`${!activeUserId ? 'hidden md:flex' : 'flex'} flex-1 min-w-0 flex-col bg-background/50`}>
-          {!activeUserId ? (
+        {/* ── Right Chat Panel (Matches tab only) ───────────────────────────── */}
+        <div className={`${(!activeUserId || activeTab !== "matches") ? 'hidden md:flex' : 'flex'} flex-1 min-w-0 flex-col bg-background/50`}>
+          {!activeUserId || activeTab !== "matches" ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-               <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mb-6">
-                 <Heart className="w-10 h-10 text-primary" />
-               </div>
-               <h2 className="text-3xl font-display font-bold text-foreground mb-2">Intentional Connections</h2>
-               <p className="text-muted-foreground max-w-md">Select a conversation to start messaging. Remember, Dowry.Africa encourages deep, meaningful dialogue.</p>
+              <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mb-6">
+                <Heart className="w-10 h-10 text-primary" />
+              </div>
+              <h2 className="text-3xl font-display font-bold text-foreground mb-2">Intentional Connections</h2>
+              <p className="text-muted-foreground max-w-md">
+                {activeTab === "liked-you"
+                  ? "Like someone back to start a conversation."
+                  : activeTab === "pending"
+                  ? "Waiting for your likes to be returned."
+                  : "Select a conversation to start messaging."}
+              </p>
             </div>
           ) : (
             <>
               {/* Chat Header */}
               <div className="h-20 border-b border-border bg-white flex items-center px-6 gap-4">
-                <Link href="/messages" className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center hover:bg-secondary">
+                <button onClick={() => setLocation("/messages")} className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center hover:bg-secondary">
                   <ChevronLeft className="w-6 h-6" />
-                </Link>
+                </button>
                 <Link href={`/members/${activeUserId}?from=messages`} className="shrink-0 hover:opacity-90 transition-opacity">
                   <UserAvatar name={activeConvo?.name ?? ""} photoUrl={activeConvo?.photoUrl} size={48} className="rounded-full" textClassName="text-lg font-bold" />
                 </Link>
@@ -315,7 +571,6 @@ export default function Messages() {
                   <p className="text-xs text-muted-foreground">Tap name to view profile</p>
                 </div>
 
-                {/* Three-dots menu */}
                 <div className="relative shrink-0" ref={menuRef}>
                   <button
                     onClick={() => setShowHeaderMenu(v => !v)}
@@ -332,25 +587,15 @@ export default function Messages() {
                         exit={{ opacity: 0, scale: 0.95, y: -4 }}
                         className="absolute top-12 right-0 bg-white rounded-2xl shadow-xl border border-border min-w-[200px] z-20 overflow-hidden"
                       >
-                        <Link
-                          href={`/members/${activeUserId}?from=messages`}
-                          className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors border-b border-border/50"
-                          onClick={() => setShowHeaderMenu(false)}
-                        >
+                        <Link href={`/members/${activeUserId}?from=messages`} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors border-b border-border/50" onClick={() => setShowHeaderMenu(false)}>
                           <AlertCircle className="w-4 h-4 text-muted-foreground" />
                           <span className="font-medium">View profile</span>
                         </Link>
-                        <button
-                          onClick={() => { setShowHeaderMenu(false); setConfirmUnmatch(true); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors text-left border-b border-border/50"
-                        >
+                        <button onClick={() => { setShowHeaderMenu(false); setConfirmUnmatch(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors text-left border-b border-border/50">
                           <X className="w-4 h-4 text-orange-500" />
                           <span className="font-medium">Unmatch {activeConvo?.name}</span>
                         </button>
-                        <button
-                          onClick={() => { setShowHeaderMenu(false); setConfirmBlock(true); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors text-left"
-                        >
+                        <button onClick={() => { setShowHeaderMenu(false); setConfirmBlock(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors text-left">
                           <ShieldOff className="w-4 h-4 text-red-500" />
                           <span className="font-medium text-red-500">Block {activeConvo?.name}</span>
                         </button>
@@ -363,7 +608,7 @@ export default function Messages() {
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6 bg-secondary/5">
                 {msgsLoading ? (
-                   <div className="text-center text-muted-foreground mt-10">Loading messages...</div>
+                  <div className="text-center text-muted-foreground mt-10">Loading messages...</div>
                 ) : localMsgs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-12">
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -389,7 +634,7 @@ export default function Messages() {
                 )}
               </div>
 
-              {/* Guided Prompts (if any) */}
+              {/* Guided Prompts */}
               {msgsData?.guidedPrompts && msgsData.guidedPrompts.length > 0 && localMsgs.length < 5 && (
                 <div className="pl-6 pr-6 py-3 bg-white border-t border-border flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none" style={{ scrollbarWidth: 'none' }}>
                   {msgsData.guidedPrompts.map((prompt, i) => (
@@ -404,7 +649,7 @@ export default function Messages() {
                 </div>
               )}
 
-              {/* Input Area */}
+              {/* Input */}
               <div className="p-4 bg-white border-t border-border">
                 <form onSubmit={handleSend} className="flex gap-4">
                   <input
@@ -427,6 +672,120 @@ export default function Messages() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+// ── Liked You card ─────────────────────────────────────────────────────────
+function LikedYouCard({
+  item,
+  isLikingBack,
+  isPassing,
+  onLikeBack,
+  onPass,
+}: {
+  item: any;
+  isLikingBack: boolean;
+  isPassing: boolean;
+  onLikeBack: () => void;
+  onPass: () => void;
+}) {
+  const { user } = item;
+  const age = user.age ?? (user.birthYear ? new Date().getFullYear() - user.birthYear : null);
+  const location = [user.city, user.country].filter(Boolean).join(", ");
+
+  return (
+    <div className="bg-white border border-border rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+      <Link href={item.blurred ? "#" : `/members/${user.id}`} className="shrink-0">
+        <div className={`w-14 h-14 rounded-full overflow-hidden border-2 border-border ${item.blurred ? "blur-md pointer-events-none" : ""}`}>
+          <UserAvatar name={user.name} photoUrl={item.blurred ? null : user.photoUrl} className="w-full h-full" textClassName="text-xl font-bold" />
+        </div>
+      </Link>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className={`font-semibold truncate ${item.blurred ? "blur-sm select-none" : ""}`}>
+            {item.blurred ? "Hidden" : user.name}
+          </span>
+          {age && <span className="text-sm text-muted-foreground shrink-0">{age}</span>}
+        </div>
+        {location && (
+          <p className={`text-xs text-muted-foreground truncate ${item.blurred ? "blur-sm select-none" : ""}`}>
+            {item.blurred ? "Upgrade to see" : location}
+          </p>
+        )}
+      </div>
+      {!item.blurred ? (
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={onPass}
+            disabled={isPassing || isLikingBack}
+            className="w-10 h-10 rounded-full border-2 border-border flex items-center justify-center text-muted-foreground hover:border-red-300 hover:text-red-500 transition-colors disabled:opacity-50"
+            title="Pass"
+          >
+            {isPassing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={onLikeBack}
+            disabled={isLikingBack || isPassing}
+            className="w-10 h-10 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors disabled:opacity-50"
+            title="Like back"
+          >
+            {isLikingBack ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />}
+          </button>
+        </div>
+      ) : (
+        <Link href="/premium" className="shrink-0 px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-full border border-primary/20 hover:bg-primary hover:text-white transition-colors">
+          Unlock
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// ── Pending card ───────────────────────────────────────────────────────────
+function PendingCard({
+  item,
+  isWithdrawing,
+  onWithdraw,
+}: {
+  item: any;
+  isWithdrawing: boolean;
+  onWithdraw: () => void;
+}) {
+  const { user } = item;
+  const age = user.age ?? (user.birthYear ? new Date().getFullYear() - user.birthYear : null);
+  const location = [user.city, user.country].filter(Boolean).join(", ");
+
+  return (
+    <div className="bg-white border border-border rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+      <Link href={`/members/${user.id}`} className="shrink-0">
+        <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-border">
+          <UserAvatar name={user.name} photoUrl={user.photoUrl} className="w-full h-full" textClassName="text-xl font-bold" />
+        </div>
+      </Link>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <Link href={`/members/${user.id}`} className="font-semibold truncate hover:text-primary transition-colors">
+            {user.name}
+          </Link>
+          {age && <span className="text-sm text-muted-foreground shrink-0">{age}</span>}
+        </div>
+        {location && <p className="text-xs text-muted-foreground truncate">{location}</p>}
+        <div className="mt-1.5">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary text-muted-foreground text-[10px] font-semibold uppercase tracking-wide rounded-full">
+            <Clock className="w-2.5 h-2.5" />
+            Pending
+          </span>
+        </div>
+      </div>
+      <button
+        onClick={onWithdraw}
+        disabled={isWithdrawing}
+        className="shrink-0 w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        title="Withdraw like"
+      >
+        {isWithdrawing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
+      </button>
     </div>
   );
 }

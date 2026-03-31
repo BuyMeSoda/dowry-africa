@@ -1,0 +1,102 @@
+Please implement a complete likes and matching flow with pending states. This is a significant feature update.
+
+═══════════════════════════════
+1. DISCOVER FEED
+═══════════════════════════════
+When a user likes someone:
+- That person disappears from their Discover feed immediately
+- They should not appear in Discover again unless the like is withdrawn
+
+═══════════════════════════════
+2. NEW "SENT LIKES" SECTION
+═══════════════════════════════
+Add a "Sent Likes" section to the Messages page (or a separate tab):
+- Shows all profiles the current user has liked but haven't liked back yet
+- Each card shows: photo, name, age, location
+- Status badge: "Pending" in a subtle gray/muted color
+- A "Withdraw like" button (small, subtle — maybe a small X or undo icon)
+- When withdrawn: like is removed from database, person could appear in Discover feed again
+- When they like back: card disappears from Sent Likes, match celebration shows, conversation created in Messages
+
+═══════════════════════════════
+3. RECEIVED LIKES SECTION
+═══════════════════════════════
+Add a "Received Likes" section to the Messages page:
+- Free tier: blurred photos, show count "X people liked your profile" with upgrade prompt
+- Core/Serious Badge tier: full photos visible
+- Each card shows: photo (or blur), name (or hidden for free), age, location
+- Two action buttons: Like back ❤️ | Pass ✕
+- When liked back: mutual match created, celebration shown, conversation created
+- When passed: removed from received likes, they don't appear in Discover
+
+═══════════════════════════════
+4. MESSAGES TAB STRUCTURE
+═══════════════════════════════
+Reorganise the Messages page into three clear sections:
+
+Section 1 — "Matches" (existing conversations)
+- Mutual matches where messaging is unlocked
+- Shows last message preview and timestamp
+- Unread indicator
+
+Section 2 — "Liked You" (received likes)
+- People who liked the current user
+- Blurred for free tier with upgrade prompt
+- Full photos for paid tier
+
+Section 3 — "Pending" (sent likes)
+- People the current user liked but no response yet
+- Shows "Pending" status
+- Withdraw option
+
+═══════════════════════════════
+5. PENDING CONVERSATION IN MESSAGES
+═══════════════════════════════
+When you like someone and they haven't liked back:
+- DO NOT create a conversation yet
+- Only create the conversation when it becomes a mutual match
+- A pending like should appear in the "Pending" section, not in the conversations list
+
+═══════════════════════════════
+6. WITHDRAW LIKE
+═══════════════════════════════
+- User can withdraw a like at any time from the Sent Likes / Pending section
+- Withdrawing removes the like from the database
+- The person may reappear in Discover feed in the future (after some time or immediately)
+- Show a confirmation: "Withdraw your like from [Name]?" with Confirm / Cancel
+
+═══════════════════════════════
+7. MATCH NOTIFICATION
+═══════════════════════════════
+When a mutual match happens:
+- Show celebration modal: "It's a match! You and [Name] both liked each other"
+- Two buttons: "Send a message" and "Keep discovering"
+- The match moves from Pending → Matches section in Messages
+- Conversation is auto-created
+
+═══════════════════════════════
+8. BACKEND
+═══════════════════════════════
+Update these API endpoints:
+
+GET /api/matches/feed — exclude already liked, passed, matched, blocked users
+
+GET /api/likes/sent — return list of users current user has liked (pending)
+DELETE /api/likes/:userId — withdraw a like
+
+GET /api/likes/received — return list of users who liked current user
+POST /api/likes/:userId/pass — pass on someone who liked you (without liking back)
+
+POST /api/likes/:userId — like someone (existing) — check for mutual match, if mutual: create conversation + return match=true
+
+GET /api/messages/conversations — only return actual mutual matches (existing)
+
+═══════════════════════════════
+9. DATABASE
+═══════════════════════════════
+The likes table already exists. Make sure it tracks:
+- who liked who
+- timestamp
+- status (pending / matched / passed / withdrawn)
+
+Update status correctly on each action.

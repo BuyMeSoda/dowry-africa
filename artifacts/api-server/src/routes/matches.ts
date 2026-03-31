@@ -120,6 +120,46 @@ router.get("/feed", requireAuth, async (req, res) => {
   }
 });
 
+// Sent likes — users the current user liked but who haven't liked back yet (pending)
+router.get("/sent", requireAuth, async (req, res) => {
+  try {
+    const myId = req.userId!;
+    const blockSet = await getBlockSet(myId);
+
+    const myLikes = await db
+      .select()
+      .from(schema.likes)
+      .where(eq(schema.likes.fromId, myId));
+
+    const sent = [];
+    for (const like of myLikes) {
+      if (blockSet.has(like.toId)) continue;
+
+      // Skip if they liked back (already a mutual match)
+      const reverse = await db
+        .select({ fromId: schema.likes.fromId })
+        .from(schema.likes)
+        .where(and(eq(schema.likes.fromId, like.toId), eq(schema.likes.toId, myId)))
+        .limit(1);
+      if (reverse.length > 0) continue;
+
+      const [userRow] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, like.toId))
+        .limit(1);
+      if (!userRow) continue;
+
+      sent.push({ user: publicUser(toUser(userRow)), likedAt: like.createdAt });
+    }
+
+    res.json({ sent, count: sent.length });
+  } catch (err) {
+    req.log.error(err, "Sent likes error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/liked-me", requireAuth, async (req, res) => {
   try {
     const [meRow] = await db

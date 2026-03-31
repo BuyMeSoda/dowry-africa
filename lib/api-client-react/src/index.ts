@@ -6,6 +6,27 @@ export type { AuthTokenGetter } from "./custom-fetch";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { customFetch } from "./custom-fetch";
 
+// Get list of users the current user has liked (pending — no mutual match yet)
+export function useGetSentLikes(options?: { query?: Record<string, any> }) {
+  return useQuery({
+    queryKey: ["/api/matches/sent"],
+    queryFn: () =>
+      customFetch<{ sent: any[]; count: number }>("/api/matches/sent"),
+    ...options?.query,
+  });
+}
+
+// Pass on someone who liked you (from received likes section)
+export function usePassLiker() {
+  return useMutation({
+    mutationFn: async (userId: string) =>
+      customFetch<{ ok: boolean }>(`/api/matches/pass/${userId}`, {
+        method: "POST",
+        body: "{}",
+      }),
+  });
+}
+
 export function useCreatePortal() {
   return useMutation({
     mutationFn: async () =>
