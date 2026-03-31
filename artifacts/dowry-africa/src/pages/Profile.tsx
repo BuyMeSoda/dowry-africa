@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
@@ -91,6 +91,23 @@ export default function Profile() {
     intent: user?.intent ?? "marriage_ready",
     familyInvolvement: user?.familyInvolvement ?? "",
   });
+
+  useEffect(() => {
+    if (showProfileEdit && user) {
+      setProfileForm({
+        bio: user.bio ?? "",
+        quote: user.quote ?? "",
+        city: user.city ?? "",
+        country: user.country ?? "",
+        faith: user.faith ?? "",
+        heritage: user.heritage ?? [],
+        languages: user.languages ?? [],
+        lifeStage: user.lifeStage ?? "",
+        intent: user.intent ?? "marriage_ready",
+        familyInvolvement: user.familyInvolvement ?? "",
+      });
+    }
+  }, [showProfileEdit]);
 
   if (!user) return null;
 
@@ -593,11 +610,23 @@ export default function Profile() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1.5">City</label>
-                  <input type="text" value={profileForm.city} onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))} placeholder="Lagos" className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary" />
+                  <input
+                    type="text"
+                    value={profileForm.city}
+                    onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))}
+                    placeholder="e.g. Lagos, London, Atlanta"
+                    className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Country</label>
-                  <input type="text" value={profileForm.country} onChange={e => setProfileForm(f => ({ ...f, country: e.target.value }))} placeholder="Nigeria" className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary" />
+                  <label className="block text-sm font-semibold mb-1.5">Country of residence</label>
+                  <input
+                    type="text"
+                    value={profileForm.country}
+                    onChange={e => setProfileForm(f => ({ ...f, country: e.target.value }))}
+                    placeholder="e.g. Nigeria, UK, USA"
+                    className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary"
+                  />
                 </div>
               </div>
 
@@ -610,15 +639,18 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">Country of origin</label>
+                <div className="flex items-baseline justify-between mb-2">
+                  <label className="block text-sm font-semibold">Country of origin</label>
+                  <span className="text-xs text-muted-foreground">Select one</span>
+                </div>
                 <CustomChipSelect
                   selected={profileForm.heritage}
                   onChange={v => setProfileForm(f => ({ ...f, heritage: v }))}
                   presets={ALL_COUNTRIES}
                   fieldType="heritage"
-                  multiSelect
+                  multiSelect={false}
                   allowCustom
-                  customPlaceholder="e.g. Congolese, Cape Verdean..."
+                  customPlaceholder="e.g. Cape Verdean, Congolese..."
                 />
               </div>
 

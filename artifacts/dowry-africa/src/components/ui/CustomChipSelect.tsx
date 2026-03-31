@@ -110,8 +110,10 @@ export function CustomChipSelect({
     if (!selected.includes(titleCased)) {
       if (onToggleValue) {
         onToggleValue(titleCased);
-      } else {
+      } else if (multiSelect) {
         onChange([...selected, titleCased]);
+      } else {
+        onChange([titleCased]);
       }
       await saveCustomValue(titleCased, normalizedValue);
     }
