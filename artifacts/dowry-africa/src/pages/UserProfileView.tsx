@@ -101,7 +101,7 @@ export default function UserProfileView() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 md:py-10">
+      <div className="max-w-2xl mx-auto px-4 py-6 md:py-10 pb-36">
         {/* Back button */}
         <button
           onClick={goBack}
