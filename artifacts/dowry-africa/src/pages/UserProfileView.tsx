@@ -17,7 +17,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { TierBadge } from "@/components/ui/TierBadge";
 import {
-  ChevronLeft, Heart, MessageCircle, MapPin, Loader2, Sparkles,
+  ChevronLeft, Heart, MessageCircle, MapPin, Globe, Loader2, Sparkles,
   Baby, Clock, Home, MoreVertical, X, AlertCircle, ShieldOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -585,7 +585,7 @@ export default function UserProfileView() {
             )}
 
             {/* ── Background info ────────────────────────────────────────── */}
-            {(profile.city || profile.country || profile.faith || profile.childrenPref || profile.marriageTimeline || profile.familyInvolvement) && (
+            {(profile.city || profile.country || (profile.heritage?.length > 0) || profile.faith || profile.childrenPref || profile.marriageTimeline || profile.familyInvolvement) && (
               <div className="bg-white rounded-3xl shadow-sm border border-border/50 px-6 py-5">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Background</h3>
                 <div>
@@ -594,6 +594,13 @@ export default function UserProfileView() {
                       icon={<MapPin className="w-4 h-4" />}
                       label="Location"
                       value={[profile.city, profile.country].filter(Boolean).join(", ")}
+                    />
+                  )}
+                  {profile.heritage?.length > 0 && (
+                    <DetailRow
+                      icon={<Globe className="w-4 h-4" />}
+                      label="Country of origin"
+                      value={(profile.heritage as string[]).join(", ")}
                     />
                   )}
                   {profile.faith && (
