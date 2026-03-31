@@ -5,6 +5,7 @@ import { useLikeUser, usePassUser, useGetPaymentStatus, useGetLikedMe, type Feed
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
 import { CountryMultiSelect } from "@/components/ui/CountryMultiSelect";
+import { AFRICAN_COUNTRIES, RESIDENCE_COUNTRIES } from "@/lib/country-options";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -215,20 +216,15 @@ export default function Discover() {
   const { toast } = useToast();
 
   // ── Filter state ────────────────────────────────────────────────────────────
-  const [filterCulture, setFilterCulture] = useState<string[]>([]);
-  const [filterFaith, setFilterFaith] = useState<string[]>([]);
+  const [filterOrigin,    setFilterOrigin]    = useState<string[]>([]);
+  const [filterResidence, setFilterResidence] = useState<string[]>([]);
+  const [filterFaith,     setFilterFaith]     = useState<string[]>([]);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   // Draft state for mobile sheet (applied on "Apply" tap)
-  const [draftCulture, setDraftCulture] = useState<string[]>([]);
-  const [draftFaith, setDraftFaith] = useState<string[]>([]);
+  const [draftOrigin,    setDraftOrigin]    = useState<string[]>([]);
+  const [draftResidence, setDraftResidence] = useState<string[]>([]);
+  const [draftFaith,     setDraftFaith]     = useState<string[]>([]);
 
-  const handleCultureToggle = (value: string) => {
-    setFilterCulture(prev => {
-      if (value === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
-      if (prev.includes("Open to all")) return [value];
-      return prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
-    });
-  };
   const handleFaithToggle = (value: string) => {
     setFilterFaith(prev => {
       if (value === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
@@ -236,32 +232,36 @@ export default function Discover() {
       return prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
     });
   };
-  const clearFilters = () => { setFilterCulture([]); setFilterFaith([]); };
+  const clearFilters = () => { setFilterOrigin([]); setFilterResidence([]); setFilterFaith([]); };
 
   const openFilterSheet = () => {
-    setDraftCulture([...filterCulture]);
+    setDraftOrigin([...filterOrigin]);
+    setDraftResidence([...filterResidence]);
     setDraftFaith([...filterFaith]);
     setFilterSheetOpen(true);
   };
 
   const applyFilterSheet = () => {
-    setFilterCulture(draftCulture);
+    setFilterOrigin(draftOrigin);
+    setFilterResidence(draftResidence);
     setFilterFaith(draftFaith);
     setFilterSheetOpen(false);
   };
 
   const clearFilterSheet = () => {
-    setDraftCulture([]);
+    setDraftOrigin([]);
+    setDraftResidence([]);
     setDraftFaith([]);
   };
 
-  const draftFiltersActive = draftCulture.filter(v => v !== "Open to all").length > 0 ||
-                              draftFaith.filter(v => v !== "Open to all").length > 0;
+  const effectiveOriginFilter    = filterOrigin.filter(v => v !== "Open to all");
+  const effectiveResidenceFilter = filterResidence.filter(v => v !== "Open to all");
+  const effectiveFaithFilter     = filterFaith.filter(v => v !== "Open to all");
+  const filtersActive = effectiveOriginFilter.length > 0 || effectiveResidenceFilter.length > 0 || effectiveFaithFilter.length > 0;
 
-  // Effective filters: "Open to all" = no filter on that dimension
-  const effectiveCultureFilter = filterCulture.filter(v => v !== "Open to all");
-  const effectiveFaithFilter   = filterFaith.filter(v => v !== "Open to all");
-  const filtersActive = effectiveCultureFilter.length > 0 || effectiveFaithFilter.length > 0;
+  const draftFiltersActive = draftOrigin.filter(v => v !== "Open to all").length > 0 ||
+                              draftResidence.filter(v => v !== "Open to all").length > 0 ||
+                              draftFaith.filter(v => v !== "Open to all").length > 0;
 
   // ── Infinite-scroll feed state ──────────────────────────────────────────────
   const [feed, setFeed]                       = useState<FeedCard[]>([]);
@@ -276,10 +276,12 @@ export default function Discover() {
   const fetchingRef  = useRef(false);
 
   // Always-fresh refs so async callbacks never close over stale filter arrays
-  const cultureRef = useRef(effectiveCultureFilter);
-  const faithRef   = useRef(effectiveFaithFilter);
-  cultureRef.current = effectiveCultureFilter;
-  faithRef.current   = effectiveFaithFilter;
+  const originRef    = useRef(effectiveOriginFilter);
+  const residenceRef = useRef(effectiveResidenceFilter);
+  const faithRef     = useRef(effectiveFaithFilter);
+  originRef.current    = effectiveOriginFilter;
+  residenceRef.current = effectiveResidenceFilter;
+  faithRef.current     = effectiveFaithFilter;
 
   const fetchPage = useCallback(async (reset: boolean) => {
     if (fetchingRef.current && !reset) return;
@@ -297,11 +299,13 @@ export default function Discover() {
     }
 
     try {
-      const heritage = cultureRef.current;
-      const faith    = faithRef.current;
-      const params   = new URLSearchParams({ offset: String(offset), limit: "10" });
-      if (heritage.length) params.set("heritage", heritage.join(","));
-      if (faith.length)    params.set("faith",    faith.join(","));
+      const origin    = originRef.current;
+      const residence = residenceRef.current;
+      const faith     = faithRef.current;
+      const params    = new URLSearchParams({ offset: String(offset), limit: "10" });
+      if (origin.length)    params.set("origin",    origin.join(","));
+      if (residence.length) params.set("residence", residence.join(","));
+      if (faith.length)     params.set("faith",     faith.join(","));
 
       const token = localStorage.getItem("da_token");
       const res = await fetch(`${API_BASE}/api/matches/feed?${params}`, {
@@ -328,7 +332,11 @@ export default function Discover() {
   useEffect(() => { fetchPage(true); }, []);
 
   // Reset + reload whenever filters change
-  const filterKey = effectiveCultureFilter.slice().sort().join(",") + "|" + effectiveFaithFilter.slice().sort().join(",");
+  const filterKey = [
+    effectiveOriginFilter.slice().sort().join(","),
+    effectiveResidenceFilter.slice().sort().join(","),
+    effectiveFaithFilter.slice().sort().join(","),
+  ].join("|");
   const prevFilterKey = useRef<string | null>(null);
   useEffect(() => {
     if (prevFilterKey.current === null) { prevFilterKey.current = filterKey; return; }
@@ -382,13 +390,27 @@ export default function Discover() {
            <div className="sticky top-28 bg-white p-6 rounded-3xl border border-border shadow-sm space-y-6">
               <h3 className="font-display font-bold text-xl">Discover Filters</h3>
 
-              {/* Country preference filter */}
+              {/* Country of origin filter */}
               <div>
-                <label className="text-sm font-semibold text-foreground block mb-2.5">Country preference</label>
+                <label className="text-sm font-semibold text-foreground block mb-1">Country of origin</label>
+                <p className="text-xs text-muted-foreground mb-2">Show me people originally from…</p>
                 <CountryMultiSelect
-                  selected={filterCulture}
-                  onChange={setFilterCulture}
-                  placeholder="Search or select countries…"
+                  selected={filterOrigin}
+                  onChange={setFilterOrigin}
+                  countries={AFRICAN_COUNTRIES}
+                  placeholder="Any country of origin"
+                />
+              </div>
+
+              {/* Country of residence filter */}
+              <div>
+                <label className="text-sm font-semibold text-foreground block mb-1">Country of residence</label>
+                <p className="text-xs text-muted-foreground mb-2">Show me people currently living in…</p>
+                <CountryMultiSelect
+                  selected={filterResidence}
+                  onChange={setFilterResidence}
+                  countries={RESIDENCE_COUNTRIES}
+                  placeholder="Any country of residence"
                 />
               </div>
 
@@ -409,7 +431,7 @@ export default function Discover() {
                 />
               </div>
 
-              {(filterCulture.length > 0 || filterFaith.length > 0) && (
+              {filtersActive && (
                 <button
                   onClick={clearFilters}
                   className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1 text-center"
@@ -456,7 +478,7 @@ export default function Discover() {
               Filters
               {filtersActive && (
                 <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-white text-[9px] font-bold leading-none">
-                  {effectiveCultureFilter.length + effectiveFaithFilter.length}
+                  {effectiveOriginFilter.length + effectiveResidenceFilter.length + effectiveFaithFilter.length}
                 </span>
               )}
             </button>
@@ -676,11 +698,23 @@ export default function Discover() {
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
                 <div>
-                  <label className="text-sm font-semibold text-foreground block mb-2.5">Country preference</label>
+                  <label className="text-sm font-semibold text-foreground block mb-1">Country of origin</label>
+                  <p className="text-xs text-muted-foreground mb-2">Show me people originally from…</p>
                   <CountryMultiSelect
-                    selected={draftCulture}
-                    onChange={setDraftCulture}
-                    placeholder="Search or select countries…"
+                    selected={draftOrigin}
+                    onChange={setDraftOrigin}
+                    countries={AFRICAN_COUNTRIES}
+                    placeholder="Any country of origin"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-foreground block mb-1">Country of residence</label>
+                  <p className="text-xs text-muted-foreground mb-2">Show me people currently living in…</p>
+                  <CountryMultiSelect
+                    selected={draftResidence}
+                    onChange={setDraftResidence}
+                    countries={RESIDENCE_COUNTRIES}
+                    placeholder="Any country of residence"
                   />
                 </div>
                 <hr className="border-border" />

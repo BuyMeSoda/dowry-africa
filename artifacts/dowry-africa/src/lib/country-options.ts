@@ -48,3 +48,9 @@ export const COUNTRY_GROUPS: ChipGroup[] = [
 ];
 
 export const ALL_COUNTRIES: string[] = COUNTRY_GROUPS.flatMap(g => g.options);
+
+export const AFRICAN_COUNTRIES: string[] = COUNTRY_GROUPS
+  .filter(g => g.group !== "Diaspora")
+  .flatMap(g => g.options);
+
+export const RESIDENCE_COUNTRIES: string[] = ALL_COUNTRIES;

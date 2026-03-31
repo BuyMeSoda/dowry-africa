@@ -27,7 +27,7 @@ const ALLOWED_FIELDS = [
   "intent", "lifeStage", "childrenPref", "marriageTimeline",
   "familyInvolvement", "relocationOpen", "bio", "quote", "photoUrl",
   "genderPref", "minAge", "maxAge",
-  "preferredFaith", "preferredFaiths", "preferredCountry", "preferredHeritage",
+  "preferredFaith", "preferredFaiths", "preferredCountry", "preferredHeritage", "preferredResidence",
 ] as const;
 
 router.get("/me/profile", requireAuth, async (req, res) => {

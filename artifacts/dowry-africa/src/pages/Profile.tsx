@@ -9,7 +9,7 @@ import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users, Camera, ShieldOf
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { useToast } from "@/hooks/use-toast";
-import { ALL_COUNTRIES } from "@/lib/country-options";
+import { ALL_COUNTRIES, AFRICAN_COUNTRIES, RESIDENCE_COUNTRIES } from "@/lib/country-options";
 import { formatIntentLabel } from "@/lib/format-tags";
 import { useGetBlockedUsers, useUnblockUser } from "@workspace/api-client-react";
 
@@ -164,6 +164,7 @@ export default function Profile() {
     preferredFaiths: (user as any)?.preferredFaiths ?? [] as string[],
     preferredCountry: user?.preferredCountry ?? "",
     preferredHeritage: (user as any)?.preferredHeritage ?? [] as string[],
+    preferredResidence: (user as any)?.preferredResidence ?? [] as string[],
     childrenPref: user?.childrenPref ?? "open",
     relocationOpen: user?.relocationOpen ?? false,
     marriageTimeline: user?.marriageTimeline ?? "",
@@ -393,6 +394,7 @@ export default function Profile() {
                     preferredFaiths: (user as any)?.preferredFaiths ?? [],
                     preferredCountry: (user as any)?.preferredCountry ?? "",
                     preferredHeritage: (user as any)?.preferredHeritage ?? [],
+                    preferredResidence: (user as any)?.preferredResidence ?? [],
                     childrenPref: user?.childrenPref ?? "open",
                     relocationOpen: user?.relocationOpen ?? false,
                     marriageTimeline: user?.marriageTimeline ?? "",
@@ -421,7 +423,8 @@ export default function Profile() {
                   user.minAge && user.maxAge ? `${user.minAge} – ${user.maxAge} yrs` :
                   user.minAge ? `${user.minAge}+ yrs` : "Any age"
                 } />
-                <PrefRow label="Country preference" value={preferredHeritage?.length ? preferredHeritage.join(", ") : "Open to all"} />
+                <PrefRow label="Preferred origin" value={preferredHeritage?.length ? preferredHeritage.join(", ") : "Open to all"} />
+                <PrefRow label="Preferred residence" value={(user as any)?.preferredResidence?.length ? (user as any).preferredResidence.join(", ") : "Open to any"} />
               </div>
 
               {/* Values */}
@@ -553,16 +556,27 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Country preference — searchable multi-select dropdown */}
+              {/* Preferred country of origin */}
               <div>
-                <div className="flex items-baseline justify-between mb-3">
-                  <label className="block font-semibold">Country preference</label>
-                  <span className="text-xs text-muted-foreground">Select all that apply</span>
-                </div>
+                <label className="block font-semibold mb-1">Preferred country of origin</label>
+                <p className="text-xs text-muted-foreground mb-2">Where you'd like your partner to be originally from</p>
                 <CountryMultiSelect
                   selected={prefForm.preferredHeritage}
                   onChange={v => setPrefForm(f => ({ ...f, preferredHeritage: v }))}
-                  placeholder="Search or select countries…"
+                  countries={AFRICAN_COUNTRIES}
+                  placeholder="Open to all origins"
+                />
+              </div>
+
+              {/* Preferred country of residence */}
+              <div>
+                <label className="block font-semibold mb-1">Preferred country of residence</label>
+                <p className="text-xs text-muted-foreground mb-2">Where you'd like your partner to currently live</p>
+                <CountryMultiSelect
+                  selected={prefForm.preferredResidence}
+                  onChange={v => setPrefForm(f => ({ ...f, preferredResidence: v }))}
+                  countries={RESIDENCE_COUNTRIES}
+                  placeholder="Open to any location"
                 />
               </div>
 

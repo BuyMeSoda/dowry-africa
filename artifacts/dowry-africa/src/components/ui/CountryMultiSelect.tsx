@@ -1,24 +1,29 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { ChevronDown, Check, X } from "lucide-react";
 import { ALL_COUNTRIES } from "@/lib/country-options";
-
-const SORTED_COUNTRIES = [...ALL_COUNTRIES].sort((a, b) => a.localeCompare(b));
 
 interface CountryMultiSelectProps {
   selected: string[];
   onChange: (newSelected: string[]) => void;
   placeholder?: string;
+  countries?: string[];
 }
 
 export function CountryMultiSelect({
   selected,
   onChange,
   placeholder = "Select countries…",
+  countries,
 }: CountryMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const sortedList = useMemo(() => {
+    const base = countries ?? ALL_COUNTRIES;
+    return [...base].sort((a, b) => a.localeCompare(b));
+  }, [countries]);
 
   useEffect(() => {
     if (!open) return;
@@ -60,7 +65,7 @@ export function CountryMultiSelect({
     );
   };
 
-  const filtered = SORTED_COUNTRIES.filter(c =>
+  const filtered = sortedList.filter(c =>
     c.toLowerCase().includes(search.toLowerCase())
   );
 

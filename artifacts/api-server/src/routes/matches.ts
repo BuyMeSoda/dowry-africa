@@ -39,8 +39,11 @@ router.get("/feed", requireAuth, async (req, res) => {
     const offset   = Math.max(0, parseInt(req.query.offset as string ?? "0") || 0);
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.limit  as string ?? String(PAGE_SIZE_DEFAULT)) || PAGE_SIZE_DEFAULT));
 
-    const heritageFilter: string[] = req.query.heritage
-      ? (req.query.heritage as string).split(",").map(s => s.trim()).filter(Boolean)
+    const originFilter: string[] = req.query.origin
+      ? (req.query.origin as string).split(",").map(s => s.trim()).filter(Boolean)
+      : [];
+    const residenceFilter: string[] = req.query.residence
+      ? (req.query.residence as string).split(",").map(s => s.trim()).filter(Boolean)
       : [];
     const faithFilter: string[] = req.query.faith
       ? (req.query.faith as string).split(",").map(s => s.trim()).filter(Boolean)
@@ -66,10 +69,18 @@ router.get("/feed", requireAuth, async (req, res) => {
       if (likedIds.has(candidate.id)) continue;
       if (blockSet.has(candidate.id)) continue;
 
-      if (heritageFilter.length > 0) {
+      if (originFilter.length > 0) {
         const heritage: string[] = candidate.heritage ?? [];
-        const matches = heritageFilter.some(f =>
-          heritage.some(h => h.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(h.toLowerCase()))
+        const matches = originFilter.some(f =>
+          heritage.some(h => h.toLowerCase() === f.toLowerCase())
+        );
+        if (!matches) continue;
+      }
+
+      if (residenceFilter.length > 0) {
+        const residence = candidate.country ?? "";
+        const matches = residenceFilter.some(f =>
+          residence.toLowerCase() === f.toLowerCase()
         );
         if (!matches) continue;
       }

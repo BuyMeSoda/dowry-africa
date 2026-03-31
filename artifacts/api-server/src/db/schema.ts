@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   preferredFaiths: text("preferred_faiths").array().notNull().default(sql`ARRAY[]::text[]`),
   preferredCountry: text("preferred_country"),
   preferredHeritage: text("preferred_heritage").array(),
+  preferredResidence: text("preferred_residence").array(),
   bio: text("bio"),
   quote: text("quote"),
   photoUrl: text("photo_url"),
