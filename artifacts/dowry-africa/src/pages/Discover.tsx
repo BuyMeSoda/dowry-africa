@@ -9,7 +9,7 @@ import { AFRICAN_COUNTRIES, RESIDENCE_COUNTRIES } from "@/lib/country-options";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
+import { TierBadge } from "@/components/ui/TierBadge";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { API_BASE } from "@/lib/api-url";
 import { formatTag } from "@/lib/format-tags";
@@ -555,9 +555,7 @@ export default function Discover() {
                           <div>
                             <div className="hidden md:flex justify-between items-start mb-1">
                               <h2 className="text-3xl font-display font-bold text-foreground">{card.user.name}, {card.user.age}</h2>
-                              {card.user.hasBadge && (
-                                <SeriousBadgeIcon size={34} title="Serious Badge Verified" />
-                              )}
+                                <TierBadge tier={card.user.tier} hasBadge={card.user.hasBadge} size="md" />
                             </div>
                             
                             {(card.user.city || card.user.country) && (

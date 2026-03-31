@@ -88,7 +88,7 @@ const DEMO_USERS = [
     familyInvolvement: "high",
     bio: "Ghanaian Muslim woman who loves her faith and her culture in equal measure. Looking for a partner who is grounded, God-fearing, and growth-oriented.",
     quote: "Seek knowledge, then seek your people.",
-    tier: "free",
+    tier: "core",
     hasBadge: false,
     genderPref: "man",
     photoUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop",

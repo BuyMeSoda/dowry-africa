@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useRoute, useLocation } from "wouter";
+import { TierBadge } from "@/components/ui/TierBadge";
 import { Navbar } from "@/components/layout/Navbar";
 import {
   useGetConversations,
@@ -443,9 +444,12 @@ export default function Messages() {
                               </Link>
                               <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-center mb-1">
-                                  <Link href={`/members/${c.userId}?from=messages`} onClick={e => e.stopPropagation()} className={`truncate hover:text-primary transition-colors ${c.unread > 0 ? 'font-bold' : 'font-semibold'}`}>
-                                    {c.name}
-                                  </Link>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Link href={`/members/${c.userId}?from=messages`} onClick={e => e.stopPropagation()} className={`truncate hover:text-primary transition-colors ${c.unread > 0 ? 'font-bold' : 'font-semibold'}`}>
+                                      {c.name}
+                                    </Link>
+                                    <TierBadge tier={(c as any).tier ?? "free"} hasBadge={(c as any).hasBadge} size="sm" />
+                                  </div>
                                   {c.lastMessageAt && <span className="text-xs text-muted-foreground shrink-0 ml-2">{format(new Date(c.lastMessageAt), 'MMM d')}</span>}
                                 </div>
                                 <p className={`text-sm truncate ${c.unread > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>

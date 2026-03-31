@@ -127,6 +127,8 @@ router.get("/", requireAuth, async (req, res) => {
           userId,
           name: other?.name ?? "Unknown",
           photoUrl: other?.photoUrl ?? null,
+          tier: other?.tier ?? "free",
+          hasBadge: other?.hasBadge ?? false,
           lastMessage,
           lastMessageAt: lastMessageAt ?? matchedAt,
           unread,

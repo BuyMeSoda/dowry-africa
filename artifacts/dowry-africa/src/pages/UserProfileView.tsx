@@ -15,6 +15,7 @@ import { useState, useRef, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
+import { TierBadge } from "@/components/ui/TierBadge";
 import {
   ChevronLeft, Heart, MessageCircle, MapPin, Loader2, Sparkles,
   Baby, Clock, Home, MoreVertical, X, AlertCircle, ShieldOff,
@@ -539,7 +540,7 @@ export default function UserProfileView() {
                         </div>
                       )}
                     </div>
-                    {profile.hasBadge && <SeriousBadgeIcon size={32} title="Serious Badge Verified" />}
+                    <TierBadge tier={profile.tier ?? "free"} hasBadge={profile.hasBadge} size="md" />
                   </div>
                 </div>
               </div>
@@ -628,7 +629,7 @@ export default function UserProfileView() {
             )}
 
             {/* ── Languages + Badge ──────────────────────────────────────── */}
-            {(profile.languages?.length > 0 || profile.hasBadge) && (
+            {(profile.languages?.length > 0 || profile.hasBadge || profile.tier === "core") && (
               <div className="bg-white rounded-3xl shadow-sm border border-border/50 px-6 py-5 space-y-4">
                 {profile.hasBadge && (
                   <div className="flex items-center gap-3">
@@ -638,6 +639,17 @@ export default function UserProfileView() {
                     <div>
                       <p className="font-bold text-amber-700 text-sm">Serious Badge Verified</p>
                       <p className="text-xs text-muted-foreground">Demonstrated intent &amp; seriousness</p>
+                    </div>
+                  </div>
+                )}
+                {!profile.hasBadge && profile.tier === "core" && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
+                      <TierBadge tier="core" hasBadge={false} size="sm" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-blue-700 text-sm">Core Member</p>
+                      <p className="text-xs text-muted-foreground">Premium access &amp; full messaging</p>
                     </div>
                   </div>
                 )}

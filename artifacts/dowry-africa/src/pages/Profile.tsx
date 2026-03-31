@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
-import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
+import { TierBadge, OwnTierLabel } from "@/components/ui/TierBadge";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
 import { CountryMultiSelect } from "@/components/ui/CountryMultiSelect";
 import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users, Camera, ShieldOff, Shield, ChevronDown, Check } from "lucide-react";
@@ -254,12 +254,16 @@ export default function Profile() {
         {/* Main profile card */}
         <div className="bg-white rounded-[2rem] shadow-xl border border-border overflow-hidden">
           <div className="h-48 bg-gradient-to-r from-primary/20 to-secondary/40 relative">
-            {user.hasBadge && (
-              <div className="absolute top-6 right-6 flex items-center gap-3 bg-white/90 backdrop-blur-sm border border-amber-200/60 px-4 py-2.5 rounded-2xl shadow-lg shadow-amber-100/40">
-                <SeriousBadgeIcon size={36} />
+            {(user.hasBadge || (user as any).tier === "badge" || (user as any).tier === "core") && (
+              <div className={`absolute top-6 right-6 flex items-center gap-3 bg-white/90 backdrop-blur-sm border px-4 py-2.5 rounded-2xl shadow-lg ${user.hasBadge || (user as any).tier === "badge" ? "border-amber-200/60 shadow-amber-100/40" : "border-blue-200/60 shadow-blue-100/20"}`}>
+                <TierBadge tier={(user as any).tier ?? "free"} hasBadge={user.hasBadge} size="lg" />
                 <div>
-                  <p className="font-bold text-sm text-amber-900">Serious Badge</p>
-                  <p className="text-xs text-amber-700/70 font-medium">Verified Member</p>
+                  <p className={`font-bold text-sm ${user.hasBadge || (user as any).tier === "badge" ? "text-amber-900" : "text-blue-800"}`}>
+                    {user.hasBadge || (user as any).tier === "badge" ? "Serious Badge" : "Core Member"}
+                  </p>
+                  <p className={`text-xs font-medium ${user.hasBadge || (user as any).tier === "badge" ? "text-amber-700/70" : "text-blue-600/70"}`}>
+                    {user.hasBadge || (user as any).tier === "badge" ? "Verified Member" : "Premium Access"}
+                  </p>
                 </div>
               </div>
             )}
@@ -328,6 +332,9 @@ export default function Profile() {
 
             <div>
               <h1 className="text-4xl font-display font-bold mb-1">{user.name}, {user.age}</h1>
+              <div className="flex items-center gap-3 flex-wrap mb-1">
+                <OwnTierLabel tier={(user as any).tier ?? "free"} hasBadge={user.hasBadge} />
+              </div>
               <p className="text-lg text-muted-foreground flex items-center gap-2 flex-wrap">
                 {(user.city || user.country) && (
                   <span className="flex items-center gap-1.5">
