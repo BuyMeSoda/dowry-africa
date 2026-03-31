@@ -88,7 +88,7 @@ export default function UserProfileView() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-0">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <AnimatePresence>
@@ -101,7 +101,7 @@ export default function UserProfileView() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 md:py-10 pb-36">
+      <div className="max-w-2xl mx-auto px-4 pt-6 md:pt-10 pb-36">
         {/* Back button */}
         <button
           onClick={goBack}
