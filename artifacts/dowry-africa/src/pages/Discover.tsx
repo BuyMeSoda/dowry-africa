@@ -4,17 +4,15 @@ import { Navbar } from "@/components/layout/Navbar";
 import { useLikeUser, usePassUser, useGetPaymentStatus, useGetLikedMe, type FeedCard } from "@workspace/api-client-react";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
+import { CountryMultiSelect } from "@/components/ui/CountryMultiSelect";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { API_BASE } from "@/lib/api-url";
-import { COUNTRY_GROUPS } from "@/lib/country-options";
 import { formatTag } from "@/lib/format-tags";
 
-// "Open to all" = first chip, means no country filter applied
-const FILTER_CULTURAL_PRESETS = ["Open to all"];
 
 // "Open to all" = first chip in Faith list, means no filter
 const FILTER_FAITH_PRESETS = ["Open to all", "Christian", "Muslim", "Traditional African"];
@@ -387,16 +385,10 @@ export default function Discover() {
               {/* Country preference filter */}
               <div>
                 <label className="text-sm font-semibold text-foreground block mb-2.5">Country preference</label>
-                <CustomChipSelect
+                <CountryMultiSelect
                   selected={filterCulture}
-                  onChange={() => {}}
-                  onToggleValue={handleCultureToggle}
-                  presets={FILTER_CULTURAL_PRESETS}
-                  groups={COUNTRY_GROUPS}
-                  fieldType="heritage"
-                  multiSelect
-                  allowCustom
-                  customPlaceholder="e.g. Congolese, Cape Verdean..."
+                  onChange={setFilterCulture}
+                  placeholder="Search or select countries…"
                 />
               </div>
 
@@ -685,22 +677,10 @@ export default function Discover() {
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
                 <div>
                   <label className="text-sm font-semibold text-foreground block mb-2.5">Country preference</label>
-                  <CustomChipSelect
+                  <CountryMultiSelect
                     selected={draftCulture}
-                    onChange={() => {}}
-                    onToggleValue={v => {
-                      setDraftCulture(prev => {
-                        if (v === "Open to all") return prev.includes("Open to all") ? [] : ["Open to all"];
-                        if (prev.includes("Open to all")) return [v];
-                        return prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v];
-                      });
-                    }}
-                    presets={FILTER_CULTURAL_PRESETS}
-                    groups={COUNTRY_GROUPS}
-                    fieldType="heritage"
-                    multiSelect
-                    allowCustom
-                    customPlaceholder="e.g. Congolese, Cape Verdean..."
+                    onChange={setDraftCulture}
+                    placeholder="Search or select countries…"
                   />
                 </div>
                 <hr className="border-border" />

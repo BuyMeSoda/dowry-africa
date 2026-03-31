@@ -4,11 +4,12 @@ import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
+import { CountryMultiSelect } from "@/components/ui/CountryMultiSelect";
 import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users, Camera, ShieldOff, Shield, ChevronDown, Check } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { useToast } from "@/hooks/use-toast";
-import { COUNTRY_GROUPS, ALL_COUNTRIES } from "@/lib/country-options";
+import { ALL_COUNTRIES } from "@/lib/country-options";
 import { formatIntentLabel } from "@/lib/format-tags";
 import { useGetBlockedUsers, useUnblockUser } from "@workspace/api-client-react";
 
@@ -552,20 +553,16 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Country preference — grouped chips + custom */}
+              {/* Country preference — searchable multi-select dropdown */}
               <div>
                 <div className="flex items-baseline justify-between mb-3">
                   <label className="block font-semibold">Country preference</label>
                   <span className="text-xs text-muted-foreground">Select all that apply</span>
                 </div>
-                <CustomChipSelect
+                <CountryMultiSelect
                   selected={prefForm.preferredHeritage}
                   onChange={v => setPrefForm(f => ({ ...f, preferredHeritage: v }))}
-                  groups={COUNTRY_GROUPS}
-                  fieldType="heritage"
-                  multiSelect
-                  allowCustom
-                  customPlaceholder="e.g. Congolese, Cape Verdean..."
+                  placeholder="Search or select countries…"
                 />
               </div>
 
