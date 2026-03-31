@@ -1,0 +1,54 @@
+Please update the subscription pricing throughout the entire app and add pricing management to the admin panel.
+
+═══════════════════════════════
+1. UPDATE PRICING EVERYWHERE
+═══════════════════════════════
+Change the subscription prices throughout the entire codebase:
+
+Old → New:
+- Core: $7/mo → $12.99/month
+- Serious Badge: $15/mo → $19.99/month
+
+Update these everywhere:
+- Premium/pricing page
+- Subscription comparison cards
+- Any hardcoded price references in the frontend
+- Any hardcoded price references in the backend
+- Stripe product/price references
+- Admin panel subscription section
+- Landing page if pricing is mentioned
+- Coming soon page if pricing is mentioned
+
+═══════════════════════════════
+2. ADD PRICING MANAGEMENT TO ADMIN
+═══════════════════════════════
+In the admin Settings section add a "Subscription Pricing" subsection that allows the admin to:
+
+- View current prices for Core and Serious Badge tiers
+- Edit the display price for each tier (what users see in the UI)
+- Edit the description/features list for each tier
+- Edit the tier name
+- Save changes — updates reflect immediately across the app
+
+Store pricing config in the settings table:
+- core_price (decimal, default 12.99)
+- core_price_label (text, default "$12.99/month")
+- core_description (text)
+- core_features (json array of feature strings)
+- serious_price (decimal, default 19.99)
+- serious_price_label (text, default "$19.99/month")
+- serious_description (text)
+- serious_features (json array of feature strings)
+
+The Premium page should fetch pricing from GET /api/settings/pricing instead of using hardcoded values — this way admin changes reflect immediately without redeploying.
+
+═══════════════════════════════
+3. STRIPE PRICE IDs
+═══════════════════════════════
+Note: The actual Stripe price IDs (STRIPE_CORE_PRICE_ID and STRIPE_BADGE_PRICE_ID) are set as environment variables in Railway. These need to be updated manually in Stripe dashboard to match the new prices:
+- Create new Stripe price for Core at $12.99/month
+- Create new Stripe price for Serious Badge at $19.99/month
+- Update STRIPE_CORE_PRICE_ID and STRIPE_BADGE_PRICE_ID in Railway with the new price IDs
+
+Add a note in the admin Settings panel under pricing that says:
+"Note: To change actual billing amounts, update the Stripe price IDs in Railway environment variables."

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { requireAdmin } from "../middlewares/adminAuth.js";
+import { getPricing } from "./settings.js";
 
 const router = Router();
 router.use(requireAdmin);
@@ -41,7 +42,10 @@ router.get("/dashboard", async (_req, res) => {
 
     const coreCount = coreSubs.count;
     const badgeCount = badgeSubs.count;
-    const mrr = coreCount * 7 + badgeCount * 15;
+    const { core_price, serious_price } = await getPricing();
+    const corePrice = parseFloat(core_price);
+    const seriousPrice = parseFloat(serious_price);
+    const mrr = Math.round((coreCount * corePrice + badgeCount * seriousPrice) * 100) / 100;
     const totalUsersCount = totalUsers.count;
     const subscriptionRate = totalUsersCount > 0 ? Math.round(((coreCount + badgeCount) / totalUsersCount) * 100) : 0;
 
@@ -161,12 +165,19 @@ router.get("/subscriptions", async (_req, res) => {
     ]);
     const coreCount = core[0].count;
     const badgeCount = badge[0].count;
-    const mrr = coreCount * 7 + badgeCount * 15;
+    const { core_price, serious_price } = await getPricing();
+    const corePrice = parseFloat(core_price);
+    const seriousPrice = parseFloat(serious_price);
+    const coreMrr = Math.round(coreCount * corePrice * 100) / 100;
+    const badgeMrr = Math.round(badgeCount * seriousPrice * 100) / 100;
+    const mrr = Math.round((coreMrr + badgeMrr) * 100) / 100;
     res.json({
       tiers: { free: free[0].count, core: coreCount, badge: badgeCount },
       mrr,
-      coreMrr: coreCount * 7,
-      badgeMrr: badgeCount * 15,
+      coreMrr,
+      badgeMrr,
+      corePrice,
+      seriousPrice,
     });
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
@@ -297,6 +308,8 @@ router.patch("/settings", async (req, res) => {
       "coming_soon_mode", "coming_soon_headline", "coming_soon_subtext",
       "coming_soon_exclusivity", "coming_soon_button_text", "coming_soon_success_message",
       "free_tier_daily_limit", "announcement_banner",
+      "core_price", "core_price_label", "core_name", "core_description", "core_features",
+      "serious_price", "serious_price_label", "serious_name", "serious_description", "serious_features",
     ];
 
     for (const [key, value] of Object.entries(updates)) {

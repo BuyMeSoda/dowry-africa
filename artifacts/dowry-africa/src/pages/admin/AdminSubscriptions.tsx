@@ -6,6 +6,7 @@ import { DollarSign, Users, TrendingUp } from "lucide-react";
 interface SubData {
   tiers: { free: number; core: number; badge: number };
   mrr: number; coreMrr: number; badgeMrr: number;
+  corePrice: number; seriousPrice: number;
 }
 
 export default function AdminSubscriptions() {
@@ -14,6 +15,9 @@ export default function AdminSubscriptions() {
   useEffect(() => {
     adminFetch("/subscriptions").then(r => r.json()).then(setData);
   }, []);
+
+  const corePrice = data?.corePrice ?? 12.99;
+  const seriousPrice = data?.seriousPrice ?? 19.99;
 
   return (
     <AdminLayout>
@@ -29,7 +33,7 @@ export default function AdminSubscriptions() {
                   <p className="text-gray-400 text-sm">Monthly Revenue (MRR)</p>
                   <div className="p-2 rounded-xl bg-amber-500/10"><DollarSign className="w-4 h-4 text-amber-400" /></div>
                 </div>
-                <p className="text-white text-3xl font-bold">${data.mrr}</p>
+                <p className="text-white text-3xl font-bold">${data.mrr.toFixed(2)}</p>
                 <p className="text-gray-500 text-xs mt-1">Estimated from active subscriptions</p>
               </div>
               <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
@@ -57,8 +61,8 @@ export default function AdminSubscriptions() {
               <div className="divide-y divide-gray-800">
                 {[
                   { label: "Free", count: data.tiers.free, price: 0, mrr: 0, color: "bg-gray-500" },
-                  { label: "Core ($7/mo)", count: data.tiers.core, price: 7, mrr: data.coreMrr, color: "bg-blue-500" },
-                  { label: "Serious Badge ($15/mo)", count: data.tiers.badge, price: 15, mrr: data.badgeMrr, color: "bg-amber-500" },
+                  { label: `Core ($${corePrice.toFixed(2)}/mo)`, count: data.tiers.core, price: corePrice, mrr: data.coreMrr, color: "bg-blue-500" },
+                  { label: `Serious Badge ($${seriousPrice.toFixed(2)}/mo)`, count: data.tiers.badge, price: seriousPrice, mrr: data.badgeMrr, color: "bg-amber-500" },
                 ].map(tier => (
                   <div key={tier.label} className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -69,14 +73,14 @@ export default function AdminSubscriptions() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-white font-bold">${tier.mrr}/mo</p>
-                      <p className="text-gray-500 text-xs">{tier.price === 0 ? "Free tier" : `$${tier.price} × ${tier.count}`}</p>
+                      <p className="text-white font-bold">${tier.mrr.toFixed(2)}/mo</p>
+                      <p className="text-gray-500 text-xs">{tier.price === 0 ? "Free tier" : `$${tier.price.toFixed(2)} × ${tier.count}`}</p>
                     </div>
                   </div>
                 ))}
                 <div className="p-6 flex items-center justify-between bg-gray-800/30">
                   <p className="text-white font-bold">Total MRR</p>
-                  <p className="text-amber-400 font-bold text-xl">${data.mrr}/mo</p>
+                  <p className="text-amber-400 font-bold text-xl">${data.mrr.toFixed(2)}/mo</p>
                 </div>
               </div>
             </div>

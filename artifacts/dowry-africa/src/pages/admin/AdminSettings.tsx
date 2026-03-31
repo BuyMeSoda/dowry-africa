@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "./AdminLayout";
 import { adminFetch } from "@/lib/admin";
 import { API_BASE } from "@/lib/api-url";
-import { Save, ToggleLeft, ToggleRight, Download, Mail } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, Download, Mail, DollarSign, Info } from "lucide-react";
 
 interface AppSettings {
   coming_soon_mode: string;
@@ -13,6 +13,16 @@ interface AppSettings {
   coming_soon_success_message: string;
   free_tier_daily_limit: string;
   announcement_banner: string;
+  core_price: string;
+  core_price_label: string;
+  core_name: string;
+  core_description: string;
+  core_features: string;
+  serious_price: string;
+  serious_price_label: string;
+  serious_name: string;
+  serious_description: string;
+  serious_features: string;
 }
 
 interface EarlyAccessEmail {
@@ -67,6 +77,16 @@ export default function AdminSettings() {
     coming_soon_success_message: "You're on the list. We'll be in touch soon.",
     free_tier_daily_limit: "10",
     announcement_banner: "",
+    core_price: "12.99",
+    core_price_label: "$12.99/month",
+    core_name: "Core",
+    core_description: "For members who are serious about finding a committed partner.",
+    core_features: '["Unlimited profiles","See who liked you","Unlimited messaging","Advanced country filters"]',
+    serious_price: "19.99",
+    serious_price_label: "$19.99/month",
+    serious_name: "Serious Badge",
+    serious_description: "For members who want to demonstrate the highest level of intent.",
+    serious_features: '["Everything in Core","Serious Badge on your profile","Ranked highest in feeds","Access to Badge-only pool"]',
   });
   const [emails, setEmails] = useState<EarlyAccessEmail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,6 +252,67 @@ export default function AdminSettings() {
           <Save className="w-4 h-4" />
           {saving ? "Saving..." : "Save Settings"}
         </button>
+
+        {/* Subscription Pricing */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <div className="p-6 border-b border-gray-800 flex items-center gap-3">
+            <DollarSign className="w-5 h-5 text-amber-400" />
+            <div>
+              <h2 className="text-white font-bold">Subscription Pricing</h2>
+              <p className="text-gray-400 text-sm mt-0.5">Edit display prices and features shown to users on the Premium page.</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Core tier */}
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-amber-400 mb-4">Core Tier</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <Field label="Tier Name" value={settings.core_name} onChange={set("core_name")} placeholder="Core" />
+                <Field label="Price (number)" value={settings.core_price} onChange={v => { set("core_price")(v); set("core_price_label")(`$${v}/month`); }} placeholder="12.99" />
+              </div>
+              <Field label="Price Label (display)" value={settings.core_price_label} onChange={set("core_price_label")} placeholder="$12.99/month" />
+              <div className="mt-4">
+                <Field
+                  label='Features (JSON array, e.g. ["Feature 1","Feature 2"])'
+                  value={settings.core_features}
+                  onChange={set("core_features")}
+                  multiline
+                  placeholder='["Unlimited profiles","See who liked you"]'
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-gray-800" />
+
+            {/* Serious Badge tier */}
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-amber-400 mb-4">Serious Badge Tier</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <Field label="Tier Name" value={settings.serious_name} onChange={set("serious_name")} placeholder="Serious Badge" />
+                <Field label="Price (number)" value={settings.serious_price} onChange={v => { set("serious_price")(v); set("serious_price_label")(`$${v}/month`); }} placeholder="19.99" />
+              </div>
+              <Field label="Price Label (display)" value={settings.serious_price_label} onChange={set("serious_price_label")} placeholder="$19.99/month" />
+              <div className="mt-4">
+                <Field
+                  label='Features (JSON array, e.g. ["Feature 1","Feature 2"])'
+                  value={settings.serious_features}
+                  onChange={set("serious_features")}
+                  multiline
+                  placeholder='["Everything in Core","Serious Badge on your profile"]'
+                />
+              </div>
+            </div>
+
+            {/* Stripe note */}
+            <div className="flex items-start gap-3 bg-gray-800/50 border border-gray-700 rounded-xl p-4 mt-2">
+              <Info className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+              <p className="text-gray-400 text-xs leading-relaxed">
+                <strong className="text-gray-300">Note:</strong> To change actual billing amounts, update the Stripe price IDs in Railway environment variables (<code className="text-amber-400">STRIPE_CORE_PRICE_ID</code> and <code className="text-amber-400">STRIPE_BADGE_PRICE_ID</code>). Create new prices in your Stripe Dashboard at $12.99/month (Core) and $19.99/month (Serious Badge), then update the env vars accordingly.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Early Access Emails */}
         <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
