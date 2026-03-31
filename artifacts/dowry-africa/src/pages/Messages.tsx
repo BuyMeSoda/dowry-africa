@@ -237,7 +237,7 @@ export default function Messages() {
 
   const handleLikeBack = (targetUserId: string, name: string, photoUrl: string | null) => {
     setLikingBackId(targetUserId);
-    likeMutation.mutate(targetUserId, {
+    likeMutation.mutate({ id: targetUserId }, {
       onSuccess: (data: any) => {
         setLikingBackId(null);
         refetchLikedMe();
