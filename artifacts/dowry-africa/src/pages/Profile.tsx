@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { API_BASE } from "@/lib/api-url";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
-import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users, Camera, ShieldOff, Shield } from "lucide-react";
+import { Edit3, LogOut, X, Save, Loader2, Heart, MapPin, Users, Camera, ShieldOff, Shield, ChevronDown, Check } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +51,95 @@ function PrefRow({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between items-center py-2.5 border-b border-border/50 last:border-0">
       <span className="text-muted-foreground text-sm">{label}</span>
       <span className="font-medium text-sm text-right max-w-[60%]">{value || "—"}</span>
+    </div>
+  );
+}
+
+const SORTED_COUNTRIES = [...ALL_COUNTRIES].sort((a, b) => a.localeCompare(b));
+
+function CountryOriginSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 10);
+  }, [open]);
+
+  const filtered = SORTED_COUNTRIES.filter(c =>
+    c.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:outline-none focus:border-primary flex items-center justify-between gap-2 text-left"
+      >
+        <span className={value ? "text-sm font-medium" : "text-sm text-muted-foreground"}>
+          {value || "Search or select your country of origin"}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-background border border-border rounded-xl shadow-lg overflow-hidden">
+          <div className="p-2 border-b border-border">
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Type to filter countries…"
+              className="w-full px-3 py-2 text-sm rounded-lg bg-secondary/30 border border-border focus:outline-none focus:border-primary"
+            />
+          </div>
+          <ul className="max-h-52 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <li className="px-4 py-3 text-sm text-muted-foreground">No countries found</li>
+            ) : (
+              filtered.map(c => (
+                <li key={c}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(c);
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-secondary transition-colors ${
+                      c === value ? "font-semibold text-primary bg-primary/5" : ""
+                    }`}
+                  >
+                    {c}
+                    {c === value && <Check className="w-4 h-4 text-primary shrink-0" />}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -643,18 +732,11 @@ export default function Profile() {
                 </div>
 
                 <div>
-                  <div className="flex items-baseline justify-between mb-1.5">
-                    <label className="block text-sm font-semibold">Country of origin</label>
-                    <span className="text-xs text-muted-foreground">Where you're originally from · select one</span>
-                  </div>
-                  <CustomChipSelect
-                    selected={profileForm.heritage}
-                    onChange={v => setProfileForm(f => ({ ...f, heritage: v }))}
-                    presets={ALL_COUNTRIES}
-                    fieldType="heritage"
-                    multiSelect={false}
-                    allowCustom
-                    customPlaceholder="e.g. Cape Verdean, Congolese..."
+                  <label className="block text-sm font-semibold mb-1.5">Country of origin</label>
+                  <p className="text-xs text-muted-foreground mb-2">Where you're originally from</p>
+                  <CountryOriginSelect
+                    value={profileForm.heritage[0] ?? ""}
+                    onChange={v => setProfileForm(f => ({ ...f, heritage: v ? [v] : [] }))}
                   />
                 </div>
               </div>
