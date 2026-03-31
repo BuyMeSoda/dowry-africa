@@ -649,25 +649,36 @@ export default function Messages() {
                 </div>
               )}
 
-              {/* Input */}
-              <div className="p-4 bg-white border-t border-border">
-                <form onSubmit={handleSend} className="flex gap-4">
-                  <input
-                    type="text"
-                    value={text}
-                    onChange={e => setText(e.target.value)}
-                    placeholder="Write a thoughtful message..."
-                    className="flex-1 bg-secondary/50 border border-border rounded-full px-6 py-3 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!text.trim() || sendMutation.isPending}
-                    className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shrink-0 shadow-md shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:transform-none transition-all"
-                  >
-                    <Send className="w-5 h-5 ml-0.5" />
-                  </button>
-                </form>
-              </div>
+              {/* Input — upgrade prompt for free users, full input for paid */}
+              {isFree || msgsData?.canSend === false ? (
+                <div className="p-4 bg-white border-t border-border flex items-center gap-4">
+                  <div className="flex-1 bg-secondary/40 border border-border/60 rounded-full px-6 py-3 text-muted-foreground text-sm select-none cursor-default">
+                    Upgrade to reply...
+                  </div>
+                  <Link href="/premium" className="shrink-0 px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold shadow-md shadow-primary/20 hover:opacity-90 transition-opacity">
+                    Upgrade
+                  </Link>
+                </div>
+              ) : (
+                <div className="p-4 bg-white border-t border-border">
+                  <form onSubmit={handleSend} className="flex gap-4">
+                    <input
+                      type="text"
+                      value={text}
+                      onChange={e => setText(e.target.value)}
+                      placeholder="Write a thoughtful message..."
+                      className="flex-1 bg-secondary/50 border border-border rounded-full px-6 py-3 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!text.trim() || sendMutation.isPending}
+                      className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shrink-0 shadow-md shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:transform-none transition-all"
+                    >
+                      <Send className="w-5 h-5 ml-0.5" />
+                    </button>
+                  </form>
+                </div>
+              )}
             </>
           )}
         </div>

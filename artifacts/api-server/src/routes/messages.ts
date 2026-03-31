@@ -156,12 +156,14 @@ router.get("/:userId", requireAuth, async (req, res) => {
     if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
     const me = toUser(meRow);
 
-    if (me.tier === "free") {
-      res.status(403).json({ error: "Messaging requires a Core or Badge subscription" });
-      return;
-    }
+    // Reading messages is allowed for all tiers — only sending is tier-gated.
 
     const otherId = req.params.userId;
+
+    if (otherId === me.id) {
+      res.status(400).json({ error: "Cannot open a conversation with yourself" });
+      return;
+    }
 
     const otherExists = await db
       .select({ id: schema.users.id })
@@ -171,6 +173,36 @@ router.get("/:userId", requireAuth, async (req, res) => {
 
     if (otherExists.length === 0) {
       res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    // Access check: the requesting user must be either mutually matched with the
+    // other user OR already have a message thread with them.
+    const [iLikedThem, theyLikedMe, existingMsg] = await Promise.all([
+      db.select({ fromId: schema.likes.fromId })
+        .from(schema.likes)
+        .where(and(eq(schema.likes.fromId, me.id), eq(schema.likes.toId, otherId)))
+        .limit(1),
+      db.select({ fromId: schema.likes.fromId })
+        .from(schema.likes)
+        .where(and(eq(schema.likes.fromId, otherId), eq(schema.likes.toId, me.id)))
+        .limit(1),
+      db.select({ id: schema.messages.id })
+        .from(schema.messages)
+        .where(
+          or(
+            and(eq(schema.messages.fromId, me.id), eq(schema.messages.toId, otherId)),
+            and(eq(schema.messages.fromId, otherId), eq(schema.messages.toId, me.id)),
+          )
+        )
+        .limit(1),
+    ]);
+
+    const mutualMatch = iLikedThem.length > 0 && theyLikedMe.length > 0;
+    const hasConversation = existingMsg.length > 0;
+
+    if (!mutualMatch && !hasConversation) {
+      res.status(403).json({ error: "You are not matched with this user" });
       return;
     }
 
@@ -202,7 +234,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
       );
 
     const shuffled = [...GUIDED_PROMPTS].sort(() => Math.random() - 0.5).slice(0, 3);
-    res.json({ messages: thread, guidedPrompts: shuffled });
+    res.json({ messages: thread, guidedPrompts: shuffled, canSend: me.tier !== "free" });
   } catch (err) {
     req.log.error(err, "Get thread error");
     res.status(500).json({ error: "Internal server error" });
