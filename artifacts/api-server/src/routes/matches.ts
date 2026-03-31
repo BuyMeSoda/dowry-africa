@@ -51,23 +51,48 @@ router.get("/feed", requireAuth, async (req, res) => {
 
     const tierCap = TIER_CAPS[me.tier] ?? 5;
 
-    const [allUserRows, myPasses, myLikes, blockSet] = await Promise.all([
+    const [allUserRows, myPasses, myLikes, likedMeRows, myMessageRows, blockSet] = await Promise.all([
       db.select().from(schema.users),
+      // Users I've passed on
       db.select({ toId: schema.passes.toId }).from(schema.passes).where(eq(schema.passes.fromId, me.id)),
+      // Users I've already liked (outgoing)
       db.select({ toId: schema.likes.toId }).from(schema.likes).where(eq(schema.likes.fromId, me.id)),
+      // Users who have already liked me (incoming) — they belong in "Liked You", not feed
+      db.select({ fromId: schema.likes.fromId }).from(schema.likes).where(eq(schema.likes.toId, me.id)),
+      // Users I've already exchanged messages with — already in a conversation
+      db.select({ fromId: schema.messages.fromId, toId: schema.messages.toId })
+        .from(schema.messages)
+        .where(or(eq(schema.messages.fromId, me.id), eq(schema.messages.toId, me.id))),
       getBlockSet(me.id),
     ]);
 
-    const passedIds = new Set(myPasses.map(p => p.toId));
-    const likedIds  = new Set(myLikes.map(l => l.toId));
+    const passedIds        = new Set(myPasses.map(p => p.toId));
+    const likedIds         = new Set(myLikes.map(l => l.toId));
+    const likedMeIds       = new Set(likedMeRows.map(l => l.fromId));
+    const conversationIds  = new Set<string>();
+    for (const m of myMessageRows) {
+      if (m.fromId !== me.id) conversationIds.add(m.fromId);
+      if (m.toId   !== me.id) conversationIds.add(m.toId);
+    }
+
+    req.log.info({
+      userId: me.id,
+      excludedLikedByMe:    likedIds.size,
+      excludedLikedMe:      likedMeIds.size,
+      excludedPassed:       passedIds.size,
+      excludedConversation: conversationIds.size,
+      excludedBlocked:      blockSet.size,
+    }, "Feed exclusion counts");
 
     const scoredCandidates = [];
     for (const row of allUserRows) {
       const candidate = toUser(row);
-      if (!passesHardFilters(me, candidate)) continue;
-      if (passedIds.has(candidate.id)) continue;
-      if (likedIds.has(candidate.id)) continue;
-      if (blockSet.has(candidate.id)) continue;
+      if (!passesHardFilters(me, candidate)) continue; // excludes self + blocks + gender/age filters
+      if (likedIds.has(candidate.id))        continue; // already liked them
+      if (likedMeIds.has(candidate.id))      continue; // they liked me — show in "Liked You" tab instead
+      if (passedIds.has(candidate.id))       continue; // already passed on them
+      if (conversationIds.has(candidate.id)) continue; // already in a conversation
+      if (blockSet.has(candidate.id))        continue; // blocked (belt-and-suspenders)
 
       if (originFilter.length > 0) {
         const heritage: string[] = candidate.heritage ?? [];
