@@ -9,6 +9,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { COUNTRY_GROUPS, ALL_COUNTRIES } from "@/lib/country-options";
+import { formatIntentLabel } from "@/lib/format-tags";
 
 // ── Faith preference presets ─────────────────────────────────────────────────
 const FAITH_PREF_PRESETS = [
@@ -218,7 +219,7 @@ export default function Profile() {
               <p className="text-lg text-muted-foreground flex items-center gap-2 flex-wrap">
                 {user.city && user.country && <span>{user.city}, {user.country}</span>}
                 {user.city && <span className="w-1.5 h-1.5 rounded-full bg-border inline-block" />}
-                <span>{formatValue(user.intent)}</span>
+                <span>{formatIntentLabel(user.intent)}</span>
               </p>
             </div>
 

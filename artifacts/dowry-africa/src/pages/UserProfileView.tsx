@@ -8,18 +8,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { ChevronLeft, Heart, MessageCircle, MapPin, Loader2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const TAG_LABELS: Record<string, string> = {
-  marriage_ready: "Marriage Ready",
-  serious_relationship: "Serious Relationship",
-  friendship_first: "Friendship First",
-};
-function formatTag(raw: string): string {
-  if (!raw) return raw;
-  const key = raw.toLowerCase().trim();
-  if (TAG_LABELS[key]) return TAG_LABELS[key];
-  return raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-}
+import { formatTag } from "@/lib/format-tags";
 
 function MatchBanner({ name, onClose, onMessage }: { name: string; onClose: () => void; onMessage: () => void }) {
   return (

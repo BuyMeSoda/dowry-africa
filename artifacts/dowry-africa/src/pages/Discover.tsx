@@ -11,44 +11,13 @@ import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { API_BASE } from "@/lib/api-url";
 import { COUNTRY_GROUPS } from "@/lib/country-options";
+import { formatTag } from "@/lib/format-tags";
 
 // "Open to all" = first chip, means no country filter applied
 const FILTER_CULTURAL_PRESETS = ["Open to all"];
 
 // "Open to all" = first chip in Faith list, means no filter
 const FILTER_FAITH_PRESETS = ["Open to all", "Christian", "Muslim", "Traditional African"];
-
-// ── Tag label formatting ─────────────────────────────────────────────────────
-const TAG_LABELS: Record<string, string> = {
-  marriage_ready:        "💍 Marriage Ready",
-  serious_relationship:  "🌱 Serious",
-  open_to_dating:        "✨ Open to Dating",
-  christian:             "✝️ Christian",
-  christianity:          "✝️ Christian",
-  muslim:                "☪️ Muslim",
-  islam:                 "☪️ Muslim",
-  traditional:           "🌿 Traditional",
-  spiritual:             "🔮 Spiritual",
-  "spiritual but not religious": "🔮 Spiritual",
-  "any / open":          "🤍 Any / Open",
-  other:                 "🌍 Other",
-  yes:                   "👶 Wants children",
-  no:                    "🚫 No children",
-  open:                  "🤍 Open",
-  asap:                  "⚡ Ready now",
-  "1_year":              "📅 Within 1 year",
-  "2_years":             "📅 Within 2 years",
-  "5_years":             "📅 Within 5 years",
-  not_sure:              "🤔 Not sure yet",
-};
-
-function formatTag(raw: string): string {
-  if (!raw) return raw;
-  const key = raw.toLowerCase().trim();
-  if (TAG_LABELS[key]) return TAG_LABELS[key];
-  return raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-}
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface MatchModalProps {
   userId: string;
