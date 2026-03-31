@@ -36,6 +36,9 @@ export function publicUser(user: User) {
     photoUrl: user.photoUrl,
     hasBadge: user.hasBadge,
     tier: user.tier,
+    childrenPref: user.childrenPref,
+    marriageTimeline: user.marriageTimeline,
+    familyInvolvement: user.familyInvolvement,
   };
 }
 
