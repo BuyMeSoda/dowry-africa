@@ -406,8 +406,16 @@ export default function Discover() {
               {isBadgeUser && (
                 <button
                   onClick={() => setBadgeOnly(prev => !prev)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-amber-300 hover:border-amber-400 transition-all group"
-                  style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 60%, #FDE68A 100%)" }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300"
+                  style={badgeOnly ? {
+                    background: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 55%, #FBBF24 100%)",
+                    border: "1.5px solid #F59E0B",
+                    boxShadow: "0 0 0 3px rgba(245,158,11,0.18), 0 2px 8px rgba(161,100,0,0.13), inset 0 1px 0 rgba(255,255,255,0.65)",
+                  } : {
+                    background: "linear-gradient(135deg, #FFFBEB 0%, #FEF9E7 50%, #FEF3C7 100%)",
+                    border: "1px solid #FCD34D",
+                    boxShadow: "0 1px 4px rgba(161,100,0,0.07), inset 0 1px 0 rgba(255,255,255,0.75)",
+                  }}
                 >
                   {/* Badge icon */}
                   <SeriousBadgeIcon size={34} />
@@ -418,16 +426,34 @@ export default function Discover() {
                     <div className="text-xs text-amber-600 leading-tight mt-0.5">Verified serious members only</div>
                   </div>
 
-                  {/* Toggle switch */}
+                  {/* Premium toggle switch */}
                   <span
-                    className={`shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200 ${
-                      badgeOnly ? "bg-amber-500" : "bg-amber-200"
-                    }`}
+                    className="shrink-0 relative rounded-full"
+                    style={{
+                      width: 46,
+                      height: 26,
+                      flexShrink: 0,
+                      transition: "background 300ms ease, box-shadow 300ms ease",
+                      background: badgeOnly
+                        ? "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)"
+                        : "#E6D5A8",
+                      boxShadow: badgeOnly
+                        ? "inset 0 1px 3px rgba(0,0,0,0.15), 0 0 0 1px rgba(217,119,6,0.4)"
+                        : "inset 0 1px 3px rgba(0,0,0,0.10)",
+                    }}
                   >
                     <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
-                        badgeOnly ? "left-5" : "left-0.5"
-                      }`}
+                      style={{
+                        position: "absolute",
+                        top: 3,
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "#ffffff",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.22), 0 1px 2px rgba(0,0,0,0.12)",
+                        transition: "left 280ms cubic-bezier(0.34,1.3,0.64,1)",
+                        left: badgeOnly ? 23 : 3,
+                      }}
                     />
                   </span>
                 </button>
@@ -770,16 +796,50 @@ export default function Discover() {
                 {isBadgeUser && (
                   <button
                     onClick={() => setDraftBadgeOnly(prev => !prev)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-amber-300 hover:border-amber-400 transition-all"
-                    style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 60%, #FDE68A 100%)" }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300"
+                    style={draftBadgeOnly ? {
+                      background: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 55%, #FBBF24 100%)",
+                      border: "1.5px solid #F59E0B",
+                      boxShadow: "0 0 0 3px rgba(245,158,11,0.18), 0 2px 8px rgba(161,100,0,0.13), inset 0 1px 0 rgba(255,255,255,0.65)",
+                    } : {
+                      background: "linear-gradient(135deg, #FFFBEB 0%, #FEF9E7 50%, #FEF3C7 100%)",
+                      border: "1px solid #FCD34D",
+                      boxShadow: "0 1px 4px rgba(161,100,0,0.07), inset 0 1px 0 rgba(255,255,255,0.75)",
+                    }}
                   >
                     <SeriousBadgeIcon size={34} />
                     <div className="flex-1 text-left">
                       <div className="text-sm font-bold text-amber-900 leading-tight">Badge Members</div>
                       <div className="text-xs text-amber-600 leading-tight mt-0.5">Verified serious members only</div>
                     </div>
-                    <span className={`shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200 ${draftBadgeOnly ? "bg-amber-500" : "bg-amber-200"}`}>
-                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200 ${draftBadgeOnly ? "left-5" : "left-0.5"}`} />
+                    <span
+                      className="shrink-0 relative rounded-full"
+                      style={{
+                        width: 46,
+                        height: 26,
+                        flexShrink: 0,
+                        transition: "background 300ms ease, box-shadow 300ms ease",
+                        background: draftBadgeOnly
+                          ? "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)"
+                          : "#E6D5A8",
+                        boxShadow: draftBadgeOnly
+                          ? "inset 0 1px 3px rgba(0,0,0,0.15), 0 0 0 1px rgba(217,119,6,0.4)"
+                          : "inset 0 1px 3px rgba(0,0,0,0.10)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 3,
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          background: "#ffffff",
+                          boxShadow: "0 1px 4px rgba(0,0,0,0.22), 0 1px 2px rgba(0,0,0,0.12)",
+                          transition: "left 280ms cubic-bezier(0.34,1.3,0.64,1)",
+                          left: draftBadgeOnly ? 23 : 3,
+                        }}
+                      />
                     </span>
                   </button>
                 )}
