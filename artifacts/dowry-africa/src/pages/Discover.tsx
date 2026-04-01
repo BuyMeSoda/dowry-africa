@@ -422,7 +422,7 @@ export default function Discover() {
 
                   {/* Text block */}
                   <div className="flex-1 text-left">
-                    <div className="text-sm font-bold text-amber-900 leading-tight">Badge Members</div>
+                    <div className="text-sm font-bold text-amber-800 leading-tight">Badge Members</div>
                     <div className="text-xs text-amber-600 leading-tight mt-0.5">Verified serious members only</div>
                   </div>
 
@@ -520,7 +520,7 @@ export default function Discover() {
                 </div>
               ) : (
                 <div className="bg-gradient-to-br from-yellow-50 to-transparent p-5 rounded-2xl border border-yellow-200">
-                  <div className="flex items-center gap-2 font-bold mb-1 text-yellow-700">
+                  <div className="flex items-center gap-2 font-bold mb-1 text-amber-800">
                     <Sparkles className="w-4 h-4" />
                     <span>{paymentStatus.tier === 'badge' ? 'Serious Badge' : 'Core Member'}</span>
                   </div>
@@ -809,7 +809,7 @@ export default function Discover() {
                   >
                     <SeriousBadgeIcon size={34} />
                     <div className="flex-1 text-left">
-                      <div className="text-sm font-bold text-amber-900 leading-tight">Badge Members</div>
+                      <div className="text-sm font-bold text-amber-800 leading-tight">Badge Members</div>
                       <div className="text-xs text-amber-600 leading-tight mt-0.5">Verified serious members only</div>
                     </div>
                     <span
