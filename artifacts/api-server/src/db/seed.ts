@@ -315,4 +315,23 @@ export async function seedDatabase(): Promise<void> {
   for (const msg of starterMessages) {
     await db.insert(schema.messages).values(msg).onConflictDoNothing();
   }
+
+  // ── 5. Seed message prompts ─────────────────────────────────────────────
+  const defaultPrompts = [
+    { promptText: "What traditions do you want to carry into your marriage?", displayOrder: 1 },
+    { promptText: "How do you stay connected to your roots while living abroad?", displayOrder: 2 },
+    { promptText: "What role does faith play in your daily life?", displayOrder: 3 },
+    { promptText: "What does family mean to you?", displayOrder: 4 },
+    { promptText: "What are you most excited about in your next chapter of life?", displayOrder: 5 },
+    { promptText: "How do you handle conflict in relationships?", displayOrder: 6 },
+    { promptText: "What values are non-negotiable for you in a partner?", displayOrder: 7 },
+    { promptText: "What does a typical Sunday look like for you?", displayOrder: 8 },
+    { promptText: "How important is it for your partner to speak your language?", displayOrder: 9 },
+    { promptText: "What's your vision of marriage in 5 years?", displayOrder: 10 },
+  ];
+  // Only insert if the table is empty — avoids duplicating user-managed prompts
+  const existingCount = await db.select({ count: sql<number>`count(*)::int` }).from(schema.messagePrompts);
+  if ((existingCount[0]?.count ?? 0) === 0) {
+    await db.insert(schema.messagePrompts).values(defaultPrompts);
+  }
 }
