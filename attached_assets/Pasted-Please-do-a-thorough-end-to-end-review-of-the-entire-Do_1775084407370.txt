@@ -1,0 +1,211 @@
+Please do a thorough end-to-end review of the entire Dowry.Africa codebase. Go through every feature systematically and verify it is working correctly. Fix any bugs you find.
+
+═══════════════════════════════
+1. AUTHENTICATION FLOW
+═══════════════════════════════
+Verify and fix:
+- Login works with correct credentials
+- Login fails gracefully with wrong credentials
+- JWT token is stored correctly after login
+- JWT token is cleared completely on logout
+- User object is cleared from all state on logout
+- Profile avatar in navbar disappears after logout
+- Logo click goes to /discover when logged in, / when logged out
+- Protected routes redirect to /login when not authenticated
+- After login, user is redirected to /discover
+- Session persists correctly across page refreshes
+
+═══════════════════════════════
+2. COMING SOON MODE
+═══════════════════════════════
+Verify and fix:
+- When coming soon mode is ON in admin, all visitors see the coming soon page
+- /admin and /login routes still accessible when coming soon is ON
+- Email capture form works and saves to database
+- Duplicate email handled gracefully
+- Coming soon page content is editable from admin settings
+- When coming soon mode is OFF, normal app is shown
+
+═══════════════════════════════
+3. DISCOVER FEED
+═══════════════════════════════
+Verify and fix:
+- Feed loads profiles on login
+- Feed excludes: current user, already liked, already passed, already matched, blocked users, users who blocked you, users who liked you (they should be in Liked You tab)
+- Like button works and removes profile from feed
+- Pass button works and removes profile from feed
+- Clicking a profile card opens /members/:id
+- Like and Pass buttons do NOT trigger card navigation
+- Infinite scroll loads more profiles
+- Empty state shows when no more profiles
+- Filters work correctly:
+  * Country of origin filter
+  * Country of residence filter
+  * Faith preference filter
+  * Each filter works independently
+  * Multiple filters work together (AND logic)
+  * Empty/no filter = show all profiles
+  * "No preference" = no filter applied
+- Badge Members toggle shows for Serious Badge users only
+- Badge Members toggle filters correctly to badge-only users
+
+═══════════════════════════════
+4. MEMBER PROFILE PAGE (/members/:id)
+═══════════════════════════════
+Verify and fix:
+- All profile data displays: name, age, location, country of origin, country of residence, faith, bio, quote, tags, languages, children, timeline, family involvement
+- Country of origin shows in Background section
+- Like button works
+- If already matched: shows "Send Message" button instead
+- Back button returns to previous page
+- Three dots menu shows: Report, Block options
+- Report flow works
+- Block flow works
+- Blocked user cannot be seen after blocking
+
+═══════════════════════════════
+5. MESSAGES — THREE TAB SYSTEM
+═══════════════════════════════
+Verify and fix:
+MATCHES TAB:
+- Shows all mutual matches with conversations
+- Shows last message preview and timestamp
+- Unread message indicator works
+- Clicking conversation opens chat
+- Chat loads messages correctly
+- Sending message works for Core and Badge users
+- Free users see upgrade prompt instead of input
+- Message prompts show from database (3 random)
+- Clicking prompt fills the message input
+- Clicking avatar/name goes to /members/:id
+- Three dots menu shows unmatch option
+- Unmatch removes conversation and match
+
+LIKED YOU TAB:
+- Shows profiles of people who liked current user
+- Free users: blurred photos, upgrade prompt
+- Core/Badge users: full photos visible
+- Like back button creates mutual match
+- Match celebration modal appears on mutual match
+- Pass button removes from liked you list
+- Count badge on tab shows correct number
+
+PENDING TAB:
+- Shows profiles current user has liked but no response yet
+- Shows "Pending" status badge
+- Withdraw button shows confirmation dialog
+- Withdrawing removes the like
+- Count badge on tab shows correct number
+
+═══════════════════════════════
+6. OWN PROFILE PAGE
+═══════════════════════════════
+Verify and fix:
+- All profile data displays correctly
+- Subscription tier badge shows correctly
+- Edit Profile modal opens
+- Photo upload works (camera icon on photo)
+- City saves correctly
+- Country of residence saves correctly
+- Country of origin saves correctly (single select)
+- Faith saves correctly
+- Bio saves correctly
+- Personal quote saves correctly
+- Intent saves correctly
+- All changes persist after page refresh
+- Partner Preferences modal opens
+- Gender preference saves
+- Age range saves
+- Preferred country of origin saves
+- Preferred country of residence saves
+- Faith preference saves
+- Children preference saves
+- All partner preferences persist after refresh
+- Logout completely clears all state
+
+═══════════════════════════════
+7. PREMIUM PAGE
+═══════════════════════════════
+Verify and fix:
+- Page loads correctly
+- Pricing shows $12.99 for Core and $19.99 for Serious Badge
+- Current plan is highlighted for logged in user
+- Stripe checkout opens when clicking upgrade
+- Feature list is accurate for each tier:
+  * Free: limited browsing, no messaging, blurred likes
+  * Core ($12.99): full messaging, see who liked you, unlimited matches
+  * Serious Badge ($19.99): everything in Core + badge pool + priority matching + badge on profile
+
+═══════════════════════════════
+8. ADMIN PANEL
+═══════════════════════════════
+Verify and fix:
+- Login with ADMIN_SECRET works
+- Dashboard shows correct metrics
+- Early Access emails list loads and shows count
+- CSV export works
+- Users list loads
+- User search works
+- Suspend/ban/reactivate user works
+- Coming soon toggle works and immediately affects the app
+- Coming soon content editing works and reflects immediately
+- Message Prompts page shows all 10 prompts
+- Adding new prompt works
+- Editing prompt works
+- Toggling prompt active/inactive works
+- Deleting prompt works
+- Settings page saves correctly
+
+═══════════════════════════════
+9. MOBILE EXPERIENCE
+═══════════════════════════════
+Verify and fix at 390px width:
+- Logo header shows on all screens
+- Bottom tab bar shows with correct icons
+- Discover feed is full width
+- Filter button opens bottom sheet drawer
+- Filter drawer has all filters
+- Profile cards are readable on mobile
+- Like/Pass buttons are thumb-friendly
+- Messages tab list is full screen
+- Tapping conversation opens full chat view
+- Back button returns to conversation list
+- Message input is above keyboard on mobile
+- Premium page is readable on mobile
+- Profile edit modal is usable on mobile
+
+═══════════════════════════════
+10. SECURITY & DATA
+═══════════════════════════════
+Verify and fix:
+- Users cannot access other users private data
+- Free users cannot send messages (403 on POST)
+- Free users CAN read messages (200 on GET)
+- Admin routes return 403 without ADMIN_SECRET
+- Blocked users are filtered from all responses
+- JWT tokens expire after 7 days
+- Passwords are never returned in API responses
+- Rate limiting is active on login/register
+
+═══════════════════════════════
+11. NAVIGATION & ROUTING
+═══════════════════════════════
+Verify and fix:
+- All nav links work correctly
+- About page accessible from nav
+- /about page loads with correct content
+- Logo goes to /discover when logged in
+- Logo goes to / when logged out
+- 404 page shows for unknown routes
+- Back button works correctly throughout app
+- No broken links anywhere
+
+═══════════════════════════════
+AFTER REVIEW
+═══════════════════════════════
+Please provide a summary report with:
+1. Every bug found and fixed
+2. Every feature confirmed working
+3. Any features that could not be fully verified
+4. Any recommendations for improvement
+5. Overall assessment of production readiness

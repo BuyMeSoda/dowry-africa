@@ -187,8 +187,8 @@ export function passesHardFilters(me: User, candidate: User): boolean {
   if (me.id === candidate.id) return false;
   if (me.blocked.includes(candidate.id) || candidate.blocked.includes(me.id)) return false;
 
-  if (me.genderPref && me.genderPref !== candidate.gender) return false;
-  if (candidate.genderPref && candidate.genderPref !== me.gender) return false;
+  if (me.genderPref && me.genderPref !== "any" && me.genderPref !== candidate.gender) return false;
+  if (candidate.genderPref && candidate.genderPref !== "any" && candidate.genderPref !== me.gender) return false;
 
   const age = candidate.age;
   if (me.minAge && age < me.minAge) return false;
