@@ -122,6 +122,6 @@
 }
 
 /* Hide scrollbar visually while keeping it functional */
-.no-scrollbar::-webkit-scrollbar {
+.prompts-container::-webkit-scrollbar {
   display: none;
 }
