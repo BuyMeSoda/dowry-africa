@@ -147,7 +147,8 @@ export async function runMigrations(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
-      INSERT INTO message_prompts (prompt_text, is_active, display_order) VALUES
+      INSERT INTO message_prompts (prompt_text, is_active, display_order)
+      SELECT * FROM (VALUES
         ('What traditions do you want to carry into your marriage?', TRUE, 1),
         ('How do you stay connected to your roots while living abroad?', TRUE, 2),
         ('What role does faith play in your daily life?', TRUE, 3),
@@ -158,7 +159,8 @@ export async function runMigrations(): Promise<void> {
         ('What does a typical Sunday look like for you?', TRUE, 8),
         ('How important is it for your partner to speak your language?', TRUE, 9),
         ('What''s your vision of marriage in 5 years?', TRUE, 10)
-      ON CONFLICT DO NOTHING;
+      ) AS v(prompt_text, is_active, display_order)
+      WHERE NOT EXISTS (SELECT 1 FROM message_prompts LIMIT 1);
     `);
   } finally {
     client.release();

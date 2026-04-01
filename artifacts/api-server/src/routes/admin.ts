@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, sql, and, or, desc, gte, ilike } from "drizzle-orm";
+import { eq, sql, and, or, asc, desc, gte, ilike } from "drizzle-orm";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { requireAdmin } from "../middlewares/adminAuth.js";
