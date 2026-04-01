@@ -25,6 +25,7 @@ import AdminSubscriptions from "@/pages/admin/AdminSubscriptions";
 import AdminActivity from "@/pages/admin/AdminActivity";
 import AdminModeration from "@/pages/admin/AdminModeration";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminPrompts from "@/pages/admin/AdminPrompts";
 import UserProfileView from "@/pages/UserProfileView";
 
 import { API_BASE } from "@/lib/api-url";
@@ -102,6 +103,7 @@ function Router() {
         <Route path="/admin/activity" component={AdminActivity} />
         <Route path="/admin/moderation" component={AdminModeration} />
         <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/prompts" component={AdminPrompts} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin" component={AdminDashboard} />
 

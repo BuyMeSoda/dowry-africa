@@ -335,4 +335,67 @@ router.post("/login", (req, res) => {
   res.json({ success: true });
 });
 
+// ── Message Prompts ─────────────────────────────────────────────────────────
+
+router.get("/prompts", async (_req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(schema.messagePrompts)
+      .orderBy(asc(schema.messagePrompts.displayOrder), asc(schema.messagePrompts.id));
+    res.json({ prompts: rows });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/prompts", async (req, res) => {
+  try {
+    const { promptText, displayOrder } = req.body as { promptText: string; displayOrder?: number };
+    if (!promptText?.trim()) {
+      res.status(400).json({ error: "promptText is required" });
+      return;
+    }
+    const [row] = await db
+      .insert(schema.messagePrompts)
+      .values({ promptText: promptText.trim(), displayOrder: displayOrder ?? 0 })
+      .returning();
+    res.json({ prompt: row });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.patch("/prompts/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params["id"]!);
+    const { promptText, isActive, displayOrder } = req.body as {
+      promptText?: string; isActive?: boolean; displayOrder?: number;
+    };
+    const updates: Partial<typeof schema.messagePrompts.$inferInsert> = {};
+    if (promptText !== undefined) updates.promptText = promptText.trim();
+    if (isActive !== undefined) updates.isActive = isActive;
+    if (displayOrder !== undefined) updates.displayOrder = displayOrder;
+    const [row] = await db
+      .update(schema.messagePrompts)
+      .set(updates)
+      .where(eq(schema.messagePrompts.id, id))
+      .returning();
+    if (!row) { res.status(404).json({ error: "Not found" }); return; }
+    res.json({ prompt: row });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/prompts/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params["id"]!);
+    await db.delete(schema.messagePrompts).where(eq(schema.messagePrompts.id, id));
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

@@ -138,6 +138,27 @@ export async function runMigrations(): Promise<void> {
       CREATE INDEX IF NOT EXISTS blocks_blocked ON blocks (blocked_user_id);
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_residence TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+      CREATE TABLE IF NOT EXISTS message_prompts (
+        id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        prompt_text TEXT NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      INSERT INTO message_prompts (prompt_text, is_active, display_order) VALUES
+        ('What traditions do you want to carry into your marriage?', TRUE, 1),
+        ('How do you stay connected to your roots while living abroad?', TRUE, 2),
+        ('What role does faith play in your daily life?', TRUE, 3),
+        ('What does family mean to you?', TRUE, 4),
+        ('What are you most excited about in your next chapter of life?', TRUE, 5),
+        ('How do you handle conflict in relationships?', TRUE, 6),
+        ('What values are non-negotiable for you in a partner?', TRUE, 7),
+        ('What does a typical Sunday look like for you?', TRUE, 8),
+        ('How important is it for your partner to speak your language?', TRUE, 9),
+        ('What''s your vision of marriage in 5 years?', TRUE, 10)
+      ON CONFLICT DO NOTHING;
     `);
   } finally {
     client.release();

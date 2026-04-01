@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, or, sql } from "drizzle-orm";
+import { eq, and, or, sql, asc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
@@ -8,13 +8,10 @@ import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
 
-const GUIDED_PROMPTS = [
+const FALLBACK_PROMPTS = [
   "What does family mean to you?",
-  "How do you stay connected to your roots while living abroad?",
-  "What traditions do you want to carry into your marriage?",
-  "Describe your ideal Sunday morning.",
   "What role does faith play in your daily life?",
-  "What does home mean to you?",
+  "What traditions do you want to carry into your marriage?",
 ];
 
 router.get("/", requireAuth, async (req, res) => {
@@ -235,8 +232,20 @@ router.get("/:userId", requireAuth, async (req, res) => {
         )
       );
 
-    const shuffled = [...GUIDED_PROMPTS].sort(() => Math.random() - 0.5).slice(0, 3);
-    res.json({ messages: thread, guidedPrompts: shuffled, canSend: me.tier !== "free" });
+    let guidedPrompts: string[];
+    try {
+      const promptRows = await db
+        .select()
+        .from(schema.messagePrompts)
+        .where(eq(schema.messagePrompts.isActive, true))
+        .orderBy(asc(schema.messagePrompts.displayOrder));
+      const active = promptRows.length > 0 ? promptRows : [];
+      guidedPrompts = [...active].sort(() => Math.random() - 0.5).slice(0, 3).map(r => r.promptText);
+      if (guidedPrompts.length === 0) guidedPrompts = FALLBACK_PROMPTS;
+    } catch {
+      guidedPrompts = FALLBACK_PROMPTS;
+    }
+    res.json({ messages: thread, guidedPrompts, canSend: me.tier !== "free" });
   } catch (err) {
     req.log.error(err, "Get thread error");
     res.status(500).json({ error: "Internal server error" });

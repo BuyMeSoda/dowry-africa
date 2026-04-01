@@ -107,3 +107,11 @@ export const blocks = pgTable("blocks", {
   blockedUserId: text("blocked_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.blockerUserId, t.blockedUserId] })]);
+
+export const messagePrompts = pgTable("message_prompts", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  promptText: text("prompt_text").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

@@ -1,0 +1,54 @@
+Please make the message prompt suggestions in the chat view admin-controllable.
+
+═══════════════════════════════
+1. BACKEND
+═══════════════════════════════
+Add message prompts to the settings/database:
+
+Create a message_prompts table:
+- id
+- prompt_text (text)
+- is_active (boolean, default true)
+- display_order (integer)
+- created_at
+
+Seed with these default prompts:
+1. "What traditions do you want to carry into your marriage?"
+2. "How do you stay connected to your roots while living abroad?"
+3. "What role does faith play in your daily life?"
+4. "What does family mean to you?"
+5. "What are you most excited about in your next chapter of life?"
+6. "How do you handle conflict in relationships?"
+7. "What values are non-negotiable for you in a partner?"
+8. "What does a typical Sunday look like for you?"
+9. "How important is it for your partner to speak your language?"
+10. "What's your vision of marriage in 5 years?"
+
+Add API endpoints:
+- GET /api/prompts — returns 3 random active prompts (used in chat view)
+- GET /api/admin/prompts — returns all prompts (admin only)
+- POST /api/admin/prompts — add new prompt (admin only)
+- PATCH /api/admin/prompts/:id — edit prompt text or toggle active/inactive (admin only)
+- DELETE /api/admin/prompts/:id — delete a prompt (admin only)
+- PATCH /api/admin/prompts/reorder — update display order (admin only)
+
+═══════════════════════════════
+2. ADMIN PANEL
+═══════════════════════════════
+Add a "Message Prompts" section to the admin panel with:
+- List of all prompts showing: prompt text, active/inactive status, display order
+- Toggle to activate/deactivate each prompt
+- Edit button to change prompt text
+- Delete button with confirmation
+- "Add new prompt" button with text input
+- Note at top: "3 random active prompts are shown in each conversation"
+
+═══════════════════════════════
+3. FRONTEND CHAT VIEW
+═══════════════════════════════
+Update the chat view to fetch prompts from GET /api/prompts instead of using hardcoded prompts.
+- Show 3 random active prompts above the message input
+- If API fails, fall back to 2-3 hardcoded defaults
+- Prompts should refresh each time a new conversation is opened
+
+Do not change anything else in the chat UI.
