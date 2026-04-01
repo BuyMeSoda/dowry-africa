@@ -219,11 +219,13 @@ export default function Discover() {
   const [filterOrigin,    setFilterOrigin]    = useState<string[]>([]);
   const [filterResidence, setFilterResidence] = useState<string[]>([]);
   const [filterFaith,     setFilterFaith]     = useState<string[]>([]);
+  const [badgeOnly,       setBadgeOnly]       = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   // Draft state for mobile sheet (applied on "Apply" tap)
   const [draftOrigin,    setDraftOrigin]    = useState<string[]>([]);
   const [draftResidence, setDraftResidence] = useState<string[]>([]);
   const [draftFaith,     setDraftFaith]     = useState<string[]>([]);
+  const [draftBadgeOnly, setDraftBadgeOnly] = useState(false);
 
   const handleFaithToggle = (value: string) => {
     setFilterFaith(prev => {
@@ -232,12 +234,13 @@ export default function Discover() {
       return prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
     });
   };
-  const clearFilters = () => { setFilterOrigin([]); setFilterResidence([]); setFilterFaith([]); };
+  const clearFilters = () => { setFilterOrigin([]); setFilterResidence([]); setFilterFaith([]); setBadgeOnly(false); };
 
   const openFilterSheet = () => {
     setDraftOrigin([...filterOrigin]);
     setDraftResidence([...filterResidence]);
     setDraftFaith([...filterFaith]);
+    setDraftBadgeOnly(badgeOnly);
     setFilterSheetOpen(true);
   };
 
@@ -245,6 +248,7 @@ export default function Discover() {
     setFilterOrigin(draftOrigin);
     setFilterResidence(draftResidence);
     setFilterFaith(draftFaith);
+    setBadgeOnly(draftBadgeOnly);
     setFilterSheetOpen(false);
   };
 
@@ -252,16 +256,19 @@ export default function Discover() {
     setDraftOrigin([]);
     setDraftResidence([]);
     setDraftFaith([]);
+    setDraftBadgeOnly(false);
   };
 
   const effectiveOriginFilter    = filterOrigin.filter(v => v !== "Open to all");
   const effectiveResidenceFilter = filterResidence.filter(v => v !== "Open to all");
   const effectiveFaithFilter     = filterFaith.filter(v => v !== "No preference");
-  const filtersActive = effectiveOriginFilter.length > 0 || effectiveResidenceFilter.length > 0 || effectiveFaithFilter.length > 0;
+  const isBadgeUser = paymentStatus?.tier === 'badge';
+  const filtersActive = effectiveOriginFilter.length > 0 || effectiveResidenceFilter.length > 0 || effectiveFaithFilter.length > 0 || badgeOnly;
 
   const draftFiltersActive = draftOrigin.filter(v => v !== "Open to all").length > 0 ||
                               draftResidence.filter(v => v !== "Open to all").length > 0 ||
-                              draftFaith.filter(v => v !== "No preference").length > 0;
+                              draftFaith.filter(v => v !== "No preference").length > 0 ||
+                              draftBadgeOnly;
 
   // ── Infinite-scroll feed state ──────────────────────────────────────────────
   const [feed, setFeed]                       = useState<FeedCard[]>([]);
@@ -276,12 +283,14 @@ export default function Discover() {
   const fetchingRef  = useRef(false);
 
   // Always-fresh refs so async callbacks never close over stale filter arrays
-  const originRef    = useRef(effectiveOriginFilter);
-  const residenceRef = useRef(effectiveResidenceFilter);
-  const faithRef     = useRef(effectiveFaithFilter);
+  const originRef     = useRef(effectiveOriginFilter);
+  const residenceRef  = useRef(effectiveResidenceFilter);
+  const faithRef      = useRef(effectiveFaithFilter);
+  const badgeOnlyRef  = useRef(badgeOnly);
   originRef.current    = effectiveOriginFilter;
   residenceRef.current = effectiveResidenceFilter;
   faithRef.current     = effectiveFaithFilter;
+  badgeOnlyRef.current = badgeOnly;
 
   const fetchPage = useCallback(async (reset: boolean) => {
     if (fetchingRef.current && !reset) return;
@@ -303,9 +312,10 @@ export default function Discover() {
       const residence = residenceRef.current;
       const faith     = faithRef.current;
       const params    = new URLSearchParams({ offset: String(offset), limit: "10" });
-      if (origin.length)    params.set("origin",    origin.join(","));
-      if (residence.length) params.set("residence", residence.join(","));
-      if (faith.length)     params.set("faith",     faith.join(","));
+      if (origin.length)       params.set("origin",    origin.join(","));
+      if (residence.length)    params.set("residence", residence.join(","));
+      if (faith.length)        params.set("faith",     faith.join(","));
+      if (badgeOnlyRef.current) params.set("badgeOnly", "true");
 
       const token = localStorage.getItem("da_token");
       const res = await fetch(`${API_BASE}/api/matches/feed?${params}`, {
@@ -336,6 +346,7 @@ export default function Discover() {
     effectiveOriginFilter.slice().sort().join(","),
     effectiveResidenceFilter.slice().sort().join(","),
     effectiveFaithFilter.slice().sort().join(","),
+    badgeOnly ? "badge" : "",
   ].join("|");
   const prevFilterKey = useRef<string | null>(null);
   useEffect(() => {
@@ -389,6 +400,31 @@ export default function Discover() {
         <aside className="hidden lg:block w-72 shrink-0">
            <div className="sticky top-28 bg-white p-6 rounded-3xl border border-border shadow-sm space-y-6">
               <h3 className="font-display font-bold text-xl">Discover Filters</h3>
+
+              {/* Badge Members pool toggle — Serious Badge only */}
+              {isBadgeUser && (
+                <div>
+                  <button
+                    onClick={() => setBadgeOnly(prev => !prev)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border-2 font-semibold text-sm transition-all ${
+                      badgeOnly
+                        ? "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200"
+                        : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>🛡️</span>
+                      <span>Badge Members</span>
+                    </span>
+                    <span className={`w-10 h-5 rounded-full relative transition-all ${badgeOnly ? "bg-white/30" : "bg-amber-200"}`}>
+                      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${badgeOnly ? "left-5" : "left-0.5"}`} />
+                    </span>
+                  </button>
+                  {badgeOnly && (
+                    <p className="text-xs text-amber-600 mt-1.5 px-1">Showing Serious Badge members only</p>
+                  )}
+                </div>
+              )}
 
               {/* Country of origin filter */}
               <div>
@@ -467,6 +503,33 @@ export default function Discover() {
 
         {/* Main Feed */}
         <div className="flex-1 max-w-3xl mx-auto lg:mx-0 w-full">
+
+          {/* ── Badge Members toggle — feed header (badge users only) ── */}
+          {isBadgeUser && (
+            <div className="flex items-center gap-2 mb-4 p-1 bg-amber-50 border border-amber-200 rounded-2xl w-fit">
+              <button
+                onClick={() => setBadgeOnly(false)}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  !badgeOnly
+                    ? "bg-white text-foreground shadow-sm"
+                    : "text-amber-600 hover:text-amber-800"
+                }`}
+              >
+                All Members
+              </button>
+              <button
+                onClick={() => setBadgeOnly(true)}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                  badgeOnly
+                    ? "bg-amber-500 text-white shadow-md shadow-amber-200"
+                    : "text-amber-600 hover:text-amber-800"
+                }`}
+              >
+                <span>🛡️</span>
+                Badge Members
+              </button>
+            </div>
+          )}
 
           {/* ── Mobile filter pill button ─────────────────────────── */}
           <div className="flex items-center gap-3 mb-4 lg:hidden">
@@ -695,6 +758,29 @@ export default function Discover() {
 
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+
+                {/* Badge Members toggle — badge users only */}
+                {isBadgeUser && (
+                  <div>
+                    <button
+                      onClick={() => setDraftBadgeOnly(prev => !prev)}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border-2 font-semibold text-sm transition-all ${
+                        draftBadgeOnly
+                          ? "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200"
+                          : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>🛡️</span>
+                        <span>Badge Members only</span>
+                      </span>
+                      <span className={`w-10 h-5 rounded-full relative transition-all ${draftBadgeOnly ? "bg-white/30" : "bg-amber-200"}`}>
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${draftBadgeOnly ? "left-5" : "left-0.5"}`} />
+                      </span>
+                    </button>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-sm font-semibold text-foreground block mb-1">Country of origin</label>
                   <p className="text-xs text-muted-foreground mb-2">Show me people originally from…</p>

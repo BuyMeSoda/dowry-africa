@@ -48,6 +48,8 @@ router.get("/feed", requireAuth, async (req, res) => {
     const faithFilter: string[] = req.query.faith
       ? (req.query.faith as string).split(",").map(s => s.trim()).filter(Boolean)
       : [];
+    // badgeOnly is only honoured when the requesting user is themselves a Serious Badge member
+    const badgeOnly = req.query.badgeOnly === "true" && me.hasBadge === true && me.tier === "badge";
 
     const tierCap = TIER_CAPS[me.tier] ?? 5;
 
@@ -125,6 +127,9 @@ router.get("/feed", requireAuth, async (req, res) => {
         );
         if (!matches) continue;
       }
+
+      // Badge-exclusive pool: only show candidates who also have the Serious Badge
+      if (badgeOnly && !(candidate.hasBadge && candidate.tier === "badge")) continue;
 
       const { score, dimensions, prompts } = scoreMatch(me, candidate);
       const freshBoost = (Date.now() - candidate.lastActive.getTime()) < 48 * 60 * 60 * 1000;

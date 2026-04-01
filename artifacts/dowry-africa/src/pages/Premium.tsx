@@ -28,7 +28,7 @@ const DEFAULT_PRICING: PricingConfig = {
   serious_price_label: "$19.99/month",
   serious_name: "Serious Badge",
   serious_description: "For members who want to demonstrate the highest level of intent.",
-  serious_features: JSON.stringify(["Everything in Core", "Serious Badge on your profile", "Ranked highest in feeds", "Access to Badge-only pool"]),
+  serious_features: JSON.stringify(["Everything in Core", "Serious Badge on your profile", "Ranked highest in feeds", "🛡️ Badge Members pool — connect with other Serious Badge holders"]),
 };
 
 function parseFeatures(json: string): string[] {
