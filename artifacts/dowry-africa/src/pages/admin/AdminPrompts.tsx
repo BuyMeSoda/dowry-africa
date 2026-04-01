@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "./AdminLayout";
 import { adminFetch } from "@/lib/admin";
-import { API_BASE } from "@/lib/api-url";
 import { MessageSquare, Plus, Pencil, Trash2, Check, X, ToggleLeft, ToggleRight } from "lucide-react";
 
 interface Prompt {
@@ -25,7 +24,7 @@ export default function AdminPrompts() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await adminFetch(`${API_BASE}/api/admin/prompts`);
+      const res = await adminFetch("/prompts");
       const data = await res.json();
       setPrompts(data.prompts ?? []);
     } finally {
@@ -40,7 +39,7 @@ export default function AdminPrompts() {
     setAdding(true);
     try {
       const maxOrder = prompts.length > 0 ? Math.max(...prompts.map(p => p.displayOrder)) : 0;
-      const res = await adminFetch(`${API_BASE}/api/admin/prompts`, {
+      const res = await adminFetch("/prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ promptText: newText.trim(), displayOrder: maxOrder + 1 }),
@@ -55,7 +54,7 @@ export default function AdminPrompts() {
   };
 
   const handleToggle = async (prompt: Prompt) => {
-    const res = await adminFetch(`${API_BASE}/api/admin/prompts/${prompt.id}`, {
+    const res = await adminFetch(`/prompts/${prompt.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !prompt.isActive }),
@@ -70,7 +69,7 @@ export default function AdminPrompts() {
 
   const saveEdit = async (id: number) => {
     if (!editText.trim()) return;
-    const res = await adminFetch(`${API_BASE}/api/admin/prompts/${id}`, {
+    const res = await adminFetch(`/prompts/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ promptText: editText.trim() }),
@@ -85,7 +84,7 @@ export default function AdminPrompts() {
     if (confirmDelete !== id) { setConfirmDelete(id); return; }
     setDeletingId(id);
     try {
-      const res = await adminFetch(`${API_BASE}/api/admin/prompts/${id}`, { method: "DELETE" });
+      const res = await adminFetch(`/prompts/${id}`, { method: "DELETE" });
       if (res.ok) {
         setConfirmDelete(null);
         await load();
