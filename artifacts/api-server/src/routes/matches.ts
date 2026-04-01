@@ -103,10 +103,18 @@ router.get("/feed", requireAuth, async (req, res) => {
       }
 
       if (residenceFilter.length > 0) {
-        const residence = candidate.country ?? "";
-        const matches = residenceFilter.some(f =>
-          residence.toLowerCase() === f.toLowerCase()
-        );
+        // Normalise common abbreviations so "USA"/"UK" stored values still match
+        const countryAliases: Record<string, string> = {
+          "usa": "united states", "us": "united states",
+          "uk": "united kingdom", "gb": "united kingdom", "great britain": "united kingdom",
+          "uae": "united arab emirates",
+        };
+        const normalise = (s: string) => {
+          const lower = s.toLowerCase();
+          return countryAliases[lower] ?? lower;
+        };
+        const residence = normalise(candidate.country ?? "");
+        const matches = residenceFilter.some(f => normalise(f) === residence);
         if (!matches) continue;
       }
 
