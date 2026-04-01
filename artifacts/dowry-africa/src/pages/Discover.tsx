@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Heart, X, Sparkles, MapPin, Search, Lock, Users, Loader2, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TierBadge } from "@/components/ui/TierBadge";
+import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { API_BASE } from "@/lib/api-url";
 import { formatTag } from "@/lib/format-tags";
@@ -403,27 +404,33 @@ export default function Discover() {
 
               {/* Badge Members pool toggle — Serious Badge only */}
               {isBadgeUser && (
-                <div>
-                  <button
-                    onClick={() => setBadgeOnly(prev => !prev)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border-2 font-semibold text-sm transition-all ${
-                      badgeOnly
-                        ? "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200"
-                        : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                <button
+                  onClick={() => setBadgeOnly(prev => !prev)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-amber-300 hover:border-amber-400 transition-all group"
+                  style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 60%, #FDE68A 100%)" }}
+                >
+                  {/* Badge icon */}
+                  <SeriousBadgeIcon size={34} />
+
+                  {/* Text block */}
+                  <div className="flex-1 text-left">
+                    <div className="text-sm font-bold text-amber-900 leading-tight">Badge Members</div>
+                    <div className="text-xs text-amber-600 leading-tight mt-0.5">Verified serious members only</div>
+                  </div>
+
+                  {/* Toggle switch */}
+                  <span
+                    className={`shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200 ${
+                      badgeOnly ? "bg-amber-500" : "bg-amber-200"
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span>🛡️</span>
-                      <span>Badge Members</span>
-                    </span>
-                    <span className={`w-10 h-5 rounded-full relative transition-all ${badgeOnly ? "bg-white/30" : "bg-amber-200"}`}>
-                      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${badgeOnly ? "left-5" : "left-0.5"}`} />
-                    </span>
-                  </button>
-                  {badgeOnly && (
-                    <p className="text-xs text-amber-600 mt-1.5 px-1">Showing Serious Badge members only</p>
-                  )}
-                </div>
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
+                        badgeOnly ? "left-5" : "left-0.5"
+                      }`}
+                    />
+                  </span>
+                </button>
               )}
 
               {/* Country of origin filter */}
@@ -525,7 +532,7 @@ export default function Discover() {
                     : "text-amber-600 hover:text-amber-800"
                 }`}
               >
-                <span>🛡️</span>
+                <SeriousBadgeIcon size={16} />
                 Badge Members
               </button>
             </div>
@@ -761,24 +768,20 @@ export default function Discover() {
 
                 {/* Badge Members toggle — badge users only */}
                 {isBadgeUser && (
-                  <div>
-                    <button
-                      onClick={() => setDraftBadgeOnly(prev => !prev)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border-2 font-semibold text-sm transition-all ${
-                        draftBadgeOnly
-                          ? "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200"
-                          : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>🛡️</span>
-                        <span>Badge Members only</span>
-                      </span>
-                      <span className={`w-10 h-5 rounded-full relative transition-all ${draftBadgeOnly ? "bg-white/30" : "bg-amber-200"}`}>
-                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${draftBadgeOnly ? "left-5" : "left-0.5"}`} />
-                      </span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setDraftBadgeOnly(prev => !prev)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-amber-300 hover:border-amber-400 transition-all"
+                    style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 60%, #FDE68A 100%)" }}
+                  >
+                    <SeriousBadgeIcon size={34} />
+                    <div className="flex-1 text-left">
+                      <div className="text-sm font-bold text-amber-900 leading-tight">Badge Members</div>
+                      <div className="text-xs text-amber-600 leading-tight mt-0.5">Verified serious members only</div>
+                    </div>
+                    <span className={`shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200 ${draftBadgeOnly ? "bg-amber-500" : "bg-amber-200"}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200 ${draftBadgeOnly ? "left-5" : "left-0.5"}`} />
+                    </span>
+                  </button>
                 )}
 
                 <div>
