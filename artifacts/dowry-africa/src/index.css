@@ -120,3 +120,8 @@
     @apply tracking-tight;
   }
 }
+
+/* Hide scrollbar visually while keeping it functional */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

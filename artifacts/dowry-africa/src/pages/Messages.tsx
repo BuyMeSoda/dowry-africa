@@ -640,16 +640,28 @@ export default function Messages() {
 
               {/* Guided Prompts */}
               {msgsData?.guidedPrompts && msgsData.guidedPrompts.length > 0 && localMsgs.length < 5 && (
-                <div className="pl-6 pr-6 py-3 bg-white border-t border-border flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none" style={{ scrollbarWidth: 'none' }}>
-                  {msgsData.guidedPrompts.map((prompt, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setText(prompt)}
-                      className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-full border border-border hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
+                <div className="relative bg-white border-t border-border">
+                  <div
+                    className="no-scrollbar flex gap-2 px-6 py-3 overflow-x-auto whitespace-nowrap"
+                    style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                      WebkitOverflowScrolling: "touch",
+                      scrollBehavior: "smooth",
+                    } as React.CSSProperties}
+                  >
+                    {msgsData.guidedPrompts.map((prompt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setText(prompt)}
+                        className="flex-shrink-0 px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-full border border-border hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Right-edge fade — hints that more prompts are off-screen */}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-white to-transparent" />
                 </div>
               )}
 
