@@ -272,12 +272,13 @@ export async function seedDatabase(): Promise<void> {
     });
   }
 
-  // ── 2. Reset all likes/passes/notifications among demo users so state is always fresh
-  //    This undoes any likes, passes and notifications that demo sessions created.
+  // ── 2. Reset likes/passes and stale match/like notifications for demo users
+  //    Only 'like' and 'match' notifications are wiped — 'message' notifications
+  //    from real usage are preserved so recipients still see the unread badge.
   const idList = DEMO_IDS.map(id => `'${id}'`).join(", ");
   await db.execute(sql.raw(`DELETE FROM likes  WHERE from_id IN (${idList})`));
   await db.execute(sql.raw(`DELETE FROM passes WHERE from_id IN (${idList})`));
-  await db.execute(sql.raw(`DELETE FROM notifications WHERE user_id IN (${idList})`));
+  await db.execute(sql.raw(`DELETE FROM notifications WHERE user_id IN (${idList}) AND type IN ('like', 'match')`));
 
   // ── 3. Seed only the intended starter mutual matches ────────────────────
   const chidinmaId = "demo-chidinma-0001-0000-000000000001";
@@ -315,6 +316,18 @@ export async function seedDatabase(): Promise<void> {
   ];
   for (const msg of starterMessages) {
     await db.insert(schema.messages).values(msg).onConflictDoNothing();
+  }
+
+  // ── 4b. Seed message notifications for the starter messages ────────────
+  //    These use stable IDs so they are idempotent across restarts.
+  //    They are only inserted if no unseen message notification from that
+  //    sender already exists, preventing duplicate badges.
+  const starterNotifications = [
+    { id: "seed-notif-kofi-chidinma-001", userId: chidinmaId, type: "message", fromUserId: kofiId },
+    { id: "seed-notif-emeka-amara-001",   userId: amaraId,    type: "message", fromUserId: emekaId },
+  ];
+  for (const notif of starterNotifications) {
+    await db.insert(schema.notifications).values({ ...notif, seen: false }).onConflictDoNothing();
   }
 
   // ── 5. Seed message prompts ─────────────────────────────────────────────
