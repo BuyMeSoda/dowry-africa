@@ -3,11 +3,15 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
+import { randomBytes } from "crypto";
 import rateLimit from "express-rate-limit";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, sanitizeUser, calcCompleteness } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
+import { sendVerificationEmail } from "../lib/email.js";
+
+const APP_BASE = "https://workspacedowry-africa-production.up.railway.app";
 
 const router = Router();
 
@@ -63,6 +67,8 @@ router.post("/register", authRateLimit, async (req, res) => {
     };
     const completeness = calcCompleteness(partial);
 
+    const verificationToken = randomBytes(32).toString("hex");
+
     await db.insert(schema.users).values({
       id,
       email: email.toLowerCase(),
@@ -78,12 +84,21 @@ router.post("/register", authRateLimit, async (req, res) => {
       lastActive: now,
       createdAt: now,
       blocked: [],
+      emailVerified: false,
+      verificationToken,
     });
 
     const [row] = await db.select().from(schema.users).where(eq(schema.users.id, id)).limit(1);
     const user = toUser(row);
-    const token = makeToken(id);
-    res.status(201).json({ token, user: sanitizeUser(user) });
+    const jwtToken = makeToken(id);
+
+    // Fire-and-forget — never block the signup response on email delivery
+    const verificationLink = `${APP_BASE}/verify-email?token=${verificationToken}`;
+    sendVerificationEmail(email.toLowerCase(), name, verificationLink).catch(
+      (err) => req.log.warn(err, "Verification email failed to send"),
+    );
+
+    res.status(201).json({ token: jwtToken, user: sanitizeUser(user) });
   } catch (err) {
     req.log.error(err, "Register error");
     res.status(500).json({ error: "Internal server error" });
@@ -131,6 +146,44 @@ router.post("/login", authRateLimit, async (req, res) => {
     res.json({ token, user: sanitizeUser(user) });
   } catch (err) {
     req.log.error(err, "Login error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/verify-email", async (req, res) => {
+  try {
+    const { token } = req.query as { token?: string };
+    if (!token) {
+      res.status(400).json({ error: "Missing token" });
+      return;
+    }
+
+    const [row] = await db
+      .select({ id: schema.users.id, emailVerified: schema.users.emailVerified })
+      .from(schema.users)
+      .where(eq(schema.users.verificationToken, token))
+      .limit(1);
+
+    if (!row) {
+      // Token invalid or already used — redirect with error flag
+      res.redirect(`${APP_BASE}/discover?verified=invalid`);
+      return;
+    }
+
+    if (row.emailVerified) {
+      // Already verified — redirect gracefully
+      res.redirect(`${APP_BASE}/discover?verified=already`);
+      return;
+    }
+
+    await db
+      .update(schema.users)
+      .set({ emailVerified: true, verificationToken: null })
+      .where(eq(schema.users.id, row.id));
+
+    res.redirect(`${APP_BASE}/discover?verified=success`);
+  } catch (err) {
+    req.log.error(err, "Verify email error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
