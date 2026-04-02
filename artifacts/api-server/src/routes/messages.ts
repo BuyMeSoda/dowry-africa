@@ -5,6 +5,7 @@ import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
+import { sendMessageNotificationEmail } from "../lib/email.js";
 
 const router = Router();
 
@@ -275,13 +276,18 @@ router.post("/:userId", requireAuth, async (req, res) => {
     }
 
     const otherId = req.params.userId;
-    const otherExists = await db
-      .select({ id: schema.users.id })
+    const [recipient] = await db
+      .select({
+        id: schema.users.id,
+        email: schema.users.email,
+        name: schema.users.name,
+        emailVerified: schema.users.emailVerified,
+      })
       .from(schema.users)
       .where(eq(schema.users.id, otherId))
       .limit(1);
 
-    if (otherExists.length === 0) {
+    if (!recipient) {
       res.status(404).json({ error: "User not found" });
       return;
     }
@@ -304,6 +310,14 @@ router.post("/:userId", requireAuth, async (req, res) => {
       fromUserId: me.id,
       seen: false,
     });
+
+    // Send email notification only to verified recipients
+    if (recipient.emailVerified) {
+      const preview = message.text.slice(0, 100);
+      sendMessageNotificationEmail(recipient.email, recipient.name, me.name, preview).catch(
+        (err) => req.log.warn(err, "Message notification email failed to send"),
+      );
+    }
 
     res.status(201).json(message);
   } catch (err) {
