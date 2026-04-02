@@ -118,6 +118,16 @@ export const messagePrompts = pgTable("message_prompts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const emailTemplates = pgTable("email_templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  ctaLabel: text("cta_label"),
+  ctaUrl: text("cta_url"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const broadcastLogs = pgTable("broadcast_logs", {
   id: text("id").primaryKey(),
   subject: text("subject").notNull(),

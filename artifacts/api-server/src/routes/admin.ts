@@ -6,7 +6,7 @@ import * as schema from "../db/schema.js";
 import { requireAdmin } from "../middlewares/adminAuth.js";
 import { getPricing } from "./settings.js";
 import { logger } from "../lib/logger.js";
-import { sendBroadcastEmail, sendAdminDirectEmail } from "../lib/email.js";
+import { sendBroadcastEmail, sendAdminDirectEmail, buildBroadcastHtml } from "../lib/email.js";
 
 const router = Router();
 router.use(requireAdmin);
@@ -518,6 +518,78 @@ router.post("/communications/broadcast", async (req, res) => {
     res.json({ sent, failed, total: recipients.length });
   } catch (err) {
     logger.error(err, "Broadcast error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/communications/preview-html", async (req, res) => {
+  try {
+    const { subject, body, ctaLabel, ctaUrl } = req.body as {
+      subject?: string; body?: string; ctaLabel?: string; ctaUrl?: string;
+    };
+    const safeBody = (body || "(no content)")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .split("\n")
+      .map((line: string) =>
+        line.trim() === "" ? "<br />" :
+        `<p style="margin: 0 0 16px; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.8; color: #5a3a3a;">${line}</p>`)
+      .join("\n");
+
+    const html = buildBroadcastHtml({
+      firstName: "there",
+      subject: subject?.trim() || "(no subject)",
+      bodyHtml: safeBody,
+      ctaLabel: ctaLabel?.trim() || undefined,
+      ctaUrl:   ctaUrl?.trim()   || undefined,
+    });
+    res.json({ html });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/communications/templates", async (req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(schema.emailTemplates)
+      .orderBy(desc(schema.emailTemplates.createdAt));
+    res.json({ templates: rows });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/communications/templates", async (req, res) => {
+  try {
+    const { name, subject, body, ctaLabel, ctaUrl } = req.body as {
+      name: string; subject: string; body: string; ctaLabel?: string; ctaUrl?: string;
+    };
+    if (!name?.trim() || !subject?.trim() || !body?.trim()) {
+      res.status(400).json({ error: "name, subject, and body are required" });
+      return;
+    }
+    const [row] = await db.insert(schema.emailTemplates).values({
+      id: uuidv4(),
+      name: name.trim(),
+      subject: subject.trim(),
+      body: body.trim(),
+      ctaLabel: ctaLabel?.trim() || null,
+      ctaUrl: ctaUrl?.trim() || null,
+    }).returning();
+    res.json({ template: row });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/communications/templates/:id", async (req, res) => {
+  try {
+    await db.delete(schema.emailTemplates).where(eq(schema.emailTemplates.id, req.params.id!));
+    res.json({ success: true });
+  } catch {
     res.status(500).json({ error: "Internal server error" });
   }
 });

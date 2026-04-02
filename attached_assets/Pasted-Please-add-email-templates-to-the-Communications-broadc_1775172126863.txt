@@ -1,0 +1,231 @@
+Please add email templates to the Communications broadcast section in the admin panel.
+
+1. TEMPLATE SELECTOR
+Above the Subject and Body fields in the Broadcast compose form, add a "Use a template" dropdown with these pre-built templates.
+
+═══════════════════════════════
+EMAIL DESIGN REQUIREMENTS
+═══════════════════════════════
+All email templates must look premium and on-brand — not like a plain text email. Use this HTML structure for every template:
+
+- Max width: 600px, centered
+- Background: #f9f6f2 (warm off-white, matches the app)
+- Email card: white background, border-radius 12px, subtle shadow
+- Header: rose/burgundy background (#8B1C3F) with Dowry.Africa logo and name in white
+- Body: clean serif font for headings, clean sans-serif for body text
+- CTA Button: rose/burgundy background (#8B1C3F), white text, border-radius 50px, padding 14px 32px
+- Divider lines: light gray
+- Footer: dark gray background, white text, small font
+- Mobile responsive — single column layout
+
+IMPORTANT: All URLs in templates must use process.env.FRONTEND_URL as the base URL, not any hardcoded domain. Example: ${process.env.FRONTEND_URL}/register — this way when the custom domain is set up, only the FRONTEND_URL environment variable needs updating in Railway and all email links update automatically.
+
+═══════════════════════════════
+TEMPLATE 1 — Launch Announcement
+═══════════════════════════════
+Subject: "Dowry.Africa is now open — your invitation is here 🎉"
+
+Header: Dowry.Africa logo on rose/burgundy background
+
+Hero section:
+- Large heading: "The wait is over."
+- Subheading: "Your invitation to Dowry.Africa is here."
+
+Body:
+"Dear [First Name],
+
+When you signed up for early access to Dowry.Africa, you joined thousands of Africans in the diaspora who are done with games and ready for something real.
+
+Today, we are opening our doors — and you are among the first to be invited in.
+
+Dowry.Africa is a curated matchmaking platform built for Africans who are serious about commitment. Not endless talking stages. Not unclear intentions. Just real people, ready for marriage."
+
+Divider line
+
+Three feature highlights in a row (icons + text):
+- 💍 Curated members — every profile is reviewed before joining
+- 🌍 Built for Africans — home and diaspora, connected
+- ❤️ Values-based matching — faith, intent, and culture aligned
+
+Divider line
+
+"Your invitation is waiting. Click below to create your profile and start your journey."
+
+CTA Button: "Create my profile →"
+URL: ${process.env.FRONTEND_URL}/register
+
+Closing:
+"We are honoured to have you.
+
+Warm regards,
+The Dowry.Africa Team"
+
+Footer:
+"© 2025 Dowry.Africa — Built for marriage. Not just matches.
+You are receiving this because you signed up for early access at dowry.africa"
+
+═══════════════════════════════
+TEMPLATE 2 — Weekly Update
+═══════════════════════════════
+Subject: "What's new at Dowry.Africa this week"
+
+Header: Dowry.Africa logo on rose/burgundy background
+
+Hero: "This week at Dowry.Africa ✨"
+
+Body:
+"Hi [First Name],
+
+Just a quick update from the Dowry.Africa team.
+
+[EDIT THIS SECTION — add your weekly update here]
+
+As always, we are committed to building a platform where serious people find serious love."
+
+CTA Button: "Log in to Dowry.Africa →"
+URL: ${process.env.FRONTEND_URL}/discover
+
+Closing:
+"See you inside.
+
+Warm regards,
+The Dowry.Africa Team"
+
+Footer: same as above
+
+═══════════════════════════════
+TEMPLATE 3 — New Feature Announcement
+═══════════════════════════════
+Subject: "Something new just landed on Dowry.Africa ✨"
+
+Header: Dowry.Africa logo on rose/burgundy background
+
+Hero: "We just made Dowry.Africa even better."
+
+Body:
+"Hi [First Name],
+
+We have been working hard behind the scenes and we are excited to share something new with you.
+
+[EDIT THIS SECTION — describe the new feature here]
+
+Log in to check it out and let us know what you think."
+
+CTA Button: "See what's new →"
+URL: ${process.env.FRONTEND_URL}/discover
+
+Closing:
+"Built for you, always.
+
+Warm regards,
+The Dowry.Africa Team"
+
+Footer: same as above
+
+═══════════════════════════════
+TEMPLATE 4 — Complete Your Profile
+═══════════════════════════════
+Subject: "Your Dowry.Africa profile is incomplete 👋"
+
+Header: Dowry.Africa logo on rose/burgundy background
+
+Hero: "You are one step away from your best matches."
+
+Body:
+"Hi [First Name],
+
+We noticed your profile on Dowry.Africa is not yet complete.
+
+Members with complete profiles receive significantly more matches — and more meaningful ones.
+
+It only takes a few minutes to:"
+
+Three checklist items styled as a visual list:
+✓ Add your photo
+✓ Write a short bio about yourself
+✓ Set your partner preferences
+
+"The right person could be looking for someone exactly like you right now. Do not keep them waiting."
+
+CTA Button: "Complete my profile →"
+URL: ${process.env.FRONTEND_URL}/profile
+
+Closing:
+"We are rooting for you.
+
+Warm regards,
+The Dowry.Africa Team"
+
+Footer: same as above
+
+═══════════════════════════════
+TEMPLATE 5 — Re-engagement
+═══════════════════════════════
+Subject: "We miss you at Dowry.Africa 💌"
+
+Header: Dowry.Africa logo on rose/burgundy background
+
+Hero: "Someone could be waiting for you."
+
+Body:
+"Hi [First Name],
+
+It has been a while since we last saw you on Dowry.Africa.
+
+A lot has happened since your last visit — new members have joined, new matches are waiting, and your next chapter could be one conversation away.
+
+Dowry.Africa was built for people who are serious about love and commitment. We believe you are one of them.
+
+Come back and see who is looking for someone just like you."
+
+CTA Button: "See my matches →"
+URL: ${process.env.FRONTEND_URL}/discover
+
+Closing:
+"Your story is not over.
+
+Warm regards,
+The Dowry.Africa Team"
+
+Footer: same as above
+
+═══════════════════════════════
+2. TEMPLATE BEHAVIOUR
+═══════════════════════════════
+When a template is selected from the dropdown:
+- Auto-fill the Subject field
+- Auto-fill the Body textarea
+- Auto-fill the CTA button label and URL if applicable
+- Admin can edit any field after selecting
+- Show note: "This is a template — feel free to edit before sending"
+
+═══════════════════════════════
+3. SAVE CUSTOM TEMPLATES
+═══════════════════════════════
+Add a "Save as template" button so admin can save custom templates.
+Store in email_templates table in database with: id, name, subject, body, cta_label, cta_url, created_at
+
+═══════════════════════════════
+4. PERSONALISATION
+═══════════════════════════════
+[First Name] is replaced with actual recipient first name when sending:
+- Waitlist emails: use name from early_access table if available, fallback to "there"
+- Registered users: use first name from users table
+- Fallback: "Hi there,"
+
+═══════════════════════════════
+5. EMAIL PREVIEW
+═══════════════════════════════
+In the admin broadcast compose form, add a "Preview email" button that opens a modal showing exactly how the rendered HTML email will look — with the rose/burgundy header, formatted body, CTA button, and footer. This way admin can see the final design before sending.
+
+═══════════════════════════════
+6. ENVIRONMENT VARIABLES
+═══════════════════════════════
+Make sure these are used throughout:
+- RESEND_API_KEY — for sending emails
+- FROM_EMAIL — sender address (hello@dowry.africa)
+- FRONTEND_URL — base URL for all links in emails
+
+When custom domain is ready, only FRONTEND_URL needs updating in Railway:
+FRONTEND_URL = https://dowry.africa
+All email links will automatically use the new domain.
