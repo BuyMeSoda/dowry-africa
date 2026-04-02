@@ -1,7 +1,8 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = "noreply@dowry.africa";
+const FROM       = "noreply@dowry.africa";
+const HELLO_FROM = "hello@dowry.africa";
 
 const baseStyle = `
   font-family: Georgia, 'Times New Roman', serif;
@@ -172,6 +173,91 @@ export async function sendMessageNotificationEmail(
     from: FROM,
     to,
     subject: "You have a new message on Dowry Africa",
+    html,
+  });
+}
+
+export async function sendBroadcastEmail(
+  to: string,
+  name: string,
+  subject: string,
+  body: string,
+  ctaLabel?: string,
+  ctaUrl?: string,
+): Promise<void> {
+  const greeting = name ? `Hi ${name},` : "Hello,";
+  const ctaBlock = ctaLabel && ctaUrl
+    ? `<div style="text-align: center; margin: 32px 0;">
+        <a href="${ctaUrl}" style="${buttonStyle}">${ctaLabel}</a>
+       </div>`
+    : "";
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="${baseStyle}">
+  <div style="${containerStyle}">
+    <div style="${headerStyle}">
+      <p style="${logoTextStyle}">Dowry.Africa</p>
+    </div>
+    <div style="${bodyStyle}">
+      <p style="${pStyle}">${greeting}</p>
+      <h2 style="${h2Style}">${subject}</h2>
+      <div style="font-size: 15px; line-height: 1.8; color: #5a3a3a; margin: 0 0 24px; white-space: pre-wrap;">${body}</div>
+      ${ctaBlock}
+    </div>
+    <div style="${footerStyle}">
+      &copy; ${new Date().getFullYear()} Dowry.Africa &mdash; Built for marriage. Not just matches.<br />
+      <span style="margin-top: 8px; display: inline-block;">
+        You're receiving this because you signed up at dowry.africa
+      </span>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: HELLO_FROM,
+    replyTo: HELLO_FROM,
+    to,
+    subject,
+    html,
+  });
+}
+
+export async function sendAdminDirectEmail(
+  to: string,
+  name: string,
+  subject: string,
+  message: string,
+): Promise<void> {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="${baseStyle}">
+  <div style="${containerStyle}">
+    <div style="${headerStyle}">
+      <p style="${logoTextStyle}">Dowry.Africa</p>
+    </div>
+    <div style="${bodyStyle}">
+      <p style="${pStyle}">Hi ${name},</p>
+      <div style="font-size: 15px; line-height: 1.8; color: #5a3a3a; margin: 0 0 24px; white-space: pre-wrap;">${message}</div>
+      <p style="${pStyle}">Warm regards,<br /><strong>The Dowry.Africa Team</strong></p>
+    </div>
+    <div style="${footerStyle}">
+      &copy; ${new Date().getFullYear()} Dowry.Africa &mdash; Built for marriage. Not just matches.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: HELLO_FROM,
+    replyTo: HELLO_FROM,
+    to,
+    subject,
     html,
   });
 }

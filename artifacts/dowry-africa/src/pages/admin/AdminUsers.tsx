@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "./AdminLayout";
 import { adminFetch } from "@/lib/admin";
-import { Search, ChevronLeft, ChevronRight, ShieldOff, ShieldBan, ShieldCheck, Trash2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ShieldOff, ShieldBan, ShieldCheck, Trash2, Mail, Loader2 } from "lucide-react";
 
 interface UserRow {
   id: string; name: string; email: string; birthYear: number; city: string | null;
@@ -20,6 +20,8 @@ const STATUS_COLORS: Record<string, string> = {
   banned: "bg-red-500/15 text-red-400",
 };
 
+interface EmailModal { id: string; name: string; email: string; }
+
 export default function AdminUsers() {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -30,6 +32,11 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const totalPages = Math.ceil(total / 25);
+
+  const [emailModal, setEmailModal] = useState<EmailModal | null>(null);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
 
   const toast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 3000); };
 
@@ -65,6 +72,24 @@ export default function AdminUsers() {
     await adminFetch(`/users/${id}`, { method: "DELETE" });
     toast("User deleted");
     load();
+  };
+
+  const openEmailModal = (row: UserRow) => {
+    setEmailModal({ id: row.id, name: row.name, email: row.email });
+    setEmailSubject("");
+    setEmailMessage("");
+  };
+
+  const sendUserEmail = async () => {
+    if (!emailModal) return;
+    setEmailSending(true);
+    await adminFetch(`/communications/user/${emailModal.id}`, {
+      method: "POST",
+      body: JSON.stringify({ subject: emailSubject, message: emailMessage }),
+    });
+    setEmailSending(false);
+    setEmailModal(null);
+    toast(`Email sent to ${emailModal.name}`);
   };
 
   const currentYear = new Date().getFullYear();
@@ -177,6 +202,10 @@ export default function AdminUsers() {
                             <ShieldBan className="w-3.5 h-3.5" />
                           </button>
                         )}
+                        <button onClick={() => openEmailModal(row)}
+                          className="p-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded-lg transition-colors" title="Send Email">
+                          <Mail className="w-3.5 h-3.5" />
+                        </button>
                         <button onClick={() => deleteUser(row.id, row.name)}
                           className="p-1.5 bg-gray-700/50 hover:bg-red-600/30 text-gray-400 hover:text-red-400 rounded-lg transition-colors" title="Delete">
                           <Trash2 className="w-3.5 h-3.5" />
@@ -206,6 +235,52 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
+
+      {emailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setEmailModal(null)} />
+          <div className="relative bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-6 w-full max-w-lg z-10">
+            <h3 className="text-white font-bold text-lg mb-1">Send Email</h3>
+            <p className="text-gray-500 text-sm mb-5">To: <span className="text-gray-300">{emailModal.name} &lt;{emailModal.email}&gt;</span></p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Subject</label>
+                <input
+                  value={emailSubject}
+                  onChange={e => setEmailSubject(e.target.value)}
+                  placeholder="Email subject..."
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-gray-600"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Message</label>
+                <textarea
+                  value={emailMessage}
+                  onChange={e => setEmailMessage(e.target.value)}
+                  rows={6}
+                  placeholder="Write your message to this user..."
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-gray-600 resize-y"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setEmailModal(null)}
+                className="flex-1 py-2.5 border border-gray-700 text-gray-400 rounded-xl text-sm hover:bg-gray-800 transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={sendUserEmail}
+                disabled={!emailSubject.trim() || !emailMessage.trim() || emailSending}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors"
+              >
+                {emailSending
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
+                  : <><Mail className="w-4 h-4" /> Send Email</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

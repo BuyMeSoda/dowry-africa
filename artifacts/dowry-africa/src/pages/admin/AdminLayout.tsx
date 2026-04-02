@@ -4,7 +4,7 @@ import { isAdminLoggedIn, clearAdminSecret } from "@/lib/admin";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import {
   LayoutDashboard, Users, CreditCard,
-  Activity, ShieldAlert, Settings, LogOut, MessageSquare
+  Activity, ShieldAlert, Settings, LogOut, MessageSquare, Mail
 } from "lucide-react";
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { label: "Activity", icon: Activity, href: "/admin/activity" },
   { label: "Moderation", icon: ShieldAlert, href: "/admin/moderation" },
   { label: "Message Prompts", icon: MessageSquare, href: "/admin/prompts" },
+  { label: "Communications", icon: Mail, href: "/admin/communications" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 

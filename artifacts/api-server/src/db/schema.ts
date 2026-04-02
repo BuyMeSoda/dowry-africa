@@ -117,3 +117,18 @@ export const messagePrompts = pgTable("message_prompts", {
   displayOrder: integer("display_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const broadcastLogs = pgTable("broadcast_logs", {
+  id: text("id").primaryKey(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  recipientGroup: text("recipient_group").notNull(),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentCount: integer("sent_count").notNull().default(0),
+  failedCount: integer("failed_count").notNull().default(0),
+  sentBy: text("sent_by").notNull().default("admin"),
+  status: text("status").notNull().default("sent"),
+  ctaLabel: text("cta_label"),
+  ctaUrl: text("cta_url"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

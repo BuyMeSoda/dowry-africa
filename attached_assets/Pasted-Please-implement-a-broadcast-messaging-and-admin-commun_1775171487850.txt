@@ -1,0 +1,133 @@
+Please implement a broadcast messaging and admin communication system using Resend (already integrated).
+
+═══════════════════════════════
+1. BROADCAST EMAILS TO WAITLIST
+═══════════════════════════════
+In the admin panel, add a new section called "Communications" in the sidebar.
+
+BROADCAST TO WAITLIST:
+- Compose form with:
+  * Subject line (text input)
+  * Email body (rich text or large textarea)
+  * Preview button — shows how the email will look
+  * Recipient selector:
+    - "All waitlist emails" (everyone in early_access table)
+    - "All registered users" (everyone in users table)
+    - "All registered users — Free tier only"
+    - "All registered users — Core tier only"
+    - "All registered users — Serious Badge only"
+    - "Everyone" (waitlist + registered users combined)
+  * Estimated recipient count shown dynamically based on selection
+  * "Send broadcast" button with confirmation dialog:
+    "You are about to send this email to X recipients. This cannot be undone. Confirm?"
+
+EMAIL TEMPLATE for broadcasts:
+- Dowry.Africa logo at top
+- Subject as headline
+- Body content
+- CTA button (optional — admin can add a button label and URL)
+- Footer: "© Dowry.Africa — Built for marriage. Not just matches."
+- Unsubscribe note: "You're receiving this because you signed up at dowry.africa"
+
+BROADCAST HISTORY:
+- Show a log of all sent broadcasts:
+  * Subject
+  * Recipient group
+  * Number of recipients
+  * Date sent
+  * Status (sent/failed)
+
+═══════════════════════════════
+2. MESSAGE A SPECIFIC USER (ADMIN → USER)
+═══════════════════════════════
+In the admin Users section, add a "Send Email" button next to each user.
+
+Clicking opens a compose modal:
+- To: [user's name and email] — pre-filled, not editable
+- Subject: text input
+- Message: textarea
+- Send button
+
+This sends a direct personal email to that specific user via Resend.
+
+Use cases:
+- Responding to a support query
+- Warning about behaviour
+- Account notification
+- Personal welcome message
+
+EMAIL TEMPLATE for direct admin messages:
+- Dowry.Africa logo
+- "Hi [Name],"
+- Message body
+- "Warm regards, The Dowry.Africa Team"
+- Footer
+
+═══════════════════════════════
+3. DATABASE
+═══════════════════════════════
+Add a broadcast_logs table:
+- id
+- subject (text)
+- body (text)
+- recipient_group (text)
+- recipient_count (integer)
+- sent_by (admin)
+- status (sent/failed)
+- created_at
+
+═══════════════════════════════
+4. BACKEND API
+═══════════════════════════════
+All protected by ADMIN_SECRET:
+
+- POST /api/admin/communications/broadcast
+  * Accepts: subject, body, recipientGroup, ctaLabel (optional), ctaUrl (optional)
+  * Fetches recipient emails based on group selection
+  * Sends via Resend in batches (max 50 per batch to avoid rate limits)
+  * Logs the broadcast to broadcast_logs table
+  * Returns: { sent: number, failed: number }
+
+- GET /api/admin/communications/broadcast — returns broadcast history
+
+- POST /api/admin/communications/user/:userId
+  * Sends direct email to specific user
+  * Accepts: subject, message
+  * Returns success/failure
+
+- GET /api/admin/communications/preview
+  * Returns recipient count for a given group selection
+
+═══════════════════════════════
+5. ADMIN PANEL UI
+═══════════════════════════════
+New "Communications" section in admin sidebar with two tabs:
+
+Tab 1 — Broadcast:
+- Recipient group dropdown with live count
+- Subject input
+- Body textarea (large, comfortable to write in)
+- Optional CTA section (checkbox to add a button)
+- Preview panel showing how email will look
+- Send button with confirmation
+- Broadcast history table below
+
+Tab 2 — History:
+- Table of all sent broadcasts
+- Subject, recipients, date, status
+- Click to see full email content
+
+═══════════════════════════════
+6. RATE LIMITING & SAFETY
+═══════════════════════════════
+- Send in batches of 50 emails at a time with 1 second delay between batches
+- This prevents hitting Resend rate limits
+- Show progress in the UI: "Sending... 50/200 emails sent"
+- If any fail, log them and report back: "195 sent, 5 failed"
+
+═══════════════════════════════
+7. RESEND CONFIGURATION
+═══════════════════════════════
+Use existing RESEND_API_KEY and FROM_EMAIL environment variables.
+From address: hello@dowry.africa
+Reply-to: hello@dowry.africa

@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { eq, sql, and, or, asc, desc, gte, ilike } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { requireAdmin } from "../middlewares/adminAuth.js";
 import { getPricing } from "./settings.js";
 import { logger } from "../lib/logger.js";
+import { sendBroadcastEmail, sendAdminDirectEmail } from "../lib/email.js";
 
 const router = Router();
 router.use(requireAdmin);
@@ -394,6 +396,150 @@ router.delete("/prompts/:id", async (req, res) => {
     await db.delete(schema.messagePrompts).where(eq(schema.messagePrompts.id, id));
     res.json({ success: true });
   } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Communications ──────────────────────────────────────────────────────────
+
+async function getRecipientsForGroup(group: string): Promise<{ email: string; name: string }[]> {
+  switch (group) {
+    case "waitlist": {
+      const rows = await db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess);
+      return rows.map(r => ({ email: r.email, name: "" }));
+    }
+    case "all_users": {
+      return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users);
+    }
+    case "free_users": {
+      return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users)
+        .where(eq(schema.users.tier, "free"));
+    }
+    case "core_users": {
+      return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users)
+        .where(eq(schema.users.tier, "core"));
+    }
+    case "badge_users": {
+      return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users)
+        .where(and(eq(schema.users.tier, "badge"), eq(schema.users.hasBadge, true)));
+    }
+    case "everyone": {
+      const [users, waitlist] = await Promise.all([
+        db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users),
+        db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess),
+      ]);
+      const knownEmails = new Set(users.map(u => u.email));
+      const extra = waitlist.filter(w => !knownEmails.has(w.email)).map(w => ({ email: w.email, name: "" }));
+      return [...users, ...extra];
+    }
+    default:
+      return [];
+  }
+}
+
+async function sendInBatches(
+  recipients: { email: string; name: string }[],
+  subject: string,
+  body: string,
+  ctaLabel?: string,
+  ctaUrl?: string,
+): Promise<{ sent: number; failed: number }> {
+  const BATCH = 50;
+  let sent = 0;
+  let failed = 0;
+  for (let i = 0; i < recipients.length; i += BATCH) {
+    const batch = recipients.slice(i, i + BATCH);
+    const results = await Promise.allSettled(
+      batch.map(({ email, name }) => sendBroadcastEmail(email, name, subject, body, ctaLabel, ctaUrl)),
+    );
+    sent   += results.filter(r => r.status === "fulfilled").length;
+    failed += results.filter(r => r.status === "rejected").length;
+    if (i + BATCH < recipients.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  return { sent, failed };
+}
+
+router.get("/communications/preview", async (req, res) => {
+  try {
+    const group = (req.query.group as string) || "all_users";
+    const recipients = await getRecipientsForGroup(group);
+    res.json({ count: recipients.length });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/communications/broadcast", async (req, res) => {
+  try {
+    const logs = await db
+      .select()
+      .from(schema.broadcastLogs)
+      .orderBy(desc(schema.broadcastLogs.createdAt))
+      .limit(100);
+    res.json({ logs });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/communications/broadcast", async (req, res) => {
+  try {
+    const { subject, body, recipientGroup, ctaLabel, ctaUrl } = req.body as {
+      subject: string; body: string; recipientGroup: string;
+      ctaLabel?: string; ctaUrl?: string;
+    };
+    if (!subject?.trim() || !body?.trim() || !recipientGroup) {
+      res.status(400).json({ error: "subject, body, and recipientGroup are required" });
+      return;
+    }
+    const recipients = await getRecipientsForGroup(recipientGroup);
+    if (recipients.length === 0) {
+      res.status(400).json({ error: "No recipients found for this group" });
+      return;
+    }
+
+    const { sent, failed } = await sendInBatches(recipients, subject, body, ctaLabel, ctaUrl);
+
+    await db.insert(schema.broadcastLogs).values({
+      id: uuidv4(),
+      subject: subject.trim(),
+      body: body.trim(),
+      recipientGroup,
+      recipientCount: recipients.length,
+      sentCount: sent,
+      failedCount: failed,
+      status: failed === 0 ? "sent" : sent === 0 ? "failed" : "partial",
+      ctaLabel: ctaLabel || null,
+      ctaUrl: ctaUrl || null,
+    });
+
+    res.json({ sent, failed, total: recipients.length });
+  } catch (err) {
+    logger.error(err, "Broadcast error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/communications/user/:userId", async (req, res) => {
+  try {
+    const { subject, message } = req.body as { subject: string; message: string };
+    if (!subject?.trim() || !message?.trim()) {
+      res.status(400).json({ error: "subject and message are required" });
+      return;
+    }
+    const [user] = await db
+      .select({ id: schema.users.id, email: schema.users.email, name: schema.users.name })
+      .from(schema.users)
+      .where(eq(schema.users.id, req.params.userId!))
+      .limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    await sendAdminDirectEmail(user.email, user.name, subject.trim(), message.trim());
+    res.json({ success: true });
+  } catch (err) {
+    logger.error(err, "Admin direct email error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
