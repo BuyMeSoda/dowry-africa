@@ -132,7 +132,7 @@ function MatchModal({
 // ── Main Messages page ─────────────────────────────────────────────────────
 export default function Messages() {
   const { user } = useAuth();
-  const { refresh: refreshNotifs } = useNotifications();
+  const { refresh: refreshNotifs, markSeen } = useNotifications();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/messages/:id");
@@ -179,6 +179,13 @@ export default function Messages() {
       refetchConvos();
     }
   }, [msgsData]);
+
+  // Mark match notifications as seen as soon as the user views the Matches tab
+  useEffect(() => {
+    if (activeTab === "matches") {
+      markSeen("match");
+    }
+  }, [activeTab]);
 
   // Close menu on outside click
   useEffect(() => {

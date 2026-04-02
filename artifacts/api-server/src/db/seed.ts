@@ -272,11 +272,12 @@ export async function seedDatabase(): Promise<void> {
     });
   }
 
-  // ── 2. Reset all likes/passes among demo users so the feed is always fresh
-  //    This undoes any likes that automated tests or demo sessions created.
+  // ── 2. Reset all likes/passes/notifications among demo users so state is always fresh
+  //    This undoes any likes, passes and notifications that demo sessions created.
   const idList = DEMO_IDS.map(id => `'${id}'`).join(", ");
   await db.execute(sql.raw(`DELETE FROM likes  WHERE from_id IN (${idList})`));
   await db.execute(sql.raw(`DELETE FROM passes WHERE from_id IN (${idList})`));
+  await db.execute(sql.raw(`DELETE FROM notifications WHERE user_id IN (${idList})`));
 
   // ── 3. Seed only the intended starter mutual matches ────────────────────
   const chidinmaId = "demo-chidinma-0001-0000-000000000001";
