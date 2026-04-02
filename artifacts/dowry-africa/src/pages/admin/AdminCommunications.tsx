@@ -15,13 +15,33 @@ interface BroadcastLog  { id: string; subject: string; body: string; recipientGr
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const GROUP_LABELS: Record<RecipientGroup, string> = {
-  waitlist:    "All waitlist emails",
-  all_users:   "All registered users",
-  free_users:  "Registered users — Free tier only",
-  core_users:  "Registered users — Core tier only",
-  badge_users: "Registered users — Serious Badge only",
-  everyone:    "Everyone (waitlist + registered)",
+type SmartSegment = "inactive_30d" | "inactive_14d" | "incomplete_profiles" | "no_matches" | "free_never_upgraded" | "new_this_week" | "waitlist_not_registered";
+type AllGroups = RecipientGroup | SmartSegment;
+
+const GROUP_LABELS: Record<AllGroups, string> = {
+  waitlist:               "All waitlist emails",
+  all_users:              "All registered users",
+  free_users:             "Free tier users",
+  core_users:             "Core members",
+  badge_users:            "Serious Badge members",
+  everyone:               "Everyone (waitlist + registered)",
+  inactive_30d:           "Inactive users (30+ days)",
+  inactive_14d:           "Inactive users (14+ days)",
+  incomplete_profiles:    "Incomplete profiles (no photo, bio, or heritage)",
+  no_matches:             "No matches yet",
+  free_never_upgraded:    "Free tier — never upgraded (14+ days)",
+  new_this_week:          "New this week (joined last 7 days)",
+  waitlist_not_registered:"Waitlist only — not yet registered",
+};
+
+const GROUP_SUGGESTIONS: Partial<Record<AllGroups, { templateId: string; label: string }>> = {
+  inactive_30d:            { templateId: "__reengagement",   label: "Re-engagement" },
+  inactive_14d:            { templateId: "__reengagement",   label: "Re-engagement" },
+  incomplete_profiles:     { templateId: "__profile",        label: "Complete Your Profile" },
+  no_matches:              { templateId: "__reengagement",   label: "Re-engagement" },
+  free_never_upgraded:     { templateId: "__upgrade_nudge",  label: "Upgrade Nudge" },
+  new_this_week:           { templateId: "__getting_started",label: "Getting Started" },
+  waitlist_not_registered: { templateId: "__launch",         label: "Launch Announcement" },
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -140,6 +160,52 @@ The Dowry.Africa Team`,
     ctaLabel: "See my matches →",
     ctaUrl: "/discover",
   },
+  {
+    id: "__upgrade_nudge",
+    name: "Upgrade Nudge",
+    subject: "Your matches are waiting — unlock full messaging",
+    body: `You have been part of Dowry.Africa for a while now — and we are glad you are here.
+
+As a free member, you can browse and like profiles. But to truly connect, you need to be able to start the conversation.
+
+Upgrading to Core membership unlocks:
+
+✓ Full messaging with all your matches
+✓ See exactly who liked your profile
+✓ Unlimited daily matches
+
+For just $12.99 a month, you could be having a real conversation with your next match today.
+
+The right person may already be waiting.
+
+Warm regards,
+The Dowry.Africa Team`,
+    ctaLabel: "Upgrade to Core →",
+    ctaUrl: "/pricing",
+  },
+  {
+    id: "__getting_started",
+    name: "Getting Started",
+    subject: "Welcome to Dowry.Africa — here is how to begin",
+    body: `Welcome to Dowry.Africa. We are so glad you are here.
+
+You have joined a community of Africans and diaspora who are serious about commitment, marriage, and building something real.
+
+Here is how to get the most out of Dowry.Africa:
+
+1. Complete your profile — add a photo, write your bio, and set your heritage
+2. Explore Discover — browse profiles matched to your values and intent
+3. Like and connect — when someone likes you back, you have a match
+
+The more complete your profile, the better your matches will be.
+
+We are rooting for you.
+
+Warm regards,
+The Dowry.Africa Team`,
+    ctaLabel: "Complete my profile →",
+    ctaUrl: "/profile",
+  },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -148,7 +214,7 @@ export default function AdminCommunications() {
   const [tab, setTab] = useState<"broadcast" | "history">("broadcast");
 
   // Compose
-  const [group, setGroup]           = useState<RecipientGroup>("all_users");
+  const [group, setGroup]           = useState<AllGroups>("all_users");
   const [subject, setSubject]       = useState("");
   const [body, setBody]             = useState("");
   const [ctaEnabled, setCtaEnabled] = useState(false);
@@ -190,7 +256,7 @@ export default function AdminCommunications() {
 
   // ── Data fetchers ──────────────────────────────────────────────────────────
 
-  const fetchCount = async (g: RecipientGroup) => {
+  const fetchCount = async (g: AllGroups) => {
     setCountLoading(true);
     setRecipientCount(null);
     try {
@@ -402,12 +468,26 @@ export default function AdminCommunications() {
                 <div className="relative flex-1">
                   <select
                     value={group}
-                    onChange={e => setGroup(e.target.value as RecipientGroup)}
+                    onChange={e => setGroup(e.target.value as AllGroups)}
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none pr-10"
                   >
-                    {(Object.entries(GROUP_LABELS) as [RecipientGroup, string][]).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
+                    <optgroup label="── Audience">
+                      <option value="waitlist">All waitlist emails</option>
+                      <option value="all_users">All registered users</option>
+                      <option value="free_users">Free tier users</option>
+                      <option value="core_users">Core members</option>
+                      <option value="badge_users">Serious Badge members</option>
+                      <option value="everyone">Everyone (waitlist + registered)</option>
+                    </optgroup>
+                    <optgroup label="── Smart Segments">
+                      <option value="inactive_30d">Inactive users (30+ days)</option>
+                      <option value="inactive_14d">Inactive users (14+ days)</option>
+                      <option value="incomplete_profiles">Incomplete profiles (no photo, bio, or heritage)</option>
+                      <option value="no_matches">No matches yet</option>
+                      <option value="free_never_upgraded">Free tier — never upgraded (14+ days)</option>
+                      <option value="new_this_week">New this week (joined last 7 days)</option>
+                      <option value="waitlist_not_registered">Waitlist only — not yet registered</option>
+                    </optgroup>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
@@ -422,6 +502,19 @@ export default function AdminCommunications() {
                   ) : null}
                 </div>
               </div>
+              {/* Smart segment template suggestion */}
+              {GROUP_SUGGESTIONS[group] && !usingTemplate && (
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <span className="text-gray-500">💡 Suggested template:</span>
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(GROUP_SUGGESTIONS[group]!.templateId)}
+                    className="text-amber-400 hover:text-amber-300 font-medium underline underline-offset-2 transition-colors"
+                  >
+                    Apply "{GROUP_SUGGESTIONS[group]!.label}"
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Subject */}
@@ -542,7 +635,7 @@ export default function AdminCommunications() {
                   {history.map(log => (
                     <tr key={log.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                       <td className="p-4 text-white font-medium max-w-xs truncate">{log.subject}</td>
-                      <td className="p-4 text-gray-400 text-xs">{GROUP_LABELS[log.recipientGroup as RecipientGroup] ?? log.recipientGroup}</td>
+                      <td className="p-4 text-gray-400 text-xs">{GROUP_LABELS[log.recipientGroup as AllGroups] ?? log.recipientGroup}</td>
                       <td className="p-4 text-gray-300">{log.sentCount} / {log.recipientCount}</td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[log.status] ?? "bg-gray-500/15 text-gray-400"}`}>

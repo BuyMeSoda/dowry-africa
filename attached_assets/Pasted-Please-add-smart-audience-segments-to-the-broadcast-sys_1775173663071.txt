@@ -1,0 +1,148 @@
+Please add smart audience segments to the broadcast system in the admin Communications section.
+
+In addition to the existing recipient groups, add these intelligent segments:
+
+═══════════════════════════════
+SMART SEGMENTS
+═══════════════════════════════
+
+Add these options to the recipient selector dropdown:
+
+1. "Inactive users (30+ days)"
+   - Users who have not logged in for 30 or more days
+   - Query: users where last_active < NOW() - INTERVAL '30 days'
+   - Show count dynamically
+
+2. "Inactive users (14+ days)"
+   - Users who have not logged in for 14 or more days
+   - Query: users where last_active < NOW() - INTERVAL '14 days'
+
+3. "Incomplete profiles"
+   - Users missing any of: profile photo, bio, or country of origin
+   - Query: users where photo_url IS NULL OR bio IS NULL OR heritage IS NULL
+   - Show count dynamically
+
+4. "No matches yet"
+   - Registered users who have zero mutual matches
+   - Query: users not present in matches/conversations table
+   - Show count dynamically
+
+5. "Free tier — never upgraded"
+   - Users who have been free tier for 14+ days
+   - Good for upgrade nudge campaigns
+   - Query: users where tier = 'free' AND created_at < NOW() - INTERVAL '14 days'
+
+6. "New this week"
+   - Users who registered in the last 7 days
+   - Good for welcome and onboarding emails
+   - Query: users where created_at > NOW() - INTERVAL '7 days'
+
+7. "Core members"
+   - Already exists ✅
+
+8. "Serious Badge members"
+   - Already exists ✅
+
+9. "Waitlist only (not yet registered)"
+   - Emails in early_access table that do NOT have a matching account in users table
+   - These are people who signed up for early access but never created an account
+
+═══════════════════════════════
+SEGMENT PREVIEW
+═══════════════════════════════
+When any segment is selected, immediately show:
+- "X recipients match this segment"
+- Update count in real time as segment changes
+- This prevents accidental sends to wrong group
+
+═══════════════════════════════
+LAST ACTIVE TRACKING
+═══════════════════════════════
+To support the inactive segments, make sure the users table has a last_active timestamp column that updates every time a user:
+- Logs in
+- Sends a message
+- Likes a profile
+- Views the discover feed
+
+If last_active column does not exist, add it via migration with default = created_at
+
+═══════════════════════════════
+RECOMMENDED TEMPLATE PAIRINGS
+═══════════════════════════════
+In the admin panel, next to each smart segment, show a suggested template:
+- Inactive 30+ days → "Re-engagement" template
+- Incomplete profiles → "Complete Your Profile" template  
+- No matches yet → "Re-engagement" template
+- Free tier 14+ days → create new "Upgrade nudge" template (see below)
+- New this week → create new "Getting started" template (see below)
+- Waitlist not registered → "Launch Announcement" template
+
+═══════════════════════════════
+TWO NEW TEMPLATES
+═══════════════════════════════
+
+TEMPLATE 6 — Upgrade Nudge (for free tier users)
+Subject: "Unlock the full Dowry.Africa experience 💍"
+
+Header: Dowry.Africa logo on rose/burgundy background
+
+Hero: "You are one step away from real conversations."
+
+Body:
+"Hi [First Name],
+
+You have been part of Dowry.Africa for a while now — and we are glad you are here.
+
+As a free member, you can browse and like profiles. But to truly connect, you need to be able to start conversations.
+
+Upgrading to Core membership unlocks:
+✓ Full messaging with all your matches
+✓ See exactly who liked your profile
+✓ Unlimited matches every day
+
+For just $12.99 a month, you could be having a real conversation with your next match today."
+
+CTA Button: "Upgrade to Core →"
+URL: ${process.env.FRONTEND_URL}/premium
+
+Closing:
+"The right person is waiting.
+
+Warm regards,
+The Dowry.Africa Team"
+
+---
+
+TEMPLATE 7 — Getting Started (for new users)
+Subject: "Welcome to Dowry.Africa — here is how to get started 🌍"
+
+Header: Dowry.Africa logo on rose/burgundy background
+
+Hero: "Your journey starts here."
+
+Body:
+"Hi [First Name],
+
+Welcome to Dowry.Africa. We are so glad you are here.
+
+You have joined a community of Africans and diaspora who are serious about commitment, marriage, and building something real.
+
+Here is how to get the most out of Dowry.Africa:"
+
+Three steps styled as a visual numbered list:
+1. Complete your profile — add a photo, write your bio, set your preferences
+2. Explore Discover — browse profiles matched to your values and intent
+3. Like and connect — when someone likes you back, it's a match
+
+"The more complete your profile, the better your matches will be."
+
+CTA Button: "Complete my profile →"
+URL: ${process.env.FRONTEND_URL}/profile
+
+Closing:
+"We are rooting for you.
+
+Warm regards,
+The Dowry.Africa Team"
+
+Footer: "© 2025 Dowry.Africa — Built for marriage. Not just matches."

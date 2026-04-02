@@ -302,6 +302,9 @@ router.post("/:userId", requireAuth, async (req, res) => {
 
     await db.insert(schema.messages).values(message);
 
+    // Update sender's last_active (fire-and-forget)
+    db.update(schema.users).set({ lastActive: new Date() }).where(eq(schema.users.id, me.id)).catch(() => {});
+
     // Notify the receiver of the new message
     await db.insert(schema.notifications).values({
       id: uuidv4(),

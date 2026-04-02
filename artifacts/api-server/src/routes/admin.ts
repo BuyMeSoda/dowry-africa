@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, sql, and, or, asc, desc, gte, ilike } from "drizzle-orm";
+import { eq, sql, and, or, asc, desc, gte, lt, ilike, isNull } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
@@ -432,6 +432,63 @@ async function getRecipientsForGroup(group: string): Promise<{ email: string; na
       const extra = waitlist.filter(w => !knownEmails.has(w.email)).map(w => ({ email: w.email, name: "" }));
       return [...users, ...extra];
     }
+
+    // ── Smart segments ───────────────────────────────────────────────────────
+    case "inactive_30d":
+      return db.select({ email: schema.users.email, name: schema.users.name })
+        .from(schema.users)
+        .where(lt(schema.users.lastActive, sql`NOW() - INTERVAL '30 days'`));
+
+    case "inactive_14d":
+      return db.select({ email: schema.users.email, name: schema.users.name })
+        .from(schema.users)
+        .where(lt(schema.users.lastActive, sql`NOW() - INTERVAL '14 days'`));
+
+    case "incomplete_profiles":
+      return db.select({ email: schema.users.email, name: schema.users.name })
+        .from(schema.users)
+        .where(or(
+          isNull(schema.users.photoUrl),
+          isNull(schema.users.bio),
+          sql`cardinality(${schema.users.heritage}) = 0`,
+        ));
+
+    case "no_matches": {
+      const result = await db.execute(sql`
+        SELECT u.email, u.name
+        FROM users u
+        WHERE u.id NOT IN (
+          SELECT DISTINCT l1.from_id
+          FROM likes l1
+          INNER JOIN likes l2
+            ON l1.from_id = l2.to_id AND l1.to_id = l2.from_id
+        )
+      `);
+      return (result.rows as { email: string; name: string }[]);
+    }
+
+    case "free_never_upgraded":
+      return db.select({ email: schema.users.email, name: schema.users.name })
+        .from(schema.users)
+        .where(and(
+          eq(schema.users.tier, "free"),
+          lt(schema.users.createdAt, sql`NOW() - INTERVAL '14 days'`),
+        ));
+
+    case "new_this_week":
+      return db.select({ email: schema.users.email, name: schema.users.name })
+        .from(schema.users)
+        .where(gte(schema.users.createdAt, sql`NOW() - INTERVAL '7 days'`));
+
+    case "waitlist_not_registered": {
+      const [waitlist, regUsers] = await Promise.all([
+        db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess),
+        db.select({ email: schema.users.email }).from(schema.users),
+      ]);
+      const registered = new Set(regUsers.map(u => u.email));
+      return waitlist.filter(w => !registered.has(w.email)).map(w => ({ email: w.email, name: "" }));
+    }
+
     default:
       return [];
   }

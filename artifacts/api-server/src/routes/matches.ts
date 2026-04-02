@@ -36,6 +36,9 @@ router.get("/feed", requireAuth, async (req, res) => {
     if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
     const me = toUser(meRow);
 
+    // Update last_active when browsing the discover feed (fire-and-forget)
+    db.update(schema.users).set({ lastActive: new Date() }).where(eq(schema.users.id, me.id)).catch(() => {});
+
     const offset   = Math.max(0, parseInt(req.query.offset as string ?? "0") || 0);
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.limit  as string ?? String(PAGE_SIZE_DEFAULT)) || PAGE_SIZE_DEFAULT));
 
@@ -290,6 +293,9 @@ router.post("/like/:id", requireAuth, async (req, res) => {
     await db.insert(schema.likes)
       .values({ fromId: meRow.id, toId: targetRow.id })
       .onConflictDoNothing();
+
+    // Update last_active when liking a profile (fire-and-forget)
+    db.update(schema.users).set({ lastActive: new Date() }).where(eq(schema.users.id, meRow.id)).catch(() => {});
 
     const reverseCheck = await db
       .select({ fromId: schema.likes.fromId })
