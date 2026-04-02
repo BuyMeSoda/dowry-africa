@@ -4,10 +4,12 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import rateLimit from "express-rate-limit";
+import passport from "passport";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, sanitizeUser, calcCompleteness } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
+import type { User } from "../db/database.js";
 
 const router = Router();
 
@@ -134,6 +136,31 @@ router.post("/login", authRateLimit, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ── Google OAuth ──────────────────────────────────────────────────────────────
+
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] }),
+);
+
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login?error=oauth_failed", session: true }),
+  (req, res) => {
+    const user = req.user as User | undefined;
+    if (!user) {
+      res.redirect("/login?error=oauth_failed");
+      return;
+    }
+
+    const token = makeToken(user.id);
+    const frontendUrl = process.env["FRONTEND_URL"]?.replace(/\/$/, "") ?? "";
+    res.redirect(`${frontendUrl}/auth/callback?token=${encodeURIComponent(token)}`);
+  },
+);
+
+// ── Me ────────────────────────────────────────────────────────────────────────
 
 router.get("/me", requireAuth, async (req, res) => {
   try {

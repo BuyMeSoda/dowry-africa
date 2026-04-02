@@ -1,10 +1,15 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import passport from "passport";
 import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { runMigrations } from "./db/migrate.js";
 import { seedDatabase } from "./db/seed.js";
+import { pool } from "./db/connection.js";
+import "./lib/passport.js";
 
 const app: Express = express();
 
@@ -53,6 +58,31 @@ app.use(
     credentials: false,
   }),
 );
+
+// ── Session store backed by PostgreSQL ───────────────────────────────────────
+const PgSession = connectPgSimple(session);
+
+app.use(
+  session({
+    store: new PgSession({
+      pool,
+      createTableIfMissing: true,
+    }),
+    secret: process.env["SESSION_SECRET"] ?? "changeme-set-SESSION_SECRET",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: process.env["NODE_ENV"] === "production",
+      sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
+    },
+  }),
+);
+
+// ── Passport (must come after session) ───────────────────────────────────────
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Stripe webhook needs the raw body for signature verification — must come before express.json()
 app.use("/api/payments/webhook", express.raw({ type: "*/*" }));
