@@ -146,36 +146,34 @@ router.get(
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login?error=oauth_failed", session: true }),
-  (req, res) => {
-    const user = req.user as User | undefined;
-    if (!user) {
-      res.redirect("/login?error=oauth_failed");
-      return;
-    }
-
-    const token = makeToken(user.id);
-    const frontendUrl = process.env["FRONTEND_URL"]?.replace(/\/$/, "") ?? "";
-    res.redirect(`${frontendUrl}/auth/callback?token=${encodeURIComponent(token)}`);
+  passport.authenticate("google", { failureRedirect: "/login", session: true }),
+  (_req, res) => {
+    res.redirect("/dashboard");
   },
 );
 
-// ── Me ────────────────────────────────────────────────────────────────────────
+// ── Current session user ──────────────────────────────────────────────────────
 
-router.get("/me", requireAuth, async (req, res) => {
-  try {
-    const [row] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, req.userId!))
-      .limit(1);
-
-    if (!row) { res.status(404).json({ error: "Not found" }); return; }
-    res.json(sanitizeUser(toUser(row)));
-  } catch (err) {
-    req.log.error(err, "Get me error");
-    res.status(500).json({ error: "Internal server error" });
+router.get("/me", (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
   }
+  res.json(sanitizeUser(req.user as User));
+});
+
+// ── Logout ────────────────────────────────────────────────────────────────────
+
+router.get("/logout", (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      req.log.error(err, "Logout error");
+    }
+    req.session.destroy(() => {
+      res.clearCookie("connect.sid");
+      res.redirect("/");
+    });
+  });
 });
 
 export default router;
