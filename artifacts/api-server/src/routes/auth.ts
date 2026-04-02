@@ -4,12 +4,10 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import rateLimit from "express-rate-limit";
-import passport from "passport";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, sanitizeUser, calcCompleteness } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
-import type { User } from "../db/database.js";
 
 const router = Router();
 
@@ -137,43 +135,20 @@ router.post("/login", authRateLimit, async (req, res) => {
   }
 });
 
-// ── Google OAuth ──────────────────────────────────────────────────────────────
+router.get("/me", requireAuth, async (req, res) => {
+  try {
+    const [row] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
 
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] }),
-);
-
-router.get(
-  "/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login", session: true }),
-  (_req, res) => {
-    res.redirect("/dashboard");
-  },
-);
-
-// ── Current session user ──────────────────────────────────────────────────────
-
-router.get("/me", (req, res) => {
-  if (!req.isAuthenticated() || !req.user) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
+    if (!row) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(sanitizeUser(toUser(row)));
+  } catch (err) {
+    req.log.error(err, "Get me error");
+    res.status(500).json({ error: "Internal server error" });
   }
-  res.json(sanitizeUser(req.user as User));
-});
-
-// ── Logout ────────────────────────────────────────────────────────────────────
-
-router.get("/logout", (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      req.log.error(err, "Logout error");
-    }
-    req.session.destroy(() => {
-      res.clearCookie("connect.sid");
-      res.redirect("/");
-    });
-  });
 });
 
 export default router;

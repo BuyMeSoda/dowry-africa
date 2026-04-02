@@ -161,8 +161,6 @@ export async function runMigrations(): Promise<void> {
         ('What''s your vision of marriage in 5 years?', TRUE, 10)
       ) AS v(prompt_text, is_active, display_order)
       WHERE NOT EXISTS (SELECT 1 FROM message_prompts LIMIT 1);
-
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
     `);
   } finally {
     client.release();
