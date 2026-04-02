@@ -156,6 +156,12 @@ export default function Messages() {
   const [confirmBlock, setConfirmBlock] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // ── Scroll refs ───────────────────────────────────────────────────────────
+  const bottomRef           = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef     = useRef(true);
+  const justSentRef         = useRef(false);
+
   // ── Liked You (received) ─────────────────────────────────────────────────
   const { data: likedMeData, isLoading: likedMeLoading, refetch: refetchLikedMe } = useGetLikedMe({ query: { refetchInterval: 30_000 } });
   const likeMutation = useLikeUser();
@@ -200,12 +206,40 @@ export default function Messages() {
 
   useEffect(() => { setShowHeaderMenu(false); }, [activeUserId]);
 
+  // Attach a passive scroll listener to track whether the user is near the bottom
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const onScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+    };
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // When conversation changes, assume user is at the bottom so the first load auto-scrolls
+  useEffect(() => {
+    isNearBottomRef.current = true;
+    justSentRef.current = false;
+  }, [activeUserId]);
+
+  // Auto-scroll when localMsgs change: always if the user just sent, otherwise only if near bottom
+  useEffect(() => {
+    if (!localMsgs.length) return;
+    if (justSentRef.current || isNearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      justSentRef.current = false;
+    }
+  }, [localMsgs]);
+
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !activeUserId) return;
     const newText = text;
     setText("");
+    justSentRef.current = true;
     const tempId = Date.now().toString();
     setLocalMsgs(prev => [...prev, { id: tempId, text: newText, fromId: user?.id, createdAt: new Date().toISOString() }]);
     sendMutation.mutate({ userId: activeUserId, data: { text: newText } }, {
@@ -617,7 +651,7 @@ export default function Messages() {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6 bg-secondary/5">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6 bg-secondary/5">
                 {msgsLoading ? (
                   <div className="text-center text-muted-foreground mt-10">Loading messages...</div>
                 ) : localMsgs.length === 0 ? (
@@ -643,6 +677,7 @@ export default function Messages() {
                     );
                   })
                 )}
+                <div ref={bottomRef} />
               </div>
 
               {/* Guided Prompts */}
