@@ -1,0 +1,122 @@
+Please update the admin panel authentication to require both email and password, and add the ability to manage admin accounts.
+
+═══════════════════════════════
+1. ADMIN LOGIN — ADD EMAIL FIELD
+═══════════════════════════════
+Update the admin login page (/admin/login):
+
+Currently it only asks for a password. Change it to ask for:
+- Email address input
+- Password input (with show/hide toggle)
+- "Sign in to Admin" button
+
+Default admin credentials:
+- Email: hello@dowry.africa
+- Password: the existing ADMIN_SECRET value
+
+Update the backend admin authentication to validate BOTH email and password:
+- Store admin accounts in a new admin_users table (not the regular users table)
+- Default admin: hello@dowry.africa with password hashed from ADMIN_SECRET
+- On first startup, if no admin accounts exist, create the default admin automatically
+- Return a separate admin JWT token (different from user JWT)
+
+═══════════════════════════════
+2. ADMIN USERS TABLE
+═══════════════════════════════
+Create admin_users table:
+- id
+- email (unique)
+- password (bcrypt hashed)
+- name (text)
+- role (text: 'super_admin' or 'admin')
+- is_active (boolean, default true)
+- created_at
+- last_login
+
+Super admin: hello@dowry.africa — cannot be deleted, cannot be deactivated
+
+═══════════════════════════════
+3. ADMIN MANAGEMENT SECTION
+═══════════════════════════════
+Add a new "Admin Access" section to the admin panel sidebar (visible to super_admin only).
+
+This section allows the super admin to:
+
+ADD NEW ADMIN:
+- Form with: Name, Email, Temporary password
+- Role selector: Admin
+- Note: new admins are NOT platform users — they only have admin panel access
+- Send welcome email to new admin with their credentials and login link
+- "Add admin" button
+
+ADMIN LIST:
+- Table showing all admin accounts:
+  * Name
+  * Email
+  * Role (Super Admin / Admin)
+  * Status (Active / Inactive)
+  * Last login date
+  * Actions: Deactivate / Reset password / Remove
+
+PERMISSIONS:
+Super Admin (hello@dowry.africa):
+- Can access everything
+- Can add/remove other admins
+- Cannot be deleted or deactivated
+- Only one super admin
+
+Admin:
+- Can access: Dashboard, Users, Subscriptions, Activity, Moderation, Message Prompts, Communications, Settings
+- Cannot access: Admin Access section
+- Cannot delete other admins
+
+═══════════════════════════════
+4. ADMIN SESSION
+═══════════════════════════════
+- Admin JWT token expires after 24 hours
+- Show logged in admin email in the top left of admin panel
+- Show "Sign out" button
+- On sign out: clear admin token and redirect to /admin/login
+
+═══════════════════════════════
+5. WELCOME EMAIL FOR NEW ADMIN
+═══════════════════════════════
+When a new admin is added, send them a welcome email via Resend:
+
+Subject: "You have been granted admin access to Dowry.Africa"
+
+Body (premium HTML template):
+- Dowry.Africa logo on rose/burgundy header
+- "Hi [Name],"
+- "You have been granted admin access to the Dowry.Africa platform."
+- "Here are your login credentials:"
+- Email: [their email]
+- Temporary password: [their temp password]
+- "Please log in and change your password immediately."
+- CTA Button: "Log in to Admin Panel →"
+- URL: ${process.env.FRONTEND_URL}/admin/login
+- "If you did not expect this email, please contact hello@dowry.africa immediately."
+- Footer
+
+═══════════════════════════════
+6. PASSWORD RESET FOR ADMINS
+═══════════════════════════════
+On the admin login page add "Forgot password?" link.
+
+Admin password reset flow:
+- Enter email
+- Receive reset email via Resend
+- Click link → set new password
+- Same password strength requirements as platform users
+
+═══════════════════════════════
+7. ENVIRONMENT VARIABLES
+═══════════════════════════════
+Add:
+- ADMIN_EMAIL = hello@dowry.africa
+- ADMIN_SECRET remains as the default super admin password
+
+On first startup:
+- Check if admin_users table is empty
+- If empty: create super admin with email = ADMIN_EMAIL and password = bcrypt(ADMIN_SECRET)
+- This means existing Railway setup works without any manual steps

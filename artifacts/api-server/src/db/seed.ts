@@ -1,6 +1,7 @@
+import bcrypt from "bcryptjs";
 import { db } from "./connection.js";
 import * as schema from "./schema.js";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 
 // All demo user IDs — kept stable so messages/notifications stay linked
 const DEMO_IDS = [
@@ -347,5 +348,30 @@ export async function seedDatabase(): Promise<void> {
   const existingCount = await db.select({ count: sql<number>`count(*)::int` }).from(schema.messagePrompts);
   if ((existingCount[0]?.count ?? 0) === 0) {
     await db.insert(schema.messagePrompts).values(defaultPrompts);
+  }
+
+  // ── Seed default super admin ─────────────────────────────────────────────
+  const adminEmail = (process.env["ADMIN_EMAIL"] ?? "hello@dowry.africa").toLowerCase();
+  const adminSecret = process.env["ADMIN_SECRET"];
+
+  if (adminSecret) {
+    const [existing] = await db
+      .select({ id: schema.adminUsers.id })
+      .from(schema.adminUsers)
+      .where(eq(schema.adminUsers.email, adminEmail))
+      .limit(1);
+
+    if (!existing) {
+      const passwordHash = await bcrypt.hash(adminSecret, 12);
+      await db.insert(schema.adminUsers).values({
+        id: "super-admin-0000-0000-000000000001",
+        email: adminEmail,
+        passwordHash,
+        name: "Super Admin",
+        role: "super_admin",
+        isActive: true,
+        createdAt: new Date(),
+      });
+    }
   }
 }

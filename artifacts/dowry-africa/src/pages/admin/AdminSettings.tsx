@@ -119,9 +119,10 @@ export default function AdminSettings() {
   };
 
   const exportCSV = async () => {
-    const adminSecret = sessionStorage.getItem("da_admin_secret") ?? "";
+    const { getAdminToken } = await import("@/lib/admin");
+    const token = getAdminToken();
     const res = await fetch(`${API_BASE}/api/early-access/export`, {
-      headers: { "x-admin-secret": adminSecret },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return;
     const blob = await res.blob();

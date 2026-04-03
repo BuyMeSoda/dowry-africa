@@ -137,7 +137,8 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_SECRET` | Random 64-char secret for signing JWTs |
-| `ADMIN_SECRET` | Password for the `/admin` panel |
+| `ADMIN_SECRET` | Initial password hashed for the seeded super admin (hello@dowry.africa or ADMIN_EMAIL) |
+| `ADMIN_EMAIL` | Email for the seeded super admin (defaults to hello@dowry.africa) |
 | `SESSION_SECRET` | Session signing secret |
 | `NODE_ENV` | Set to `production` |
 

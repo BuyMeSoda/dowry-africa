@@ -327,16 +327,6 @@ router.patch("/settings", async (req, res) => {
   }
 });
 
-router.post("/login", (req, res) => {
-  const { password } = req.body as { password: string };
-  const adminSecret = process.env["ADMIN_SECRET"];
-  if (!adminSecret || password !== adminSecret) {
-    res.status(401).json({ error: "Invalid password" });
-    return;
-  }
-  res.json({ success: true });
-});
-
 // ── Message Prompts ─────────────────────────────────────────────────────────
 
 router.get("/prompts", async (_req, res) => {

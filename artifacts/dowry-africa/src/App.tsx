@@ -27,6 +27,9 @@ import AdminModeration from "@/pages/admin/AdminModeration";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminPrompts from "@/pages/admin/AdminPrompts";
 import AdminCommunications from "@/pages/admin/AdminCommunications";
+import AdminAccess from "@/pages/admin/AdminAccess";
+import AdminForgotPassword from "@/pages/admin/AdminForgotPassword";
+import AdminResetPassword from "@/pages/admin/AdminResetPassword";
 import UserProfileView from "@/pages/UserProfileView";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -103,6 +106,9 @@ function Router() {
 
         {/* Admin routes — use their own auth */}
         <Route path="/admin/login" component={AdminLogin} />
+        <Route path="/admin/forgot-password" component={AdminForgotPassword} />
+        <Route path="/admin/reset-password" component={AdminResetPassword} />
+        <Route path="/admin/access" component={AdminAccess} />
         <Route path="/admin/users" component={AdminUsers} />
         <Route path="/admin/subscriptions" component={AdminSubscriptions} />
         <Route path="/admin/activity" component={AdminActivity} />

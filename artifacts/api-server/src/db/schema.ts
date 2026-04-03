@@ -45,6 +45,19 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
 });
 
+export const adminUsers = pgTable("admin_users", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  name: text("name").notNull(),
+  role: text("role").notNull().default("admin"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  lastLogin: timestamp("last_login", { withTimezone: true }),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
+});
+
 export const earlyAccess = pgTable("early_access", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),

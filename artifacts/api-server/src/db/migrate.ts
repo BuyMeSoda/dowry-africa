@@ -181,6 +181,20 @@ export async function runMigrations(): Promise<void> {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ;
 
+      -- Admin users table
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'admin',
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        last_login TIMESTAMPTZ,
+        reset_token TEXT,
+        reset_token_expiry TIMESTAMPTZ
+      );
+
       -- Broadcast logs (history of sent broadcasts)
       CREATE TABLE IF NOT EXISTS broadcast_logs (
         id TEXT PRIMARY KEY,

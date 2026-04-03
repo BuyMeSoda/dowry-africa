@@ -174,6 +174,92 @@ export async function sendPasswordResetEmail(
   });
 }
 
+export async function sendAdminWelcomeEmail(
+  to: string,
+  name: string,
+  tempPassword: string,
+  loginUrl: string,
+): Promise<void> {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="${baseStyle}">
+  <div style="${containerStyle}">
+    <div style="${headerStyle}">
+      <p style="${logoTextStyle}">Dowry.Africa</p>
+    </div>
+    <div style="${bodyStyle}">
+      <h2 style="${h2Style}">Admin access granted</h2>
+      <p style="${pStyle}">Hi ${name},</p>
+      <p style="${pStyle}">
+        You have been granted admin access to the <strong>Dowry.Africa</strong> platform. Here are your login credentials:
+      </p>
+      <div style="${previewBoxStyle}">
+        <strong>Email:</strong> ${to}<br />
+        <strong>Temporary password:</strong> ${tempPassword}
+      </div>
+      <p style="${pStyle}">Please log in and change your password immediately.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${loginUrl}" style="${buttonStyle}">Log in to Admin Panel &rarr;</a>
+      </div>
+      <p style="${pStyle}">If you did not expect this email, please contact <a href="mailto:hello@dowry.africa">hello@dowry.africa</a> immediately.</p>
+    </div>
+    <div style="${footerStyle}">
+      &copy; ${new Date().getFullYear()} Dowry.Africa &nbsp;&middot;&nbsp; Built for marriage. Not just matches.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "You have been granted admin access to Dowry.Africa",
+    html,
+  });
+}
+
+export async function sendAdminPasswordResetEmail(
+  to: string,
+  name: string,
+  resetLink: string,
+): Promise<void> {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="${baseStyle}">
+  <div style="${containerStyle}">
+    <div style="${headerStyle}">
+      <p style="${logoTextStyle}">Dowry.Africa</p>
+    </div>
+    <div style="${bodyStyle}">
+      <h2 style="${h2Style}">Admin password reset</h2>
+      <p style="${pStyle}">Hi ${name},</p>
+      <p style="${pStyle}">
+        You requested a password reset for your Dowry.Africa admin account. Click below to set a new password. This link expires in <strong>1 hour</strong>.
+      </p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${resetLink}" style="${buttonStyle}">Reset admin password &rarr;</a>
+      </div>
+      <p style="${pStyle}">If you did not request this, ignore this email — your password will not change.</p>
+    </div>
+    <div style="${footerStyle}">
+      &copy; ${new Date().getFullYear()} Dowry.Africa &nbsp;&middot;&nbsp; Built for marriage. Not just matches.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "Reset your Dowry.Africa admin password",
+    html,
+  });
+}
+
 export async function sendMessageNotificationEmail(
   to: string,
   name: string,

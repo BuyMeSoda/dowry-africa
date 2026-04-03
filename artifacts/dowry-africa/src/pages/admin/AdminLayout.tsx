@@ -1,42 +1,48 @@
 import { useLocation, Link } from "wouter";
 import { useEffect } from "react";
-import { isAdminLoggedIn, clearAdminSecret } from "@/lib/admin";
+import { isAdminLoggedIn, clearAdminSession, getAdminUser } from "@/lib/admin";
 import { SeriousBadgeIcon } from "@/components/ui/SeriousBadgeIcon";
 import {
   LayoutDashboard, Users, CreditCard,
-  Activity, ShieldAlert, Settings, LogOut, MessageSquare, Mail
+  Activity, ShieldAlert, Settings, LogOut, MessageSquare, Mail, ShieldCheck
 } from "lucide-react";
 
-const NAV = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { label: "Users", icon: Users, href: "/admin/users" },
-  { label: "Subscriptions", icon: CreditCard, href: "/admin/subscriptions" },
-  { label: "Activity", icon: Activity, href: "/admin/activity" },
-  { label: "Moderation", icon: ShieldAlert, href: "/admin/moderation" },
-  { label: "Message Prompts", icon: MessageSquare, href: "/admin/prompts" },
-  { label: "Communications", icon: Mail, href: "/admin/communications" },
-  { label: "Settings", icon: Settings, href: "/admin/settings" },
+const BASE_NAV = [
+  { label: "Dashboard",       icon: LayoutDashboard, href: "/admin" },
+  { label: "Users",           icon: Users,            href: "/admin/users" },
+  { label: "Subscriptions",   icon: CreditCard,       href: "/admin/subscriptions" },
+  { label: "Activity",        icon: Activity,         href: "/admin/activity" },
+  { label: "Moderation",      icon: ShieldAlert,      href: "/admin/moderation" },
+  { label: "Message Prompts", icon: MessageSquare,    href: "/admin/prompts" },
+  { label: "Communications",  icon: Mail,             href: "/admin/communications" },
+  { label: "Settings",        icon: Settings,         href: "/admin/settings" },
+];
+
+const SUPER_ADMIN_NAV = [
+  { label: "Admin Access", icon: ShieldCheck, href: "/admin/access" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const loggedIn = isAdminLoggedIn();
+  const adminUser = getAdminUser();
+  const isSuperAdmin = adminUser?.role === "super_admin";
 
-  // Redirect on session expiry during navigation
   useEffect(() => {
     if (!isAdminLoggedIn()) {
       setLocation("/admin/login");
     }
   }, [location]);
 
-  // Render nothing and redirect immediately if not authenticated
   if (!loggedIn) {
     setLocation("/admin/login");
     return null;
   }
 
+  const nav = isSuperAdmin ? [...BASE_NAV, ...SUPER_ADMIN_NAV] : BASE_NAV;
+
   const handleLogout = () => {
-    clearAdminSecret();
+    clearAdminSession();
     setLocation("/admin/login");
   };
 
@@ -44,17 +50,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-gray-950 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0">
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <SeriousBadgeIcon size={28} />
+        <div className="p-5 border-b border-gray-800">
+          <div className="flex items-center gap-3 mb-3">
+            <SeriousBadgeIcon size={24} />
             <div>
               <p className="text-white font-bold text-sm">Dowry.Africa</p>
-              <p className="text-gray-400 text-xs">Admin Panel</p>
+              <p className="text-gray-500 text-xs">Admin Panel</p>
             </div>
           </div>
+          {adminUser && (
+            <div className="mt-2 px-2 py-2 bg-gray-800/60 rounded-lg">
+              <p className="text-white text-xs font-semibold truncate">{adminUser.name}</p>
+              <p className="text-gray-400 text-xs truncate">{adminUser.email}</p>
+              <span className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                isSuperAdmin
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-gray-700 text-gray-400"
+              }`}>
+                {isSuperAdmin ? "Super Admin" : "Admin"}
+              </span>
+            </div>
+          )}
         </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {NAV.map(({ label, icon: Icon, href }) => {
+
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {nav.map(({ label, icon: Icon, href }) => {
             const active = location === href || (href !== "/admin" && location.startsWith(href));
             return (
               <Link
@@ -72,6 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
+
         <div className="p-4 border-t border-gray-800">
           <button
             onClick={handleLogout}
@@ -82,6 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </aside>
+
       {/* Main content */}
       <main className="flex-1 overflow-auto">
         {children}
