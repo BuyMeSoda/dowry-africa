@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { useAuth } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { ALL_COUNTRIES, COUNTRY_GROUPS } from "@/lib/country-options";
+import { COUNTRY_GROUPS } from "@/lib/country-options";
+import { CountryMultiSelect } from "@/components/ui/CountryMultiSelect";
 import { ChevronRight, Loader2, Camera } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
@@ -44,17 +45,6 @@ export default function Onboarding() {
         setLocation("/discover");
       }
     });
-  };
-
-  const heritages = ALL_COUNTRIES;
-
-  const toggleHeritage = (h: string) => {
-    setFormData(prev => ({
-      ...prev,
-      heritage: prev.heritage.includes(h)
-        ? prev.heritage.filter(x => x !== h)
-        : [...prev.heritage, h]
-    }));
   };
 
   return (
@@ -100,17 +90,18 @@ export default function Onboarding() {
                 <div className="mt-8 space-y-6">
                   <div>
                     <label className="block font-medium mb-3">Country of origin</label>
-                    <div className="flex flex-wrap gap-2">
-                      {heritages.map(h => (
-                        <button
-                          key={h}
-                          onClick={() => toggleHeritage(h)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${formData.heritage.includes(h) ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-foreground hover:bg-secondary border-border'}`}
-                        >
-                          {h}
-                        </button>
-                      ))}
-                    </div>
+                    <CountryMultiSelect
+                      selected={formData.heritage}
+                      onChange={heritage => setFormData(prev => ({ ...prev, heritage }))}
+                      placeholder="Select countries of origin…"
+                    />
+                    {formData.heritage.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {formData.heritage.map(h => (
+                          <span key={h} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">{h}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block font-medium mb-2">Faith</label>
