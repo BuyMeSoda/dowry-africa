@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { useAuth } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { ALL_COUNTRIES } from "@/lib/country-options";
+import { ALL_COUNTRIES, COUNTRY_GROUPS } from "@/lib/country-options";
 import { ChevronRight, Loader2, Camera } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
@@ -148,14 +148,21 @@ export default function Onboarding() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-foreground/80">Country</label>
-                      <input
-                        type="text"
+                      <label className="block text-sm font-medium mb-2 text-foreground/80">Country of residence</label>
+                      <select
                         value={formData.country}
                         onChange={e => setFormData({...formData, country: e.target.value})}
                         className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        placeholder="e.g. UK"
-                      />
+                      >
+                        <option value="">Select country…</option>
+                        {COUNTRY_GROUPS.map(group => (
+                          <optgroup key={group.group} label={group.group}>
+                            {group.options.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div>
