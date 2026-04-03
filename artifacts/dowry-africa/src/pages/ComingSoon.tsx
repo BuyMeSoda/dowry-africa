@@ -189,7 +189,7 @@ export default function ComingSoon() {
             <span className="text-sm font-medium">Instagram</span>
           </a>
           <a
-            href="https://tiktok.com/@dowry.africa"
+            href="https://tiktok.com/@dowryafrica"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
