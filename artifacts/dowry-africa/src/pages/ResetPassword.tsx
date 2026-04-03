@@ -2,20 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { API_BASE } from "@/lib/api-url";
-
-function getStrength(pw: string): { label: string; color: string; width: string } {
-  if (pw.length === 0) return { label: "", color: "", width: "0%" };
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { label: "Weak", color: "bg-red-400", width: "25%" };
-  if (score <= 2) return { label: "Fair", color: "bg-amber-400", width: "50%" };
-  if (score <= 3) return { label: "Good", color: "bg-yellow-400", width: "70%" };
-  return { label: "Strong", color: "bg-emerald-500", width: "100%" };
-}
+import { PasswordRequirements, evaluatePassword } from "@/components/auth/PasswordRequirements";
 
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
@@ -36,14 +23,14 @@ export default function ResetPassword() {
     else setInvalidToken(true);
   }, []);
 
-  const strength = getStrength(password);
+  const { allMet } = evaluatePassword(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (!allMet) {
+      setError("Password does not meet requirements. Please check the requirements below.");
       return;
     }
     if (password !== confirm) {
@@ -126,9 +113,9 @@ export default function ResetPassword() {
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { setPassword(e.target.value); setError(""); }}
                 className="w-full px-4 py-3 pr-12 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                placeholder="At least 8 characters"
+                placeholder="Create a strong password"
                 required
                 autoFocus
               />
@@ -142,16 +129,7 @@ export default function ResetPassword() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {password.length > 0 && (
-              <div className="mt-2 space-y-1">
-                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-300 ${strength.color}`} style={{ width: strength.width }} />
-                </div>
-                <p className={`text-xs font-medium ${strength.color.replace("bg-", "text-").replace("-400", "-600").replace("-500", "-600")}`}>
-                  {strength.label}
-                </p>
-              </div>
-            )}
+            <PasswordRequirements password={password} />
           </div>
 
           <div>
@@ -160,7 +138,7 @@ export default function ResetPassword() {
               <input
                 type={showConfirm ? "text" : "password"}
                 value={confirm}
-                onChange={e => setConfirm(e.target.value)}
+                onChange={e => { setConfirm(e.target.value); setError(""); }}
                 className={`w-full px-4 py-3 pr-12 rounded-xl bg-secondary/50 border focus:outline-none focus:ring-4 transition-all ${
                   confirm.length > 0 && confirm !== password
                     ? "border-destructive focus:border-destructive focus:ring-destructive/10"
@@ -188,7 +166,7 @@ export default function ResetPassword() {
 
           <button
             type="submit"
-            disabled={loading || password !== confirm || password.length < 8}
+            disabled={loading || password !== confirm || !allMet}
             className="w-full py-3.5 bg-primary text-white rounded-xl font-semibold shadow-lg shadow-primary/25 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-70 disabled:transform-none flex justify-center items-center"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Update password"}

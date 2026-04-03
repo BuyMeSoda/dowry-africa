@@ -5,6 +5,7 @@ import { useRegister, type RegisterRequestGender } from "@workspace/api-client-r
 import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/layout/Navbar";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { PasswordRequirements, evaluatePassword } from "@/components/auth/PasswordRequirements";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export default function Register() {
     birthYear: 1995
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [pwError, setPwError] = useState("");
   
   const { login: setAuthToken } = useAuth();
   const [, setLocation] = useLocation();
@@ -37,8 +39,15 @@ export default function Register() {
     }
   });
 
+  const { allMet } = evaluatePassword(formData.password);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!allMet) {
+      setPwError("Password does not meet requirements. Please check the requirements below.");
+      return;
+    }
+    setPwError("");
     registerMutation.mutate({ data: formData });
   };
 
@@ -105,7 +114,7 @@ export default function Register() {
                 <input 
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={e => setFormData({...formData, password: e.target.value})}
+                  onChange={e => { setFormData({...formData, password: e.target.value}); setPwError(""); }}
                   className="w-full px-4 py-3 pr-12 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                   required
                 />
@@ -119,6 +128,10 @@ export default function Register() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <PasswordRequirements password={formData.password} />
+              {pwError && (
+                <p className="mt-2 text-xs text-destructive">{pwError}</p>
+              )}
             </div>
             
             <button 

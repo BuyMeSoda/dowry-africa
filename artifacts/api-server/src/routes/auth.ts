@@ -28,12 +28,28 @@ function makeToken(userId: string) {
   return jwt.sign({ userId }, secret, { expiresIn: "7d" });
 }
 
+function validatePasswordStrength(password: string): string | null {
+  if (password.length < 8)              return "Password must be at least 8 characters.";
+  if (!/[A-Z]/.test(password))          return "Password must contain at least one uppercase letter.";
+  if (!/[a-z]/.test(password))          return "Password must contain at least one lowercase letter.";
+  if (!/[0-9]/.test(password))          return "Password must contain at least one number.";
+  if (!/[!@#$%^&*()\-_=+\[\]{}|;:,.<>?]/.test(password))
+                                         return "Password must contain at least one special character.";
+  return null;
+}
+
 router.post("/register", authRateLimit, async (req, res) => {
   try {
     const { email, password, name, gender, birthYear } = req.body;
 
     if (!email || !password || !name || !gender || !birthYear) {
       res.status(400).json({ error: "Missing required fields" });
+      return;
+    }
+
+    const pwError = validatePasswordStrength(password);
+    if (pwError) {
+      res.status(400).json({ error: pwError });
       return;
     }
 
@@ -203,8 +219,9 @@ router.post("/reset-password", async (req, res) => {
       return;
     }
 
-    if (newPassword.length < 8) {
-      res.status(400).json({ error: "Password must be at least 8 characters" });
+    const pwError = validatePasswordStrength(newPassword);
+    if (pwError) {
+      res.status(400).json({ error: pwError });
       return;
     }
 
