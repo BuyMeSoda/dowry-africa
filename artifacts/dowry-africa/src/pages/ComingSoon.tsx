@@ -180,7 +180,7 @@ export default function ComingSoon() {
         {/* Social links */}
         <div className="flex items-center justify-center gap-6">
           <a
-            href="https://instagram.com/dowry.africa"
+            href="https://instagram.com/dowryafrica"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
