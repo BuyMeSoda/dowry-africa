@@ -161,6 +161,37 @@ export async function runMigrations(): Promise<void> {
         ('What''s your vision of marriage in 5 years?', TRUE, 10)
       ) AS v(prompt_text, is_active, display_order)
       WHERE NOT EXISTS (SELECT 1 FROM message_prompts LIMIT 1);
+
+      -- Email verification columns (added after initial schema)
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT;
+
+      -- Email templates (saved broadcast templates)
+      CREATE TABLE IF NOT EXISTS email_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        body TEXT NOT NULL,
+        cta_label TEXT,
+        cta_url TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      -- Broadcast logs (history of sent broadcasts)
+      CREATE TABLE IF NOT EXISTS broadcast_logs (
+        id TEXT PRIMARY KEY,
+        subject TEXT NOT NULL,
+        body TEXT NOT NULL,
+        recipient_group TEXT NOT NULL,
+        recipient_count INTEGER NOT NULL DEFAULT 0,
+        sent_count INTEGER NOT NULL DEFAULT 0,
+        failed_count INTEGER NOT NULL DEFAULT 0,
+        sent_by TEXT NOT NULL DEFAULT 'admin',
+        status TEXT NOT NULL DEFAULT 'sent',
+        cta_label TEXT,
+        cta_url TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `);
   } finally {
     client.release();
