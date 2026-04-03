@@ -41,6 +41,8 @@ export const users = pgTable("users", {
   accountStatus: text("account_status").notNull().default("active"),
   emailVerified: boolean("email_verified").notNull().default(false),
   verificationToken: text("verification_token"),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
 });
 
 export const earlyAccess = pgTable("early_access", {

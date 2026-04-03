@@ -1,0 +1,76 @@
+Please add two things to the login page and also fix the forgot password flow:
+
+1. SHOW/HIDE PASSWORD TOGGLE
+On the login page password field:
+- Add an eye icon on the right side of the password input
+- When clicked: toggles between showing and hiding the password
+- Eye open icon = password visible (plain text)
+- Eye closed/slash icon = password hidden (dots)
+- Same toggle should be on the registration/signup page
+- Same toggle should be on the reset password page (both new password and confirm password fields)
+- Use a subtle gray eye icon that matches the input field style
+
+2. FORGOT PASSWORD LINK
+On the login page, below the password field add:
+- "Forgot password?" as a small clickable link
+- Right-aligned below the password input
+- Clicking navigates to /forgot-password page
+
+3. FORGOT PASSWORD PAGE (/forgot-password)
+Create this page with:
+- Dowry.Africa logo at top
+- Heading: "Reset your password"
+- Subtext: "Enter your email address and we will send you a reset link"
+- Email input field
+- "Send reset link" button (rose/burgundy, full width)
+- "Back to login" link below the button
+- On submit: call POST /api/auth/forgot-password
+- Always show success message regardless of whether email exists:
+  "If an account exists with this email, you will receive a reset link shortly. Check your inbox."
+- Loading state on button while sending
+
+4. RESET PASSWORD PAGE (/reset-password)
+Create this page with:
+- Dowry.Africa logo at top
+- Heading: "Set a new password"
+- Subtext: "Choose a strong password for your account"
+- New password input with show/hide toggle
+- Confirm password input with show/hide toggle
+- Password strength indicator (weak/medium/strong)
+- "Update password" button
+- Validation:
+  * Passwords must match
+  * Minimum 8 characters
+  * Show inline error messages
+- On success: "Password updated successfully!" → redirect to /login after 2 seconds
+- On invalid/expired token: "This link is invalid or has expired" + link to /forgot-password
+
+5. BACKEND (if not already implemented)
+- POST /api/auth/forgot-password
+  * Find user by email
+  * Generate secure token: crypto.randomBytes(32).toString('hex')
+  * Store token + expiry (1 hour) in database
+  * Send reset email via Resend with link: ${process.env.FRONTEND_URL}/reset-password?token=TOKEN
+  * Always return same success message
+
+- POST /api/auth/reset-password
+  * Body: { token, newPassword }
+  * Validate token exists and not expired
+  * Validate password minimum 8 characters
+  * Hash with bcrypt
+  * Update password
+  * Clear token and expiry
+  * Return success
+
+6. RESET EMAIL (via Resend)
+Subject: "Reset your Dowry.Africa password"
+Use the premium HTML email template design:
+- Dowry.Africa logo on rose/burgundy header
+- "You requested a password reset"
+- "Click below to reset your password. This link expires in 1 hour."
+- CTA Button: "Reset my password →"
+- URL: ${process.env.FRONTEND_URL}/reset-password?token=TOKEN
+- "If you did not request this, ignore this email — your password will not change"
+- Footer: "© Dowry.Africa — Built for marriage. Not just matches."
+
+Do not change anything else on the login page design.

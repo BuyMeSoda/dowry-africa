@@ -9,7 +9,7 @@ import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, sanitizeUser, calcCompleteness } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
-import { sendVerificationEmail } from "../lib/email.js";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email.js";
 
 const APP_BASE = "https://workspacedowry-africa-production.up.railway.app";
 
@@ -146,6 +146,89 @@ router.post("/login", authRateLimit, async (req, res) => {
     res.json({ token, user: sanitizeUser(user) });
   } catch (err) {
     req.log.error(err, "Login error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/forgot-password", authRateLimit, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ error: "Email required" });
+      return;
+    }
+
+    const successMsg = { message: "If an account exists with this email, you will receive a reset link shortly. Check your inbox." };
+
+    const [row] = await db
+      .select({ id: schema.users.id, name: schema.users.name, email: schema.users.email })
+      .from(schema.users)
+      .where(eq(schema.users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (!row) {
+      // Always return success to prevent email enumeration
+      res.json(successMsg);
+      return;
+    }
+
+    const resetToken = randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await db
+      .update(schema.users)
+      .set({ resetToken, resetTokenExpiry })
+      .where(eq(schema.users.id, row.id));
+
+    const frontendUrl = process.env["FRONTEND_URL"] ?? "https://dowry.africa";
+    const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    sendPasswordResetEmail(row.email, row.name, resetLink).catch(
+      (err) => req.log.warn(err, "Password reset email failed to send"),
+    );
+
+    res.json(successMsg);
+  } catch (err) {
+    req.log.error(err, "Forgot password error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      res.status(400).json({ error: "Token and new password required" });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({ error: "Password must be at least 8 characters" });
+      return;
+    }
+
+    const [row] = await db
+      .select({ id: schema.users.id, resetToken: schema.users.resetToken, resetTokenExpiry: schema.users.resetTokenExpiry })
+      .from(schema.users)
+      .where(eq(schema.users.resetToken, token))
+      .limit(1);
+
+    if (!row || !row.resetTokenExpiry || row.resetTokenExpiry < new Date()) {
+      res.status(400).json({ error: "This link is invalid or has expired." });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await db
+      .update(schema.users)
+      .set({ passwordHash, resetToken: null, resetTokenExpiry: null })
+      .where(eq(schema.users.id, row.id));
+
+    res.json({ message: "Password updated successfully." });
+  } catch (err) {
+    req.log.error(err, "Reset password error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

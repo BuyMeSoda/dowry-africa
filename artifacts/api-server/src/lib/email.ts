@@ -131,6 +131,49 @@ export async function sendVerificationEmail(
   });
 }
 
+export async function sendPasswordResetEmail(
+  to: string,
+  name: string,
+  resetLink: string,
+): Promise<void> {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="${baseStyle}">
+  <div style="${containerStyle}">
+    <div style="${headerStyle}">
+      <p style="${logoTextStyle}">Dowry.Africa</p>
+    </div>
+    <div style="${bodyStyle}">
+      <h2 style="${h2Style}">Password reset request</h2>
+      <p style="${pStyle}">Hi ${name},</p>
+      <p style="${pStyle}">
+        You requested a password reset for your Dowry.Africa account. Click the button below to choose a new password.
+        This link expires in <strong>1 hour</strong>.
+      </p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${resetLink}" style="${buttonStyle}">Reset my password &rarr;</a>
+      </div>
+      <p style="${pStyle}" style="font-size:13px; color:#888;">
+        If you did not request this, you can safely ignore this email — your password will not change.
+      </p>
+    </div>
+    <div style="${footerStyle}">
+      &copy; ${new Date().getFullYear()} Dowry.Africa &nbsp;&middot;&nbsp; Built for marriage. Not just matches.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "Reset your Dowry.Africa password",
+    html,
+  });
+}
+
 export async function sendMessageNotificationEmail(
   to: string,
   name: string,

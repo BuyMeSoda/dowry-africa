@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useRegister, type RegisterRequestGender } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/layout/Navbar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -14,6 +14,7 @@ export default function Register() {
     gender: "man" as RegisterRequestGender,
     birthYear: 1995
   });
+  const [showPassword, setShowPassword] = useState(false);
   
   const { login: setAuthToken } = useAuth();
   const [, setLocation] = useLocation();
@@ -100,13 +101,24 @@ export default function Register() {
 
             <div>
               <label className="block text-sm font-medium mb-1.5 text-foreground/80">Password</label>
-              <input 
-                type="password" 
-                value={formData.password}
-                onChange={e => setFormData({...formData, password: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                required
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={e => setFormData({...formData, password: e.target.value})}
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             
             <button 

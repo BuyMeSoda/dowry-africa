@@ -177,6 +177,10 @@ export async function runMigrations(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      -- Password reset columns
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ;
+
       -- Broadcast logs (history of sent broadcasts)
       CREATE TABLE IF NOT EXISTS broadcast_logs (
         id TEXT PRIMARY KEY,

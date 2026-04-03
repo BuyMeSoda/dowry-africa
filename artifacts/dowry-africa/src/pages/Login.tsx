@@ -4,11 +4,12 @@ import { useAuth } from "@/lib/auth";
 import { useLogin } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/layout/Navbar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { login: setAuthToken } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -60,14 +61,28 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-foreground/80">Password</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                required
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-foreground/80">Password</label>
+                <Link href="/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
+              </div>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             
             <button 

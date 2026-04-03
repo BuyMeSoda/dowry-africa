@@ -28,6 +28,8 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminPrompts from "@/pages/admin/AdminPrompts";
 import AdminCommunications from "@/pages/admin/AdminCommunications";
 import UserProfileView from "@/pages/UserProfileView";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 import { API_BASE } from "@/lib/api-url";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
@@ -94,6 +96,8 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/reset-password" component={ResetPassword} />
         <Route path="/coming-soon" component={ComingSoon} />
         <Route path="/about" component={About} />
 
