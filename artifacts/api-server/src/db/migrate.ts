@@ -181,6 +181,10 @@ export async function runMigrations(): Promise<void> {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ;
 
+      -- Unsubscribe columns
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS unsubscribed_at TIMESTAMPTZ;
+      ALTER TABLE early_access ADD COLUMN IF NOT EXISTS unsubscribed_at TIMESTAMPTZ;
+
       -- Admin users table
       CREATE TABLE IF NOT EXISTS admin_users (
         id TEXT PRIMARY KEY,

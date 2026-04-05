@@ -33,6 +33,7 @@ import AdminResetPassword from "@/pages/admin/AdminResetPassword";
 import UserProfileView from "@/pages/UserProfileView";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import Unsubscribe from "@/pages/Unsubscribe";
 
 import { API_BASE } from "@/lib/api-url";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
@@ -79,7 +80,7 @@ function ComingSoonGate({ children }: { children: React.ReactNode }) {
   const { comingSoonMode } = useComingSoon();
   const [location, setLocation] = useLocation();
 
-  const isExempt = location.startsWith("/admin") || location === "/login" || location === "/coming-soon";
+  const isExempt = location.startsWith("/admin") || location === "/login" || location === "/coming-soon" || location === "/unsubscribe";
 
   useEffect(() => {
     if (comingSoonMode && !isExempt) {
@@ -101,6 +102,7 @@ function Router() {
         <Route path="/register" component={Register} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/unsubscribe" component={Unsubscribe} />
         <Route path="/coming-soon" component={ComingSoon} />
         <Route path="/about" component={About} />
 

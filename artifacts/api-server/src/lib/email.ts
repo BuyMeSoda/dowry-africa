@@ -1,8 +1,15 @@
 import { Resend } from "resend";
+import { randomUUID } from "crypto";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM       = "noreply@dowry.africa";
-const HELLO_FROM = "hello@dowry.africa";
+const FROM        = "noreply@dowry.africa";
+const HELLO_FROM  = "hello@dowry.africa";
+const REPLY_TO    = "hello@dowry.africa";
+const FRONTEND_URL = process.env.FRONTEND_URL ?? "https://dowry.africa";
+const ADDRESS     = "Dowry.Africa | London, United Kingdom";
+const YEAR        = new Date().getFullYear();
+
+// ─── Shared style tokens ──────────────────────────────────────────────────────
 
 const baseStyle = `
   font-family: Georgia, 'Times New Roman', serif;
@@ -65,15 +72,6 @@ const buttonStyle = `
   letter-spacing: 0.3px;
 `;
 
-const footerStyle = `
-  padding: 24px 40px;
-  background: #fdf8f4;
-  text-align: center;
-  font-size: 12px;
-  color: #a08080;
-  border-top: 1px solid #f0e4e4;
-`;
-
 const previewBoxStyle = `
   background: #fdf0f5;
   border-left: 4px solid #c43b7a;
@@ -85,6 +83,70 @@ const previewBoxStyle = `
   color: #3a1a2a;
   font-style: italic;
 `;
+
+// ─── Footer helpers ───────────────────────────────────────────────────────────
+
+function unsubscribeUrl(email: string): string {
+  return `${FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(email)}`;
+}
+
+function transactionalFooterHtml(email: string): string {
+  return `
+    <div style="padding: 20px 40px; background: #fdf8f4; text-align: center;
+                font-size: 12px; color: #a08080; border-top: 1px solid #f0e4e4;">
+      &copy; ${YEAR} Dowry.Africa &nbsp;&middot;&nbsp; Built for marriage. Not just matches.<br />
+      <span style="display: inline-block; margin-top: 4px;">${ADDRESS}</span><br />
+      <span style="display: inline-block; margin-top: 4px;">
+        You received this email because you have an account on Dowry.Africa.&nbsp;
+        <a href="${unsubscribeUrl(email)}" style="color: #a08080;">Unsubscribe</a>
+      </span>
+    </div>`;
+}
+
+function transactionalFooterText(email: string): string {
+  return `---
+${ADDRESS}
+You received this email because you have an account on Dowry.Africa.
+Unsubscribe: ${unsubscribeUrl(email)}`;
+}
+
+function marketingFooterHtml(email: string, footerNote?: string): string {
+  const note = footerNote ?? "You received this because you signed up at dowry.africa";
+  return `
+    <td class="footer-cell"
+        style="background-color: #1a1a1a; padding: 24px 40px; text-align: center;
+               border-radius: 0 0 12px 12px;">
+      <p style="margin: 0 0 4px; font-family: Arial, Helvetica, sans-serif;
+                 font-size: 12px; color: #ffffff;">
+        &copy; ${YEAR} Dowry.Africa &mdash; Built for marriage. Not just matches.
+      </p>
+      <p style="margin: 0 0 4px; font-family: Arial, Helvetica, sans-serif;
+                 font-size: 11px; color: #888888;">
+        ${ADDRESS}
+      </p>
+      <p style="margin: 0; font-family: Arial, Helvetica, sans-serif;
+                 font-size: 11px; color: #888888;">
+        ${note} &nbsp;&middot;&nbsp;
+        <a href="${unsubscribeUrl(email)}" style="color: #aaaaaa; text-decoration: underline;">Unsubscribe</a>
+      </p>
+    </td>`;
+}
+
+function marketingFooterText(email: string, footerNote?: string): string {
+  const note = footerNote ?? "You received this because you signed up at dowry.africa";
+  return `---
+${ADDRESS}
+${note}
+Unsubscribe: ${unsubscribeUrl(email)}`;
+}
+
+// ─── Standard resend call wrapper ─────────────────────────────────────────────
+
+function emailHeaders() {
+  return { "X-Entity-Ref-ID": randomUUID() };
+}
+
+// ─── Transactional emails ─────────────────────────────────────────────────────
 
 export async function sendVerificationEmail(
   to: string,
@@ -106,28 +168,36 @@ export async function sendVerificationEmail(
         We're glad you're here. Dowry.Africa is a commitment-first matchmaking platform for Africans and the diaspora — built on intentionality, cultural pride, and genuine connection.
       </p>
       <p style="${pStyle}">
-        To get started, please verify your email address by clicking the button below.
+        To get started, please verify your email address. This link expires in 24 hours.
       </p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${verificationLink}" style="${buttonStyle}">Verify My Account</a>
       </div>
-      <p style="${pStyle}">
-        If you didn't create an account, you can safely ignore this email.
-      </p>
-      <p style="${pStyle}">This link expires in 24 hours.</p>
+      <p style="${pStyle}">If you didn't create an account, you can safely ignore this email.</p>
     </div>
-    <div style="${footerStyle}">
-      &copy; ${new Date().getFullYear()} Dowry.Africa &nbsp;&middot;&nbsp; Commitment-first matchmaking
-    </div>
+    ${transactionalFooterHtml(to)}
   </div>
 </body>
 </html>`;
 
+  const text = `Welcome to Dowry.Africa, ${name}!
+
+We're glad you're here. To get started, please verify your email address by visiting the link below. This link expires in 24 hours.
+
+Verify your account: ${verificationLink}
+
+If you didn't create an account, you can safely ignore this email.
+
+${transactionalFooterText(to)}`;
+
   await resend.emails.send({
     from: FROM,
     to,
+    reply_to: REPLY_TO,
     subject: "Verify your Dowry Africa account",
     html,
+    text,
+    headers: emailHeaders(),
   });
 }
 
@@ -155,22 +225,31 @@ export async function sendPasswordResetEmail(
       <div style="text-align: center; margin: 32px 0;">
         <a href="${resetLink}" style="${buttonStyle}">Reset my password &rarr;</a>
       </div>
-      <p style="${pStyle}" style="font-size:13px; color:#888;">
-        If you did not request this, you can safely ignore this email — your password will not change.
-      </p>
+      <p style="${pStyle}">If you did not request this, you can safely ignore this email — your password will not change.</p>
     </div>
-    <div style="${footerStyle}">
-      &copy; ${new Date().getFullYear()} Dowry.Africa &nbsp;&middot;&nbsp; Built for marriage. Not just matches.
-    </div>
+    ${transactionalFooterHtml(to)}
   </div>
 </body>
 </html>`;
 
+  const text = `Hi ${name},
+
+You requested a password reset for your Dowry.Africa account. Visit the link below to choose a new password. This link expires in 1 hour.
+
+Reset your password: ${resetLink}
+
+If you did not request this, you can safely ignore this email — your password will not change.
+
+${transactionalFooterText(to)}`;
+
   await resend.emails.send({
     from: FROM,
     to,
+    reply_to: REPLY_TO,
     subject: "Reset your Dowry.Africa password",
     html,
+    text,
+    headers: emailHeaders(),
   });
 }
 
@@ -203,20 +282,35 @@ export async function sendAdminWelcomeEmail(
       <div style="text-align: center; margin: 32px 0;">
         <a href="${loginUrl}" style="${buttonStyle}">Log in to Admin Panel &rarr;</a>
       </div>
-      <p style="${pStyle}">If you did not expect this email, please contact <a href="mailto:hello@dowry.africa">hello@dowry.africa</a> immediately.</p>
     </div>
-    <div style="${footerStyle}">
-      &copy; ${new Date().getFullYear()} Dowry.Africa &nbsp;&middot;&nbsp; Built for marriage. Not just matches.
-    </div>
+    ${transactionalFooterHtml(to)}
   </div>
 </body>
 </html>`;
 
+  const text = `Hi ${name},
+
+You have been granted admin access to the Dowry.Africa platform.
+
+Email: ${to}
+Temporary password: ${tempPassword}
+
+Please log in and change your password immediately.
+
+Admin panel: ${loginUrl}
+
+If you did not expect this email, please contact hello@dowry.africa immediately.
+
+${transactionalFooterText(to)}`;
+
   await resend.emails.send({
     from: FROM,
     to,
+    reply_to: REPLY_TO,
     subject: "You have been granted admin access to Dowry.Africa",
     html,
+    text,
+    headers: emailHeaders(),
   });
 }
 
@@ -245,18 +339,29 @@ export async function sendAdminPasswordResetEmail(
       </div>
       <p style="${pStyle}">If you did not request this, ignore this email — your password will not change.</p>
     </div>
-    <div style="${footerStyle}">
-      &copy; ${new Date().getFullYear()} Dowry.Africa &nbsp;&middot;&nbsp; Built for marriage. Not just matches.
-    </div>
+    ${transactionalFooterHtml(to)}
   </div>
 </body>
 </html>`;
 
+  const text = `Hi ${name},
+
+You requested a password reset for your Dowry.Africa admin account. Visit the link below to set a new password. This link expires in 1 hour.
+
+Reset admin password: ${resetLink}
+
+If you did not request this, ignore this email — your password will not change.
+
+${transactionalFooterText(to)}`;
+
   await resend.emails.send({
     from: FROM,
     to,
+    reply_to: REPLY_TO,
     subject: "Reset your Dowry.Africa admin password",
     html,
+    text,
+    headers: emailHeaders(),
   });
 }
 
@@ -266,7 +371,7 @@ export async function sendMessageNotificationEmail(
   senderName: string,
   messagePreview: string,
 ): Promise<void> {
-  const appLink = "https://workspacedowry-africa-production.up.railway.app/messages";
+  const appLink = `${FRONTEND_URL}/messages`;
 
   const html = `
 <!DOCTYPE html>
@@ -283,31 +388,38 @@ export async function sendMessageNotificationEmail(
         <strong>${senderName}</strong> sent you a message on Dowry.Africa:
       </p>
       <div style="${previewBoxStyle}">${messagePreview}</div>
-      <p style="${pStyle}">
-        Open the app to read and reply — meaningful conversations start with a thoughtful response.
-      </p>
+      <p style="${pStyle}">Open the app to read and reply — meaningful conversations start with a thoughtful response.</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${appLink}" style="${buttonStyle}">Read Message</a>
       </div>
     </div>
-    <div style="${footerStyle}">
-      &copy; ${new Date().getFullYear()} Dowry.Africa &nbsp;&middot;&nbsp; Commitment-first matchmaking<br />
-      <span style="margin-top: 8px; display: inline-block;">You're receiving this because you have notifications enabled.</span>
-    </div>
+    ${transactionalFooterHtml(to)}
   </div>
 </body>
 </html>`;
 
+  const text = `Hi ${name},
+
+${senderName} sent you a message on Dowry.Africa:
+
+"${messagePreview}"
+
+Open the app to read and reply: ${appLink}
+
+${transactionalFooterText(to)}`;
+
   await resend.emails.send({
     from: FROM,
     to,
+    reply_to: REPLY_TO,
     subject: "You have a new message on Dowry Africa",
     html,
+    text,
+    headers: emailHeaders(),
   });
 }
 
-// ─── Premium broadcast email builder ─────────────────────────────────────────
-const FRONTEND_URL = process.env.FRONTEND_URL ?? "https://dowry.africa";
+// ─── Broadcast / marketing email builder ──────────────────────────────────────
 
 function resolveUrl(url?: string): string | undefined {
   if (!url) return undefined;
@@ -321,8 +433,9 @@ export function buildBroadcastHtml(opts: {
   ctaLabel?: string;
   ctaUrl?: string;
   footerNote?: string;
+  email?: string;
 }): string {
-  const { firstName, subject, bodyHtml, ctaLabel, ctaUrl, footerNote } = opts;
+  const { firstName, subject, bodyHtml, ctaLabel, ctaUrl, footerNote, email = "" } = opts;
   const resolvedUrl = resolveUrl(ctaUrl);
   const ctaBlock = ctaLabel && resolvedUrl
     ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin: 32px 0;">
@@ -336,9 +449,6 @@ export function buildBroadcastHtml(opts: {
         </td></tr>
       </table>`
     : "";
-
-  const footer = footerNote
-    ?? "You are receiving this because you signed up at dowry.africa";
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml">
@@ -363,12 +473,9 @@ export function buildBroadcastHtml(opts: {
          style="background-color: #f9f6f2; min-height: 100vh;">
     <tr>
       <td align="center" style="padding: 40px 16px;">
-        <!-- card -->
         <table class="container" width="600" cellpadding="0" cellspacing="0" border="0" role="presentation"
                style="background-color: #ffffff; border-radius: 12px;
                       box-shadow: 0 4px 24px rgba(0,0,0,0.08); overflow: hidden;">
-
-          <!-- header -->
           <tr>
             <td style="background-color: #8B1C3F; padding: 36px 40px; text-align: center;">
               <p style="margin: 0; font-family: Georgia, 'Times New Roman', serif;
@@ -377,8 +484,6 @@ export function buildBroadcastHtml(opts: {
               </p>
             </td>
           </tr>
-
-          <!-- body -->
           <tr>
             <td class="body-cell" style="padding: 36px 40px;">
               <p style="margin: 0 0 4px; font-family: Arial, Helvetica, sans-serif;
@@ -389,36 +494,38 @@ export function buildBroadcastHtml(opts: {
               ${ctaBlock}
             </td>
           </tr>
-
-          <!-- divider -->
           <tr>
             <td style="padding: 0 40px;">
               <hr style="border: none; border-top: 1px solid #f0e4e4; margin: 0;" />
             </td>
           </tr>
-
-          <!-- footer -->
           <tr>
-            <td class="footer-cell"
-                style="background-color: #1a1a1a; padding: 24px 40px; text-align: center;
-                       border-radius: 0 0 12px 12px;">
-              <p style="margin: 0 0 6px; font-family: Arial, Helvetica, sans-serif;
-                         font-size: 12px; color: #ffffff;">
-                &copy; ${new Date().getFullYear()} Dowry.Africa &mdash; Built for marriage. Not just matches.
-              </p>
-              <p style="margin: 0; font-family: Arial, Helvetica, sans-serif;
-                         font-size: 11px; color: #888888;">
-                ${footer}
-              </p>
-            </td>
+            ${marketingFooterHtml(email, footerNote)}
           </tr>
-
         </table>
       </td>
     </tr>
   </table>
 </body>
 </html>`;
+}
+
+function buildBroadcastText(opts: {
+  firstName: string;
+  body: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  footerNote?: string;
+  email: string;
+}): string {
+  const { firstName, body, ctaLabel, ctaUrl, footerNote, email } = opts;
+  const resolvedUrl = resolveUrl(ctaUrl);
+  const ctaLine = ctaLabel && resolvedUrl ? `\n${ctaLabel}: ${resolvedUrl}\n` : "";
+  return `Hi ${firstName},
+
+${body}${ctaLine}
+
+${marketingFooterText(email, footerNote)}`;
 }
 
 function textToHtml(text: string): string {
@@ -444,14 +551,17 @@ export async function sendBroadcastEmail(
   const personalizedBody = body.replace(/\[First Name\]/gi, firstName);
   const bodyHtml = textToHtml(personalizedBody);
 
-  const html = buildBroadcastHtml({ firstName, subject, bodyHtml, ctaLabel, ctaUrl });
+  const html = buildBroadcastHtml({ firstName, subject, bodyHtml, ctaLabel, ctaUrl, email: to });
+  const text = buildBroadcastText({ firstName, body: personalizedBody, ctaLabel, ctaUrl, email: to });
 
   await resend.emails.send({
     from: HELLO_FROM,
-    replyTo: HELLO_FROM,
     to,
+    reply_to: REPLY_TO,
     subject,
     html,
+    text,
+    headers: emailHeaders(),
   });
 }
 
@@ -473,13 +583,23 @@ export async function sendAdminDirectEmail(
     subject,
     bodyHtml,
     footerNote: "You are receiving this message from the Dowry.Africa team.",
+    email: to,
+  });
+
+  const text = buildBroadcastText({
+    firstName,
+    body: personalizedMessage + "\n\nWarm regards,\nThe Dowry.Africa Team",
+    footerNote: "You are receiving this message from the Dowry.Africa team.",
+    email: to,
   });
 
   await resend.emails.send({
     from: HELLO_FROM,
-    replyTo: HELLO_FROM,
     to,
+    reply_to: REPLY_TO,
     subject,
     html,
+    text,
+    headers: emailHeaders(),
   });
 }

@@ -393,30 +393,37 @@ router.delete("/prompts/:id", async (req, res) => {
 // ── Communications ──────────────────────────────────────────────────────────
 
 async function getRecipientsForGroup(group: string): Promise<{ email: string; name: string }[]> {
+  const notUnsubscribed = isNull(schema.users.unsubscribedAt);
+  const notUnsubscribedEA = isNull(schema.earlyAccess.unsubscribedAt);
+
   switch (group) {
     case "waitlist": {
-      const rows = await db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess);
+      const rows = await db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess)
+        .where(notUnsubscribedEA);
       return rows.map(r => ({ email: r.email, name: "" }));
     }
     case "all_users": {
-      return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users);
+      return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users)
+        .where(notUnsubscribed);
     }
     case "free_users": {
       return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users)
-        .where(eq(schema.users.tier, "free"));
+        .where(and(eq(schema.users.tier, "free"), notUnsubscribed));
     }
     case "core_users": {
       return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users)
-        .where(eq(schema.users.tier, "core"));
+        .where(and(eq(schema.users.tier, "core"), notUnsubscribed));
     }
     case "badge_users": {
       return db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users)
-        .where(and(eq(schema.users.tier, "badge"), eq(schema.users.hasBadge, true)));
+        .where(and(eq(schema.users.tier, "badge"), eq(schema.users.hasBadge, true), notUnsubscribed));
     }
     case "everyone": {
       const [users, waitlist] = await Promise.all([
-        db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users),
-        db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess),
+        db.select({ email: schema.users.email, name: schema.users.name }).from(schema.users)
+          .where(notUnsubscribed),
+        db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess)
+          .where(notUnsubscribedEA),
       ]);
       const knownEmails = new Set(users.map(u => u.email));
       const extra = waitlist.filter(w => !knownEmails.has(w.email)).map(w => ({ email: w.email, name: "" }));
@@ -427,32 +434,36 @@ async function getRecipientsForGroup(group: string): Promise<{ email: string; na
     case "inactive_30d":
       return db.select({ email: schema.users.email, name: schema.users.name })
         .from(schema.users)
-        .where(lt(schema.users.lastActive, sql`NOW() - INTERVAL '30 days'`));
+        .where(and(lt(schema.users.lastActive, sql`NOW() - INTERVAL '30 days'`), notUnsubscribed));
 
     case "inactive_14d":
       return db.select({ email: schema.users.email, name: schema.users.name })
         .from(schema.users)
-        .where(lt(schema.users.lastActive, sql`NOW() - INTERVAL '14 days'`));
+        .where(and(lt(schema.users.lastActive, sql`NOW() - INTERVAL '14 days'`), notUnsubscribed));
 
     case "incomplete_profiles":
       return db.select({ email: schema.users.email, name: schema.users.name })
         .from(schema.users)
-        .where(or(
-          isNull(schema.users.photoUrl),
-          isNull(schema.users.bio),
-          sql`cardinality(${schema.users.heritage}) = 0`,
+        .where(and(
+          notUnsubscribed,
+          or(
+            isNull(schema.users.photoUrl),
+            isNull(schema.users.bio),
+            sql`cardinality(${schema.users.heritage}) = 0`,
+          ),
         ));
 
     case "no_matches": {
       const result = await db.execute(sql`
         SELECT u.email, u.name
         FROM users u
-        WHERE u.id NOT IN (
-          SELECT DISTINCT l1.from_id
-          FROM likes l1
-          INNER JOIN likes l2
-            ON l1.from_id = l2.to_id AND l1.to_id = l2.from_id
-        )
+        WHERE u.unsubscribed_at IS NULL
+          AND u.id NOT IN (
+            SELECT DISTINCT l1.from_id
+            FROM likes l1
+            INNER JOIN likes l2
+              ON l1.from_id = l2.to_id AND l1.to_id = l2.from_id
+          )
       `);
       return (result.rows as { email: string; name: string }[]);
     }
@@ -463,16 +474,18 @@ async function getRecipientsForGroup(group: string): Promise<{ email: string; na
         .where(and(
           eq(schema.users.tier, "free"),
           lt(schema.users.createdAt, sql`NOW() - INTERVAL '14 days'`),
+          notUnsubscribed,
         ));
 
     case "new_this_week":
       return db.select({ email: schema.users.email, name: schema.users.name })
         .from(schema.users)
-        .where(gte(schema.users.createdAt, sql`NOW() - INTERVAL '7 days'`));
+        .where(and(gte(schema.users.createdAt, sql`NOW() - INTERVAL '7 days'`), notUnsubscribed));
 
     case "waitlist_not_registered": {
       const [waitlist, regUsers] = await Promise.all([
-        db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess),
+        db.select({ email: schema.earlyAccess.email }).from(schema.earlyAccess)
+          .where(notUnsubscribedEA),
         db.select({ email: schema.users.email }).from(schema.users),
       ]);
       const registered = new Set(regUsers.map(u => u.email));
@@ -590,6 +603,7 @@ router.post("/communications/preview-html", async (req, res) => {
       bodyHtml: safeBody,
       ctaLabel: ctaLabel?.trim() || undefined,
       ctaUrl:   ctaUrl?.trim()   || undefined,
+      email: "preview@dowry.africa",
     });
     res.json({ html });
   } catch {

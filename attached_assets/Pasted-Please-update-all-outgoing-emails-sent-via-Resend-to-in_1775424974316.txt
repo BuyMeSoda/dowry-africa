@@ -1,0 +1,59 @@
+Please update all outgoing emails sent via Resend to include these anti-spam and legal compliance improvements:
+
+1. PLAIN TEXT VERSION
+Add a plain text version alongside every HTML email.
+Every Resend API call should include both:
+- html: htmlContent
+- text: plainTextContent (stripped version of the same content)
+
+The plain text version should be a clean readable version of the email without HTML tags.
+
+2. EMAIL HEADERS
+Add these headers to every Resend API call:
+{
+  headers: {
+    'X-Entity-Ref-ID': uniqueId, // use crypto.randomUUID() for each email
+  },
+  reply_to: 'hello@dowry.africa'
+}
+
+3. UNSUBSCRIBE LINK IN FOOTER
+Every email footer must include:
+- "Unsubscribe" link
+- For transactional emails (verification, password reset): 
+  "You received this email because you have an account on Dowry.Africa"
+- For marketing emails (broadcasts):
+  "You received this because you signed up at dowry.africa | Unsubscribe"
+- The unsubscribe link should go to: ${process.env.FRONTEND_URL}/unsubscribe?email=[encoded_email]
+
+4. PHYSICAL ADDRESS IN FOOTER
+Add a physical address to every email footer — this is required by CAN-SPAM law:
+"Dowry.Africa | London, United Kingdom"
+(use a general city location — does not need to be exact street address for now)
+
+5. REDUCE LINKS
+In transactional emails (verification, password reset, welcome):
+- Keep only ONE main CTA button
+- Remove any additional links except the unsubscribe link in footer
+- Fewer links = less likely to be flagged as spam
+
+6. UNSUBSCRIBE PAGE
+Create a simple /unsubscribe page on the frontend:
+- Shows: "You have been unsubscribed from Dowry.Africa emails"
+- Accepts email parameter from URL
+- Calls POST /api/unsubscribe to mark user as unsubscribed in database
+- Clean simple design matching the app
+
+7. BACKEND UNSUBSCRIBE
+- Add unsubscribed_at column to users table and early_access table
+- POST /api/unsubscribe — marks email as unsubscribed
+- All broadcast sends must check unsubscribed_at and skip those emails
+- Transactional emails (password reset, verification) still send even if unsubscribed
+
+Apply these changes to ALL emails:
+- Email verification
+- Password reset
+- Welcome email
+- All broadcast templates
+- Admin direct emails
+- Any future emails

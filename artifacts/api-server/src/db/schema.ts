@@ -43,6 +43,7 @@ export const users = pgTable("users", {
   verificationToken: text("verification_token"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
+  unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
 });
 
 export const adminUsers = pgTable("admin_users", {
@@ -62,6 +63,7 @@ export const earlyAccess = pgTable("early_access", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
 });
 
 export const settings = pgTable("settings", {

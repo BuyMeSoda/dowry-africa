@@ -13,6 +13,7 @@ import settingsRouter from "./settings.js";
 import reportsRouter from "./reports.js";
 import promptsRouter from "./prompts.js";
 import adminAuthRouter from "./adminAuth.js";
+import unsubscribeRouter from "./unsubscribe.js";
 
 const router: IRouter = Router();
 
@@ -24,6 +25,7 @@ router.use("/messages", messagesRouter);
 router.use("/payments", paymentsRouter);
 router.use("/admin", adminRouter);
 router.use("/admin-auth", adminAuthRouter);
+router.use("/unsubscribe", unsubscribeRouter);
 router.use("/early-access", earlyAccessRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/custom-values", customValuesRouter);
