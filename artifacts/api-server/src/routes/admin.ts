@@ -291,6 +291,17 @@ router.get("/early-access-emails", async (_req, res) => {
   }
 });
 
+router.delete("/early-access/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.earlyAccess).where(eq(schema.earlyAccess.id, id));
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error(err, "Delete early-access error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── Settings ──────────────────────────────────────────────────────────────
 router.get("/settings", async (_req, res) => {
   try {

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "./AdminLayout";
 import { adminFetch } from "@/lib/admin";
 import { API_BASE } from "@/lib/api-url";
-import { Save, ToggleLeft, ToggleRight, Download, Mail, DollarSign, Info } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, Download, Mail, DollarSign, Info, Trash2 } from "lucide-react";
 
 interface AppSettings {
   coming_soon_mode: string;
@@ -92,8 +92,21 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; email: string } | null>(null);
 
   const toast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 3000); };
+
+  const handleDeleteEarlyAccess = async (id: string) => {
+    try {
+      await adminFetch(`/early-access/${id}`, { method: "DELETE" });
+      setEmails(prev => prev.filter(e => e.id !== id));
+      toast("Email removed");
+    } catch {
+      toast("Failed to remove — please try again");
+    } finally {
+      setConfirmDelete(null);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -338,19 +351,54 @@ export default function AdminSettings() {
               </div>
             ) : (
               emails.map(row => (
-                <div key={row.id} className="px-6 py-3 flex items-center justify-between">
+                <div key={row.id} className="px-6 py-3 flex items-center justify-between group">
                   <span className="text-white text-sm">{row.email}</span>
-                  <span className="text-gray-500 text-xs">
-                    {new Date(row.createdAt).toLocaleDateString("en-GB", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-500 text-xs">
+                      {new Date(row.createdAt).toLocaleDateString("en-GB", {
+                        day: "numeric", month: "short", year: "numeric",
+                      })}
+                    </span>
+                    <button
+                      onClick={() => setConfirmDelete({ id: row.id, email: row.email })}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      title="Remove from waitlist"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
       </div>
+      {/* Confirmation dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-white font-bold text-base mb-2">Remove from waitlist?</h3>
+            <p className="text-gray-400 text-sm mb-6">
+              Remove <span className="text-white font-medium">{confirmDelete.email}</span> from the waitlist?{" "}
+              This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 px-4 py-2 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteEarlyAccess(confirmDelete.id)}
+                className="flex-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
