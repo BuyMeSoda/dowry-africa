@@ -9,6 +9,7 @@ export function MobileBottomTabBar() {
   const { counts } = useNotifications();
 
   if (!user) return null;
+  if (location.startsWith("/admin")) return null;
 
   const msgBadge = counts.messages + counts.matches;
 

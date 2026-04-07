@@ -1,9 +1,11 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 
 export function MobileTopBar() {
   const { user } = useAuth();
+  const [location] = useLocation();
   if (!user) return null;
+  if (location.startsWith("/admin")) return null;
 
   return (
     <header className="md:hidden sticky top-0 z-50 w-full bg-background/90 backdrop-blur-md border-b border-border/40 flex items-center px-4 h-12">
