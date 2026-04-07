@@ -14,23 +14,23 @@ export interface AdminUser {
 }
 
 export function getAdminToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function getAdminUser(): AdminUser | null {
-  const raw = sessionStorage.getItem(USER_KEY);
+  const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try { return JSON.parse(raw) as AdminUser; } catch { return null; }
 }
 
 export function setAdminSession(token: string, user: AdminUser): void {
-  sessionStorage.setItem(TOKEN_KEY, token);
-  sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function clearAdminSession(): void {
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(USER_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }
 
 export function clearAdminSecret(): void {
@@ -44,7 +44,7 @@ export function isAdminLoggedIn(): boolean {
 export async function adminFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = getAdminToken();
   const url = `${API_BASE}/api/admin${path}`;
-  return fetch(url, {
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -52,6 +52,11 @@ export async function adminFetch(path: string, options: RequestInit = {}): Promi
       ...(options.headers ?? {}),
     },
   });
+  if (res.status === 401) {
+    clearAdminSession();
+    window.location.href = "/admin/login";
+  }
+  return res;
 }
 
 export async function adminAuthFetch(path: string, options: RequestInit = {}): Promise<Response> {
