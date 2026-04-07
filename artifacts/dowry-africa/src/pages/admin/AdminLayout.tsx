@@ -42,7 +42,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [location]);
 
   if (!loggedIn) {
-    setLocation("/admin/login");
     return null;
   }
 

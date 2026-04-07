@@ -47,11 +47,11 @@ window.fetch = async (input, init) => {
     const isRelativeApi = input.startsWith('/api');
     const isAbsoluteApi = API_BASE !== "" && input.startsWith(`${API_BASE}/api`);
     if (isRelativeApi || isAbsoluteApi) {
-      init = init || {};
-      init.headers = {
-        ...init.headers,
-        Authorization: `Bearer ${token}`
-      };
+      const existingHeaders = (init?.headers ?? {}) as Record<string, string>;
+      const alreadyHasAuth = existingHeaders['Authorization'] || existingHeaders['authorization'];
+      if (!alreadyHasAuth) {
+        init = { ...init, headers: { ...existingHeaders, Authorization: `Bearer ${token}` } };
+      }
     }
   }
   return originalFetch(input, init);
