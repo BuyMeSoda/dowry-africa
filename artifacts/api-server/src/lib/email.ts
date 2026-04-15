@@ -565,6 +565,155 @@ export async function sendBroadcastEmail(
   });
 }
 
+export async function sendApprovalEmail(
+  to: string,
+  name: string,
+): Promise<void> {
+  const firstName = name.split(" ")[0] || name;
+  const profileLink = `${FRONTEND_URL}/profile`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="${baseStyle}">
+  <div style="${containerStyle}">
+    <div style="${headerStyle}">
+      <p style="${logoTextStyle}">Dowry.Africa</p>
+    </div>
+    <div style="${bodyStyle}">
+      <h2 style="${h2Style}">You're in. Welcome to Dowry.Africa.</h2>
+      <p style="${pStyle}">Hi ${firstName},</p>
+      <p style="${pStyle}">
+        Your application to Dowry.Africa has been approved. Welcome to a community of Africans and diaspora who are serious about commitment, marriage, and building something real.
+      </p>
+      <p style="${pStyle}">Your account is now active. Complete your profile to start getting matches.</p>
+      <div style="margin: 28px 0 24px;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:#fdf0f5; border-radius:12px;">
+            <span style="font-size:18px; flex-shrink:0;">1.</span>
+            <div><strong style="color:#1a0a0a;">Complete your profile</strong> — add your photo and bio</div>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:#fdf0f5; border-radius:12px;">
+            <span style="font-size:18px; flex-shrink:0;">2.</span>
+            <div><strong style="color:#1a0a0a;">Set your preferences</strong> — tell us what you are looking for</div>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:#fdf0f5; border-radius:12px;">
+            <span style="font-size:18px; flex-shrink:0;">3.</span>
+            <div><strong style="color:#1a0a0a;">Start discovering</strong> — browse profiles matched to your values</div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${profileLink}" style="${buttonStyle}">Complete my profile &rarr;</a>
+      </div>
+      <p style="${pStyle}">We are so glad you are here.</p>
+      <p style="${pStyle}">Warm regards,<br /><strong>The Dowry.Africa Team</strong></p>
+    </div>
+    ${transactionalFooterHtml(to)}
+  </div>
+</body>
+</html>`;
+
+  const text = `Hi ${firstName},
+
+You're approved — welcome to Dowry.Africa!
+
+Your application to Dowry.Africa has been approved. Welcome to a community of Africans and diaspora who are serious about commitment, marriage, and building something real.
+
+Your account is now active. Here's how to get started:
+
+1. Complete your profile — add your photo and bio
+2. Set your preferences — tell us what you are looking for
+3. Start discovering — browse profiles matched to your values
+
+Complete your profile: ${profileLink}
+
+We are so glad you are here.
+
+Warm regards,
+The Dowry.Africa Team
+
+${transactionalFooterText(to)}`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    reply_to: REPLY_TO,
+    subject: "You're approved — welcome to Dowry.Africa 🎉",
+    html,
+    text,
+    headers: emailHeaders(),
+  });
+}
+
+export async function sendRejectionEmail(
+  to: string,
+  name: string,
+  rejectionReason?: string | null,
+): Promise<void> {
+  const firstName = name.split(" ")[0] || name;
+  const reasonBlock = rejectionReason
+    ? `<div style="${previewBoxStyle}">${rejectionReason}</div>`
+    : "";
+  const reasonText = rejectionReason ? `\n${rejectionReason}\n` : "";
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="${baseStyle}">
+  <div style="${containerStyle}">
+    <div style="${headerStyle}">
+      <p style="${logoTextStyle}">Dowry.Africa</p>
+    </div>
+    <div style="${bodyStyle}">
+      <h2 style="${h2Style}">Your Dowry.Africa application</h2>
+      <p style="${pStyle}">Hi ${firstName},</p>
+      <p style="${pStyle}">
+        Thank you for your interest in Dowry.Africa.
+      </p>
+      <p style="${pStyle}">
+        After careful review, we are unable to approve your application at this time.
+      </p>
+      ${reasonBlock}
+      <p style="${pStyle}">
+        If you believe this is an error or would like more information, please contact us at <a href="mailto:hello@dowry.africa" style="color:#c43b7a;">hello@dowry.africa</a>.
+      </p>
+      <p style="${pStyle}">We wish you well on your journey.</p>
+      <p style="${pStyle}">Warm regards,<br /><strong>The Dowry.Africa Team</strong></p>
+    </div>
+    ${transactionalFooterHtml(to)}
+  </div>
+</body>
+</html>`;
+
+  const text = `Hi ${firstName},
+
+Thank you for your interest in Dowry.Africa.
+
+After careful review, we are unable to approve your application at this time.
+${reasonText}
+If you believe this is an error or would like more information, please contact us at hello@dowry.africa.
+
+We wish you well on your journey.
+
+Warm regards,
+The Dowry.Africa Team
+
+${transactionalFooterText(to)}`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    reply_to: REPLY_TO,
+    subject: "Your Dowry.Africa application",
+    html,
+    text,
+    headers: emailHeaders(),
+  });
+}
+
 export async function sendAdminDirectEmail(
   to: string,
   name: string,

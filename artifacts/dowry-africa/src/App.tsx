@@ -34,6 +34,8 @@ import UserProfileView from "@/pages/UserProfileView";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import Unsubscribe from "@/pages/Unsubscribe";
+import PendingApproval from "@/pages/Pending";
+import RejectedPage from "@/pages/Rejected";
 
 import { API_BASE } from "@/lib/api-url";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
@@ -65,11 +67,21 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
   useEffect(() => {
     if (!isLoading && !user) {
       setLocation("/login");
+    } else if (!isLoading && user) {
+      if (user.accountStatus === "pending") {
+        setLocation("/pending");
+      } else if (user.accountStatus === "rejected") {
+        setLocation("/rejected");
+      }
     }
   }, [user, isLoading, setLocation]);
 
   if (isLoading || !user) {
     return <div className="h-screen flex items-center justify-center text-primary">Loading...</div>;
+  }
+
+  if (user.accountStatus === "pending" || user.accountStatus === "rejected") {
+    return null;
   }
 
   return <Component {...rest} />;
@@ -80,7 +92,7 @@ function ComingSoonGate({ children }: { children: React.ReactNode }) {
   const { comingSoonMode } = useComingSoon();
   const [location, setLocation] = useLocation();
 
-  const isExempt = location.startsWith("/admin") || location === "/login" || location === "/coming-soon" || location === "/unsubscribe";
+  const isExempt = location.startsWith("/admin") || location === "/login" || location === "/coming-soon" || location === "/unsubscribe" || location === "/pending" || location === "/rejected";
 
   useEffect(() => {
     if (comingSoonMode && !isExempt) {
@@ -105,6 +117,8 @@ function Router() {
         <Route path="/unsubscribe" component={Unsubscribe} />
         <Route path="/coming-soon" component={ComingSoon} />
         <Route path="/about" component={About} />
+        <Route path="/pending" component={PendingApproval} />
+        <Route path="/rejected" component={RejectedPage} />
 
         {/* Admin routes — use their own auth */}
         <Route path="/admin/login" component={AdminLogin} />

@@ -1,0 +1,182 @@
+Please implement a gated onboarding / manual approval system for new user registrations.
+
+═══════════════════════════════
+1. DATABASE
+═══════════════════════════════
+Add to users table:
+- account_status (enum: 'pending' / 'approved' / 'rejected') default: 'pending'
+- approved_at (timestamp, nullable)
+- rejected_at (timestamp, nullable)
+- rejection_reason (text, nullable)
+
+Add to settings table:
+- manual_approval_required (boolean, default true)
+
+═══════════════════════════════
+2. REGISTRATION FLOW
+═══════════════════════════════
+When a new user registers:
+
+Check the manual_approval_required setting:
+
+IF manual_approval_required = true:
+- Create account with account_status = 'pending'
+- Send email verification as normal
+- After email is verified → show the "Application Under Review" page
+- User cannot access Discover, Messages, Premium or any app page
+- Only accessible routes: /pending, /verify-email, /logout
+
+IF manual_approval_required = false:
+- Create account with account_status = 'approved'
+- Normal flow — after email verification → access the full app immediately
+
+═══════════════════════════════
+3. PENDING APPROVAL PAGE (/pending)
+═══════════════════════════════
+Create a beautiful full-screen page shown to pending users when they try to access any protected route.
+
+Design:
+- Dowry.Africa logo prominently at top
+- Warm cream/off-white background matching the app
+- Heading: "Your application is under review"
+- Subtext: "Thank you for joining Dowry.Africa, [First Name]. We review every application personally to ensure our community remains intentional and serious."
+- Timeline indicator showing:
+  * ✅ Step 1: Account created
+  * ✅ Step 2: Email verified  
+  * ⏳ Step 3: Application under review (5-7 days)
+  * 🔒 Step 4: Welcome to Dowry.Africa
+- Message: "You will receive an email at [their email] once your application has been reviewed."
+- "Questions? Contact us at hello@dowry.africa"
+- Social media links: Instagram, TikTok, Twitter/X @dowry.africa
+- Logout button at bottom
+
+This page should feel premium and reassuring — not like an error page.
+
+═══════════════════════════════
+4. ROUTE PROTECTION
+═══════════════════════════════
+Update the frontend route protection:
+- If user is logged in BUT account_status = 'pending' → redirect to /pending
+- If user is logged in BUT account_status = 'rejected' → show rejection page
+- If user is logged in AND account_status = 'approved' → normal access
+- /pending, /verify-email, /login, /logout, /unsubscribe routes always accessible
+
+Include account_status in the JWT token and/or GET /api/auth/me response so frontend can check it.
+
+═══════════════════════════════
+5. REJECTION PAGE
+═══════════════════════════════
+If account is rejected show a page:
+- Heading: "Your application was not successful"
+- Subtext: "Thank you for your interest in Dowry.Africa. Unfortunately your application was not approved at this time."
+- If rejection_reason exists: show it
+- "If you believe this is an error, please contact hello@dowry.africa"
+- Logout button
+
+═══════════════════════════════
+6. ADMIN PANEL — PENDING APPROVALS
+═══════════════════════════════
+In admin Users section add a new tab: "Pending (X)" with live count badge.
+
+Pending users list shows:
+- Name
+- Email
+- Date registered
+- Date email verified
+- Days waiting (calculated from registration date)
+
+Actions per user:
+- "Approve" button (green) → sets account_status = 'approved', sends approval email
+- "Reject" button (red) → opens modal to optionally add rejection reason, sets account_status = 'rejected', sends rejection email
+
+Bulk actions:
+- Select multiple pending users
+- "Approve selected" button
+- This is useful for approving batches weekly
+
+═══════════════════════════════
+7. MANUAL APPROVAL TOGGLE
+═══════════════════════════════
+In admin Settings section add:
+
+"Registration Approval" setting:
+- Toggle: "Manual approval required"
+- ON = new registrations go to pending (default)
+- OFF = new registrations are automatically approved
+- Show current status clearly: "Manual approval is currently ON — all new registrations require admin approval"
+- Warning when turning OFF: "Turning this off will automatically approve all future registrations. Are you sure?"
+- When toggled OFF: also ask "Would you like to approve all currently pending users?" with Yes/No option
+
+═══════════════════════════════
+8. APPROVAL EMAIL (via Resend)
+═══════════════════════════════
+Subject: "You're approved — welcome to Dowry.Africa 🎉"
+
+Premium HTML email:
+- Dowry.Africa logo on rose/burgundy header
+- Hero: "You're in. Welcome to Dowry.Africa."
+- Body:
+"Hi [First Name],
+
+Your application to Dowry.Africa has been approved. Welcome to a community of Africans and diaspora who are serious about commitment, marriage, and building something real.
+
+Your account is now active. Complete your profile to start getting matches."
+
+Three steps:
+1. Complete your profile — add your photo and bio
+2. Set your preferences — tell us what you are looking for
+3. Start discovering — browse profiles matched to your values
+
+CTA Button: "Complete my profile →"
+URL: ${process.env.FRONTEND_URL}/profile
+
+Closing:
+"We are so glad you are here.
+
+Warm regards,
+The Dowry.Africa Team"
+
+Footer: standard
+
+═══════════════════════════════
+9. REJECTION EMAIL (via Resend)
+═══════════════════════════════
+Subject: "Your Dowry.Africa application"
+
+Premium HTML email:
+- Dowry.Africa logo on rose/burgundy header
+- Body:
+"Hi [First Name],
+
+Thank you for your interest in Dowry.Africa.
+
+After careful review, we are unable to approve your application at this time.
+
+[If rejection_reason exists: show it here]
+
+If you believe this is an error or would like more information, please contact us at hello@dowry.africa.
+
+We wish you well on your journey.
+
+Warm regards,
+The Dowry.Africa Team"
+
+Footer: standard
+
+═══════════════════════════════
+10. EXISTING USERS
+═══════════════════════════════
+All existing approved users must have account_status = 'approved' so they are not affected.
+Update seed data and migration to set account_status = 'approved' for all existing users.
+Migration must use ALTER TABLE ... ADD COLUMN IF NOT EXISTS with default 'pending' then update existing records to 'approved'.
+
+═══════════════════════════════
+11. API CHANGES
+═══════════════════════════════
+- GET /api/auth/me — include account_status in response
+- POST /api/auth/login — if account_status = 'pending' still allow login but frontend redirects to /pending
+- POST /api/admin/users/:id/approve — approve user, send approval email
+- POST /api/admin/users/:id/reject — reject user with optional reason, send rejection email
+- POST /api/admin/users/bulk-approve — approve multiple users at once
+- GET /api/admin/users/pending — list of pending users with count
+- PATCH /api/admin/settings — already exists, just add manual_approval_required setting

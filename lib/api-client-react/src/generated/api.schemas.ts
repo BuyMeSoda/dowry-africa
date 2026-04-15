@@ -76,6 +76,8 @@ export interface User {
   completeness?: number;
   lastActive?: string;
   createdAt?: string;
+  accountStatus?: string;
+  rejectionReason?: string;
 }
 
 export interface AuthResponse {

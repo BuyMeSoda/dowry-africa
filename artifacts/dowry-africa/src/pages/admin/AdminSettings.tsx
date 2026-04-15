@@ -23,6 +23,7 @@ interface AppSettings {
   serious_name: string;
   serious_description: string;
   serious_features: string;
+  manual_approval_required: string;
 }
 
 interface EarlyAccessEmail {
@@ -87,6 +88,7 @@ export default function AdminSettings() {
     serious_name: "Serious Badge",
     serious_description: "For members who want to demonstrate the highest level of intent.",
     serious_features: '["Everything in Core","Serious Badge on your profile","Ranked highest in feeds","Access to Badge-only pool"]',
+    manual_approval_required: "true",
   });
   const [emails, setEmails] = useState<EarlyAccessEmail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,6 +169,30 @@ export default function AdminSettings() {
         {toastMsg && (
           <div className="px-4 py-3 bg-green-600/20 border border-green-500/30 text-green-400 rounded-xl text-sm">{toastMsg}</div>
         )}
+
+        {/* Member Approval */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <div className="p-6 border-b border-gray-800">
+            <h2 className="text-white font-bold">Member Approval</h2>
+            <p className="text-gray-400 text-sm mt-1">Control whether new registrations require manual admin approval before accessing the platform.</p>
+          </div>
+          <div className="px-6">
+            <Toggle
+              label="Manual Approval Required"
+              desc="When ON, new registrations are set to 'pending' until approved by an admin. When OFF, new users are auto-approved immediately."
+              value={settings.manual_approval_required === "true"}
+              onChange={v => set("manual_approval_required")(String(v))}
+            />
+          </div>
+          {settings.manual_approval_required === "true" && (
+            <div className="mx-6 mb-5 flex items-start gap-3 bg-amber-900/20 border border-amber-700/30 rounded-xl p-4">
+              <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-amber-300/80 text-xs leading-relaxed">
+                Manual approval is <strong className="text-amber-300">ON</strong>. New registrations will be held as "pending" until you approve them in the <strong className="text-amber-300">Pending Approval</strong> tab on the Users page. Approved users will automatically receive an approval email.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Coming Soon Mode */}
         <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">

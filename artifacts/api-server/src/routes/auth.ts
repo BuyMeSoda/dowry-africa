@@ -11,7 +11,7 @@ import { toUser, sanitizeUser, calcCompleteness } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email.js";
 
-const APP_BASE = "https://workspacedowry-africa-production.up.railway.app";
+const APP_BASE = process.env["FRONTEND_URL"] ?? "https://dowry.africa";
 
 const router = Router();
 
@@ -85,6 +85,15 @@ router.post("/register", authRateLimit, async (req, res) => {
 
     const verificationToken = randomBytes(32).toString("hex");
 
+    // Check if manual approval is required
+    const [approvalSetting] = await db
+      .select({ value: schema.settings.value })
+      .from(schema.settings)
+      .where(eq(schema.settings.key, "manual_approval_required"))
+      .limit(1);
+    const manualApprovalRequired = approvalSetting?.value !== "false";
+    const accountStatus = manualApprovalRequired ? "pending" : "approved";
+
     await db.insert(schema.users).values({
       id,
       email: email.toLowerCase(),
@@ -102,6 +111,8 @@ router.post("/register", authRateLimit, async (req, res) => {
       blocked: [],
       emailVerified: false,
       verificationToken,
+      accountStatus,
+      approvedAt: manualApprovalRequired ? undefined : now,
     });
 
     const [row] = await db.select().from(schema.users).where(eq(schema.users.id, id)).limit(1);
@@ -259,7 +270,7 @@ router.get("/verify-email", async (req, res) => {
     }
 
     const [row] = await db
-      .select({ id: schema.users.id, emailVerified: schema.users.emailVerified })
+      .select({ id: schema.users.id, emailVerified: schema.users.emailVerified, accountStatus: schema.users.accountStatus })
       .from(schema.users)
       .where(eq(schema.users.verificationToken, token))
       .limit(1);
@@ -271,8 +282,9 @@ router.get("/verify-email", async (req, res) => {
     }
 
     if (row.emailVerified) {
-      // Already verified — redirect gracefully
-      res.redirect(`${APP_BASE}/discover?verified=already`);
+      // Already verified — redirect based on current status
+      const dest = row.accountStatus === "pending" ? `${APP_BASE}/pending?verified=already` : `${APP_BASE}/discover?verified=already`;
+      res.redirect(dest);
       return;
     }
 
@@ -281,7 +293,12 @@ router.get("/verify-email", async (req, res) => {
       .set({ emailVerified: true, verificationToken: null })
       .where(eq(schema.users.id, row.id));
 
-    res.redirect(`${APP_BASE}/discover?verified=success`);
+    // Redirect to /pending for users awaiting approval, /discover for auto-approved
+    if (row.accountStatus === "pending") {
+      res.redirect(`${APP_BASE}/pending?verified=true`);
+    } else {
+      res.redirect(`${APP_BASE}/discover?verified=success`);
+    }
   } catch (err) {
     req.log.error(err, "Verify email error");
     res.status(500).json({ error: "Internal server error" });

@@ -214,6 +214,19 @@ export async function runMigrations(): Promise<void> {
         cta_url TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      -- Gated approval system columns
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+
+      -- Migrate existing 'active' users to 'approved' so they are not affected
+      UPDATE users SET account_status = 'approved' WHERE account_status = 'active';
+
+      -- Manual approval setting (default ON = all new registrations need admin approval)
+      INSERT INTO settings (key, value, updated_at)
+      VALUES ('manual_approval_required', 'true', NOW())
+      ON CONFLICT (key) DO NOTHING;
     `);
   } finally {
     client.release();

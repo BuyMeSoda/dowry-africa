@@ -6,7 +6,7 @@ import * as schema from "../db/schema.js";
 import { requireAdmin } from "../middlewares/adminAuth.js";
 import { getPricing } from "./settings.js";
 import { logger } from "../lib/logger.js";
-import { sendBroadcastEmail, sendAdminDirectEmail, buildBroadcastHtml } from "../lib/email.js";
+import { sendBroadcastEmail, sendAdminDirectEmail, buildBroadcastHtml, sendApprovalEmail, sendRejectionEmail } from "../lib/email.js";
 
 const router = Router();
 router.use(requireAdmin);
@@ -108,6 +108,101 @@ router.get("/users", async (req, res) => {
   }
 });
 
+// ── Pending Approvals ─────────────────────────────────────────────────────
+// IMPORTANT: must be before /users/:id to avoid Express routing conflict
+router.get("/users/pending", async (_req, res) => {
+  try {
+    const rows = await db.select({
+      id: schema.users.id,
+      name: schema.users.name,
+      email: schema.users.email,
+      birthYear: schema.users.birthYear,
+      createdAt: schema.users.createdAt,
+      emailVerified: schema.users.emailVerified,
+    }).from(schema.users)
+      .where(eq(schema.users.accountStatus, "pending"))
+      .orderBy(asc(schema.users.createdAt));
+
+    const now = new Date();
+    const enriched = rows.map(r => ({
+      ...r,
+      daysWaiting: Math.floor((now.getTime() - new Date(r.createdAt).getTime()) / 86_400_000),
+    }));
+
+    res.json({ rows: enriched, total: enriched.length });
+  } catch (err) {
+    logger.error({ err }, "Admin pending users error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/users/bulk-approve", async (req, res) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ error: "ids array required" });
+      return;
+    }
+
+    const now = new Date();
+    const users = await db.select({ id: schema.users.id, name: schema.users.name, email: schema.users.email })
+      .from(schema.users)
+      .where(sql`id = ANY(${ids}::text[]) AND account_status = 'pending'`);
+
+    await db.execute(sql`
+      UPDATE users SET account_status = 'approved', approved_at = ${now}
+      WHERE id = ANY(${ids}::text[]) AND account_status = 'pending'
+    `);
+
+    // Send approval emails fire-and-forget
+    for (const u of users) {
+      sendApprovalEmail(u.email, u.name).catch(err => logger.warn({ err }, `Approval email failed for ${u.email}`));
+    }
+
+    res.json({ approved: users.length });
+  } catch (err) {
+    logger.error({ err }, "Bulk approve error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/users/:id/approve", async (req, res) => {
+  try {
+    const [user] = await db.select({ id: schema.users.id, name: schema.users.name, email: schema.users.email, accountStatus: schema.users.accountStatus })
+      .from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    await db.update(schema.users)
+      .set({ accountStatus: "approved", approvedAt: new Date(), rejectedAt: null, rejectionReason: null })
+      .where(eq(schema.users.id, req.params.id));
+
+    sendApprovalEmail(user.email, user.name).catch(err => logger.warn({ err }, `Approval email failed for ${user.email}`));
+    res.json({ success: true });
+  } catch (err) {
+    logger.error({ err }, "Approve user error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/users/:id/reject", async (req, res) => {
+  try {
+    const { reason } = req.body as { reason?: string };
+    const [user] = await db.select({ id: schema.users.id, name: schema.users.name, email: schema.users.email })
+      .from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    await db.update(schema.users)
+      .set({ accountStatus: "rejected", rejectedAt: new Date(), rejectionReason: reason ?? null, approvedAt: null })
+      .where(eq(schema.users.id, req.params.id));
+
+    sendRejectionEmail(user.email, user.name, reason).catch(err => logger.warn({ err }, `Rejection email failed for ${user.email}`));
+    res.json({ success: true });
+  } catch (err) {
+    logger.error({ err }, "Reject user error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/users/:id", async (req, res) => {
   try {
     const [row] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
@@ -136,7 +231,7 @@ router.patch("/users/:id/ban", async (req, res) => {
 
 router.patch("/users/:id/reactivate", async (req, res) => {
   try {
-    await db.update(schema.users).set({ accountStatus: "active" }).where(eq(schema.users.id, req.params.id));
+    await db.update(schema.users).set({ accountStatus: "approved" }).where(eq(schema.users.id, req.params.id));
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: "Internal server error" }); }
 });
