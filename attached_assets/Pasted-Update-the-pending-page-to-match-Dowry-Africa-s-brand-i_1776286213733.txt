@@ -1,0 +1,55 @@
+Update the /pending page to match Dowry.Africa's brand identity.
+The current pending page does not match the brand. Redesign it to feel premium and on-brand using the following design system:
+Fonts — Import from Google Fonts:
+
+Cormorant Garamond (weights 300, 400, 500, 600, italic) — for headings
+Jost (weights 300, 400, 500) — for body text
+
+Colors:
+
+Background: #FAF7F2 (warm cream)
+Primary rose: #B5264E
+Burgundy: #7A1535
+Gold accent: #C9973A
+Body text: #1A1008
+Muted text: #5C4A3A
+Border: #E8DDD0
+
+Card:
+
+White card, border-radius: 20px, soft shadow
+A 5px gradient accent bar at the very top of the card: linear-gradient(90deg, #7A1535, #B5264E, #C9973A)
+
+Logo at top (above the card, centered):
+
+Use the existing Dowry.Africa logo SVG/image already in the codebase — display it prominently above the card, not inside it
+
+Heading:
+
+Font: Cormorant Garamond, ~36px, weight 600
+Text: "Your application is under review"
+
+Subtext:
+
+Font: Jost, 15px, weight 300, color #5C4A3A
+Personalised with user's first name in bold
+
+Steps timeline — 4 steps with a vertical connecting line between icons:
+
+✅ Account created — green circle with checkmark (#2D7A4F on #EBF5EF)
+✅ Email verified — same green style
+⏳ Application under review (5–7 days) — amber/orange pulsing clock icon (#B8680A on #FEF3E2), label in amber, add subtle CSS pulse animation on the icon
+🔒 Welcome to Dowry.Africa — greyed out lock icon, muted text
+
+Email notice box:
+
+Background: #F9EEF1, border: rgba(181,38,78,0.12), border-radius 12px
+Text: "You will receive an email at [user email] once your application has been reviewed."
+
+Below a horizontal divider:
+
+"Questions? Contact us at hello@dowry.africa" — rose coloured link
+Social links row (Instagram, TikTok, X / Twitter) — small, minimal, muted colour, hover to rose
+Sign out button — full width, outlined style, border #E8DDD0, on hover border turns rose and background turns #F9EEF1
+
+Overall feel: prestigious, warm, intentional — this should feel like a luxury membership club, not an error page. No harsh colours, no default browser styles, no generic sans-serif fonts.

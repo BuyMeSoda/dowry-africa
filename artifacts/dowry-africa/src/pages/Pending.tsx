@@ -1,11 +1,25 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { CheckCircle2, Clock, Lock, LogOut, ExternalLink } from "lucide-react";
+
+// Inject Google Fonts into <head> once
+function useBrandFonts() {
+  useEffect(() => {
+    const id = "dowry-brand-fonts";
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Jost:wght@300;400;500&display=swap";
+    document.head.appendChild(link);
+  }, []);
+}
 
 export default function PendingApproval() {
   const { user, isLoading, logout } = useAuth();
   const [, setLocation] = useLocation();
+  useBrandFonts();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -16,147 +30,420 @@ export default function PendingApproval() {
   }, [user, isLoading, setLocation]);
 
   if (isLoading || !user) {
-    return <div className="h-screen flex items-center justify-center bg-[#fdf8f4]" />;
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#FAF7F2",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      />
+    );
   }
 
   const firstName = user.name?.split(" ")[0] ?? "there";
 
   return (
-    <div className="min-h-screen bg-[#fdf8f4] flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-lg">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#FAF7F2",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 20px",
+        fontFamily: "'Jost', sans-serif",
+      }}
+    >
+      {/* Pulse animation keyframes */}
+      <style>{`
+        @keyframes da-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.65; transform: scale(1.08); }
+        }
+        .da-pulse { animation: da-pulse 2s ease-in-out infinite; }
+      `}</style>
 
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-700 to-rose-500 flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-lg">D</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-900" style={{ fontFamily: "Georgia, serif" }}>
-              Dowry.Africa
-            </span>
-          </div>
+      <div style={{ width: "100%", maxWidth: 480 }}>
+
+        {/* Logo — above the card, centered */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <img
+            src={`${import.meta.env.BASE_URL}logo.png`}
+            alt="Dowry.Africa"
+            style={{ height: 48, objectFit: "contain" }}
+          />
         </div>
 
-        {/* Main card */}
-        <div className="bg-white rounded-3xl shadow-xl border border-rose-100/60 overflow-hidden">
+        {/* Card */}
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: 20,
+            boxShadow:
+              "0 4px 6px -1px rgba(26,16,8,0.06), 0 12px 40px -8px rgba(26,16,8,0.10)",
+            overflow: "hidden",
+          }}
+        >
+          {/* Gradient accent bar */}
+          <div
+            style={{
+              height: 5,
+              background: "linear-gradient(90deg, #7A1535, #B5264E, #C9973A)",
+            }}
+          />
 
-          {/* Header strip */}
-          <div className="h-2 bg-gradient-to-r from-rose-700 via-rose-500 to-amber-400" />
+          <div style={{ padding: "36px 36px 32px" }}>
 
-          <div className="p-8 md:p-10">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3" style={{ fontFamily: "Georgia, serif" }}>
+            {/* Heading */}
+            <h1
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: 34,
+                fontWeight: 600,
+                color: "#1A1008",
+                lineHeight: 1.2,
+                margin: "0 0 14px",
+              }}
+            >
               Your application is under review
             </h1>
-            <p className="text-gray-600 leading-relaxed mb-8">
-              Thank you for joining Dowry.Africa, <strong className="text-gray-800">{firstName}</strong>. We review every application personally to ensure our community remains intentional and serious.
+
+            {/* Subtext */}
+            <p
+              style={{
+                fontFamily: "'Jost', sans-serif",
+                fontSize: 15,
+                fontWeight: 300,
+                color: "#5C4A3A",
+                lineHeight: 1.65,
+                margin: "0 0 32px",
+              }}
+            >
+              Thank you for joining Dowry.Africa,{" "}
+              <strong style={{ fontWeight: 500, color: "#1A1008" }}>
+                {firstName}
+              </strong>
+              . We review every application personally to ensure our community
+              remains intentional and serious.
             </p>
 
             {/* Timeline */}
-            <div className="space-y-3 mb-8">
-              <TimelineStep
-                icon={<CheckCircle2 className="w-5 h-5" />}
-                label="Account created"
-                status="done"
+            <div style={{ position: "relative", marginBottom: 32 }}>
+              {/* Vertical connecting line */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: 19,
+                  top: 20,
+                  bottom: 20,
+                  width: 1,
+                  background:
+                    "linear-gradient(180deg, #2D7A4F 0%, #2D7A4F 30%, #B8680A 55%, #E8DDD0 80%)",
+                }}
               />
-              <TimelineStep
-                icon={<CheckCircle2 className="w-5 h-5" />}
-                label="Email verified"
-                status="done"
-              />
-              <TimelineStep
-                icon={<Clock className="w-5 h-5" />}
-                label="Application under review (5–7 days)"
-                status="active"
-              />
-              <TimelineStep
-                icon={<Lock className="w-5 h-5" />}
-                label="Welcome to Dowry.Africa"
-                status="locked"
-              />
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {/* Step 1 — done */}
+                <TimelineStep
+                  icon={<CheckIcon />}
+                  iconBg="#EBF5EF"
+                  iconColor="#2D7A4F"
+                  label="Account created"
+                  labelColor="#1A1008"
+                  labelWeight={400}
+                  pulse={false}
+                />
+                {/* Step 2 — done */}
+                <TimelineStep
+                  icon={<CheckIcon />}
+                  iconBg="#EBF5EF"
+                  iconColor="#2D7A4F"
+                  label="Email verified"
+                  labelColor="#1A1008"
+                  labelWeight={400}
+                  pulse={false}
+                />
+                {/* Step 3 — in progress */}
+                <TimelineStep
+                  icon={<ClockIcon />}
+                  iconBg="#FEF3E2"
+                  iconColor="#B8680A"
+                  label="Application under review (5–7 days)"
+                  labelColor="#B8680A"
+                  labelWeight={500}
+                  pulse={true}
+                />
+                {/* Step 4 — locked */}
+                <TimelineStep
+                  icon={<LockIcon />}
+                  iconBg="#F4F0EC"
+                  iconColor="#C4B5A5"
+                  label="Welcome to Dowry.Africa"
+                  labelColor="#C4B5A5"
+                  labelWeight={300}
+                  pulse={false}
+                />
+              </div>
             </div>
 
-            {/* Info box */}
-            <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 mb-8">
-              <p className="text-gray-700 text-sm leading-relaxed">
+            {/* Email notice */}
+            <div
+              style={{
+                background: "#F9EEF1",
+                border: "1px solid rgba(181,38,78,0.12)",
+                borderRadius: 12,
+                padding: "14px 16px",
+                marginBottom: 28,
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "'Jost', sans-serif",
+                  fontSize: 14,
+                  fontWeight: 300,
+                  color: "#5C4A3A",
+                  lineHeight: 1.6,
+                  margin: 0,
+                }}
+              >
                 You will receive an email at{" "}
-                <strong className="text-gray-900">{user.email}</strong>{" "}
+                <strong
+                  style={{ fontWeight: 500, color: "#1A1008", wordBreak: "break-all" }}
+                >
+                  {user.email}
+                </strong>{" "}
                 once your application has been reviewed.
               </p>
             </div>
 
+            {/* Divider */}
+            <div
+              style={{
+                height: 1,
+                background: "#E8DDD0",
+                margin: "0 0 24px",
+              }}
+            />
+
             {/* Contact */}
-            <p className="text-center text-sm text-gray-500 mb-6">
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: 13,
+                fontWeight: 300,
+                color: "#5C4A3A",
+                marginBottom: 18,
+              }}
+            >
               Questions? Contact us at{" "}
-              <a href="mailto:hello@dowry.africa" className="text-rose-600 font-medium hover:underline">
+              <a
+                href="mailto:hello@dowry.africa"
+                style={{
+                  color: "#B5264E",
+                  textDecoration: "none",
+                  fontWeight: 400,
+                }}
+              >
                 hello@dowry.africa
               </a>
             </p>
 
             {/* Social links */}
-            <div className="flex items-center justify-center gap-5 mb-8">
-              <a href="https://instagram.com/dowry.africa" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-rose-600 transition-colors">
-                <ExternalLink className="w-3.5 h-3.5" /><span>Instagram</span>
-              </a>
-              <a href="https://tiktok.com/@dowry.africa" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-rose-600 transition-colors">
-                <ExternalLink className="w-3.5 h-3.5" /><span>TikTok</span>
-              </a>
-              <a href="https://twitter.com/dowry_africa" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-rose-600 transition-colors">
-                <ExternalLink className="w-3.5 h-3.5" /><span>X / Twitter</span>
-              </a>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 24,
+                marginBottom: 28,
+              }}
+            >
+              {[
+                { label: "Instagram", href: "https://instagram.com/dowry.africa" },
+                { label: "TikTok", href: "https://tiktok.com/@dowry.africa" },
+                { label: "X / Twitter", href: "https://twitter.com/dowry_africa" },
+              ].map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 400,
+                    color: "#5C4A3A",
+                    textDecoration: "none",
+                    letterSpacing: "0.02em",
+                    transition: "color 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.color = "#B5264E";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.color = "#5C4A3A";
+                  }}
+                >
+                  {s.label}
+                </a>
+              ))}
             </div>
 
-            {/* Logout */}
+            {/* Sign out */}
             <button
               onClick={logout}
-              className="w-full flex items-center justify-center gap-2 py-3 border border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300 rounded-2xl text-sm font-medium transition-colors"
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: "transparent",
+                border: "1px solid #E8DDD0",
+                borderRadius: 10,
+                fontSize: 14,
+                fontFamily: "'Jost', sans-serif",
+                fontWeight: 400,
+                color: "#5C4A3A",
+                cursor: "pointer",
+                transition: "border-color 0.2s, background 0.2s, color 0.2s",
+                letterSpacing: "0.02em",
+              }}
+              onMouseEnter={(e) => {
+                const btn = e.currentTarget as HTMLButtonElement;
+                btn.style.borderColor = "#B5264E";
+                btn.style.background = "#F9EEF1";
+                btn.style.color = "#B5264E";
+              }}
+              onMouseLeave={(e) => {
+                const btn = e.currentTarget as HTMLButtonElement;
+                btn.style.borderColor = "#E8DDD0";
+                btn.style.background = "transparent";
+                btn.style.color = "#5C4A3A";
+              }}
             >
-              <LogOut className="w-4 h-4" />
               Sign out
             </button>
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
-          &copy; {new Date().getFullYear()} Dowry.Africa &mdash; Built for marriage. Not just matches.
+        {/* Footer */}
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 11,
+            fontWeight: 300,
+            color: "#C4B5A5",
+            marginTop: 24,
+            letterSpacing: "0.04em",
+          }}
+        >
+          &copy; {new Date().getFullYear()} Dowry.Africa &mdash; Built for
+          marriage. Not just matches.
         </p>
       </div>
     </div>
   );
 }
 
-function TimelineStep({ icon, label, status }: {
+function TimelineStep({
+  icon,
+  iconBg,
+  iconColor,
+  label,
+  labelColor,
+  labelWeight,
+  pulse,
+}: {
   icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
   label: string;
-  status: "done" | "active" | "locked";
+  labelColor: string;
+  labelWeight: number;
+  pulse: boolean;
 }) {
-  const configs = {
-    done: {
-      iconClass: "bg-green-100 text-green-600",
-      labelClass: "text-gray-700 font-medium",
-      prefix: null,
-    },
-    active: {
-      iconClass: "bg-amber-100 text-amber-600",
-      labelClass: "text-amber-700 font-semibold",
-      prefix: null,
-    },
-    locked: {
-      iconClass: "bg-gray-100 text-gray-400",
-      labelClass: "text-gray-400",
-      prefix: null,
-    },
-  };
-  const c = configs[status];
-
   return (
-    <div className="flex items-center gap-4">
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${c.iconClass}`}>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
+      <div
+        className={pulse ? "da-pulse" : undefined}
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: "50%",
+          background: iconBg,
+          color: iconColor,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          zIndex: 1,
+        }}
+      >
         {icon}
       </div>
-      <span className={`text-sm ${c.labelClass}`}>{label}</span>
+      <span
+        style={{
+          fontFamily: "'Jost', sans-serif",
+          fontSize: 14,
+          fontWeight: labelWeight,
+          color: labelColor,
+          lineHeight: 1.4,
+        }}
+      >
+        {label}
+      </span>
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M3 8.5L6.5 12L13 5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M8 5V8.5L10.5 10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect
+        x="3"
+        y="7.5"
+        width="10"
+        height="7"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M5 7.5V5.5a3 3 0 016 0v2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
