@@ -263,9 +263,9 @@ export default function PendingApproval() {
               }}
             >
               {[
-                { label: "Instagram", href: "https://instagram.com/dowry.africa" },
-                { label: "TikTok", href: "https://tiktok.com/@dowry.africa" },
-                { label: "X / Twitter", href: "https://twitter.com/dowry_africa" },
+                { label: "Instagram", href: "https://instagram.com/dowryafrica" },
+                { label: "TikTok", href: "https://tiktok.com/@dowryafrica" },
+                { label: "X / Twitter", href: "https://twitter.com/dowryafrica" },
               ].map((s) => (
                 <a
                   key={s.label}
