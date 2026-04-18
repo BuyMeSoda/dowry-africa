@@ -227,6 +227,12 @@ export async function runMigrations(): Promise<void> {
       INSERT INTO settings (key, value, updated_at)
       VALUES ('manual_approval_required', 'true', NOW())
       ON CONFLICT (key) DO NOTHING;
+
+      -- Update exclusivity line copy
+      UPDATE settings
+      SET value = 'Join 100s of Africans already on the waitlist', updated_at = NOW()
+      WHERE key = 'coming_soon_exclusivity'
+        AND value IN ('We are onboarding a limited number of serious members. Be first.', '');
     `);
   } finally {
     client.release();

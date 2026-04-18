@@ -123,7 +123,7 @@ export default function ComingSoon() {
 
         {/* Exclusivity line */}
         {exclusivity && (
-          <p className="text-primary font-semibold text-base mb-10 italic">
+          <p className="text-primary font-semibold text-lg md:text-xl mb-10 italic">
             {exclusivity}
           </p>
         )}
