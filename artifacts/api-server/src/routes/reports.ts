@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAuth, requireApproved } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -17,7 +17,7 @@ const VALID_REASONS = [
   "other",
 ];
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requireApproved, async (req, res) => {
   try {
     const reporterId = req.userId!;
     const { reportedUserId, reason, details } = req.body;

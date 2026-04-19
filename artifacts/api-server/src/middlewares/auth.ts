@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
+import { db } from "../db/connection.js";
+import * as schema from "../db/schema.js";
 
 export interface JwtPayload {
   userId: string;
@@ -35,6 +38,32 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
+export async function requireApproved(req: Request, res: Response, next: NextFunction) {
+  if (!req.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const [row] = await db
+      .select({ accountStatus: schema.users.accountStatus })
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId))
+      .limit(1);
+
+    if (!row) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (row.accountStatus !== "approved") {
+      res.status(403).json({ error: "Account pending approval" });
+      return;
+    }
+    next();
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 

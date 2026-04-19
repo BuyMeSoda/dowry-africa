@@ -2,12 +2,12 @@ import { Router } from "express";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAuth, requireApproved } from "../middlewares/auth.js";
 
 const router = Router();
 
 // GET /api/notifications/count
-router.get("/count", requireAuth, async (req, res) => {
+router.get("/count", requireAuth, requireApproved, async (req, res) => {
   try {
     const userId = req.userId!;
 
@@ -34,7 +34,7 @@ router.get("/count", requireAuth, async (req, res) => {
 });
 
 // POST /api/notifications/seen — mark all (or by type) as seen
-router.post("/seen", requireAuth, async (req, res) => {
+router.post("/seen", requireAuth, requireApproved, async (req, res) => {
   try {
     const userId = req.userId!;
     const { type } = req.body as { type?: string };

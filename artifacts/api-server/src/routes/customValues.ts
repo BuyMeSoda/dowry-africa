@@ -3,7 +3,7 @@ import { eq, and, ilike, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAuth, requireApproved } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -33,7 +33,7 @@ function normalizeValue(fieldType: string, displayValue: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET /api/custom-values?field_type=heritage&prefix=ango
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, requireApproved, async (req, res) => {
   try {
     const { field_type, prefix } = req.query as Record<string, string>;
     if (!field_type) { res.status(400).json({ error: "field_type required" }); return; }
@@ -57,7 +57,7 @@ router.get("/", requireAuth, async (req, res) => {
 });
 
 // POST /api/custom-values — create or increment usage
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requireApproved, async (req, res) => {
   try {
     const { field_type, display_value, normalized_value } = req.body as {
       field_type: string;

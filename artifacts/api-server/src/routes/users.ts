@@ -5,7 +5,7 @@ import multer from "multer";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, sanitizeUser, publicUser, calcCompleteness } from "../db/database.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAuth, requireApproved } from "../middlewares/auth.js";
 import { cloudinary, cloudinaryEnabled } from "../lib/cloudinary.js";
 
 const upload = multer({
@@ -30,7 +30,7 @@ const ALLOWED_FIELDS = [
   "preferredFaith", "preferredFaiths", "preferredCountry", "preferredHeritage", "preferredResidence",
 ] as const;
 
-router.get("/me/profile", requireAuth, async (req, res) => {
+router.get("/me/profile", requireAuth, requireApproved, async (req, res) => {
   try {
     const [row] = await db
       .select()
@@ -46,7 +46,7 @@ router.get("/me/profile", requireAuth, async (req, res) => {
   }
 });
 
-router.patch("/me/profile", requireAuth, async (req, res) => {
+router.patch("/me/profile", requireAuth, requireApproved, async (req, res) => {
   try {
     const [row] = await db
       .select()
@@ -85,7 +85,7 @@ router.patch("/me/profile", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/me/photo", requireAuth, (req, res, next) => {
+router.post("/me/photo", requireAuth, requireApproved, (req, res, next) => {
   upload.single("photo")(req, res, (err) => {
     if (err) {
       res.status(400).json({ error: err.message ?? "Invalid file" });
@@ -146,7 +146,7 @@ router.post("/me/photo", requireAuth, (req, res, next) => {
 });
 
 // Get list of users this user has blocked
-router.get("/me/blocked", requireAuth, async (req, res) => {
+router.get("/me/blocked", requireAuth, requireApproved, async (req, res) => {
   try {
     const myId = req.userId!;
     const blockRows = await db
@@ -168,7 +168,7 @@ router.get("/me/blocked", requireAuth, async (req, res) => {
 });
 
 // Block a user — also removes mutual likes, messages, and notifications
-router.post("/:userId/block", requireAuth, async (req, res) => {
+router.post("/:userId/block", requireAuth, requireApproved, async (req, res) => {
   try {
     const myId = req.userId!;
     const theirId = req.params.userId;
@@ -198,7 +198,7 @@ router.post("/:userId/block", requireAuth, async (req, res) => {
 });
 
 // Unblock a user
-router.delete("/:userId/block", requireAuth, async (req, res) => {
+router.delete("/:userId/block", requireAuth, requireApproved, async (req, res) => {
   try {
     const myId = req.userId!;
     const theirId = req.params.userId;
@@ -213,7 +213,7 @@ router.delete("/:userId/block", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/:id", requireAuth, async (req, res) => {
+router.get("/:id", requireAuth, requireApproved, async (req, res) => {
   try {
     const [row] = await db
       .select()

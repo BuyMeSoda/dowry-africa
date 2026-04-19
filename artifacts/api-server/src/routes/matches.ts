@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser, publicUser } from "../db/database.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAuth, requireApproved } from "../middlewares/auth.js";
 import { scoreMatch, passesHardFilters, rankFeed } from "../lib/matching.js";
 
 const router = Router();
@@ -25,7 +25,7 @@ async function getBlockSet(userId: string): Promise<Set<string>> {
   ]);
 }
 
-router.get("/feed", requireAuth, async (req, res) => {
+router.get("/feed", requireAuth, requireApproved, async (req, res) => {
   try {
     const [meRow] = await db
       .select()
@@ -169,7 +169,7 @@ router.get("/feed", requireAuth, async (req, res) => {
 });
 
 // Sent likes — users the current user liked but who haven't liked back yet (pending)
-router.get("/sent", requireAuth, async (req, res) => {
+router.get("/sent", requireAuth, requireApproved, async (req, res) => {
   try {
     const myId = req.userId!;
     const blockSet = await getBlockSet(myId);
@@ -208,7 +208,7 @@ router.get("/sent", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/liked-me", requireAuth, async (req, res) => {
+router.get("/liked-me", requireAuth, requireApproved, async (req, res) => {
   try {
     const [meRow] = await db
       .select()
@@ -265,7 +265,7 @@ router.get("/liked-me", requireAuth, async (req, res) => {
 });
 
 // Check whether the current user has liked or is matched with a specific user
-router.get("/status/:userId", requireAuth, async (req, res) => {
+router.get("/status/:userId", requireAuth, requireApproved, async (req, res) => {
   try {
     const myId = req.userId!;
     const theirId = req.params.userId;
@@ -285,7 +285,7 @@ router.get("/status/:userId", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/:id/score", requireAuth, async (req, res) => {
+router.get("/:id/score", requireAuth, requireApproved, async (req, res) => {
   try {
     const [[meRow], [candidateRow]] = await Promise.all([
       db.select().from(schema.users).where(eq(schema.users.id, req.userId!)).limit(1),
@@ -301,7 +301,7 @@ router.get("/:id/score", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/like/:id", requireAuth, async (req, res) => {
+router.post("/like/:id", requireAuth, requireApproved, async (req, res) => {
   try {
     const [[meRow], [targetRow]] = await Promise.all([
       db.select().from(schema.users).where(eq(schema.users.id, req.userId!)).limit(1),
@@ -356,7 +356,7 @@ router.post("/like/:id", requireAuth, async (req, res) => {
 });
 
 // Unlike — remove a like that has not yet become a mutual match
-router.delete("/like/:userId", requireAuth, async (req, res) => {
+router.delete("/like/:userId", requireAuth, requireApproved, async (req, res) => {
   try {
     const myId = req.userId!;
     const theirId = req.params.userId;
@@ -377,7 +377,7 @@ router.delete("/like/:userId", requireAuth, async (req, res) => {
 });
 
 // Unmatch — remove mutual likes and all messages between the two users
-router.post("/unmatch/:userId", requireAuth, async (req, res) => {
+router.post("/unmatch/:userId", requireAuth, requireApproved, async (req, res) => {
   try {
     const myId = req.userId!;
     const theirId = req.params.userId;
@@ -414,7 +414,7 @@ router.post("/unmatch/:userId", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/pass/:id", requireAuth, async (req, res) => {
+router.post("/pass/:id", requireAuth, requireApproved, async (req, res) => {
   try {
     await db.insert(schema.passes)
       .values({ fromId: req.userId!, toId: req.params.id })

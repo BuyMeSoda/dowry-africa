@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser } from "../db/database.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAuth, requireApproved } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -12,7 +12,7 @@ function isDemoMode(): boolean {
   return !key || key.includes("YOUR_") || key.startsWith("sk_test_placeholder");
 }
 
-router.post("/create-checkout", requireAuth, async (req, res) => {
+router.post("/create-checkout", requireAuth, requireApproved, async (req, res) => {
   try {
     const [meRow] = await db
       .select()
@@ -113,7 +113,7 @@ router.post("/webhook", async (req, res) => {
   }
 });
 
-router.post("/create-portal", requireAuth, async (req, res) => {
+router.post("/create-portal", requireAuth, requireApproved, async (req, res) => {
   try {
     const [meRow] = await db
       .select()
@@ -157,7 +157,7 @@ router.post("/create-portal", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/status", requireAuth, async (req, res) => {
+router.get("/status", requireAuth, requireApproved, async (req, res) => {
   try {
     const [meRow] = await db
       .select()

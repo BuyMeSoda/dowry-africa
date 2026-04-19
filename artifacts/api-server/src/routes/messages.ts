@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser } from "../db/database.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAuth, requireApproved } from "../middlewares/auth.js";
 import { sendMessageNotificationEmail } from "../lib/email.js";
 
 const router = Router();
@@ -15,7 +15,7 @@ const FALLBACK_PROMPTS = [
   "What traditions do you want to carry into your marriage?",
 ];
 
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, requireApproved, async (req, res) => {
   try {
     const [meRow] = await db
       .select()
@@ -145,7 +145,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/:userId", requireAuth, async (req, res) => {
+router.get("/:userId", requireAuth, requireApproved, async (req, res) => {
   try {
     const [meRow] = await db
       .select()
@@ -253,7 +253,7 @@ router.get("/:userId", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/:userId", requireAuth, async (req, res) => {
+router.post("/:userId", requireAuth, requireApproved, async (req, res) => {
   try {
     const [meRow] = await db
       .select()
