@@ -108,8 +108,21 @@ export default function Premium() {
   };
 
   const currentTier = status?.tier || 'free';
-  const coreFeatures = parseFeatures(pricing.core_features);
-  const seriousFeatures = parseFeatures(pricing.serious_features);
+
+  const CORE_SUBTITLE = "Where real conversations begin.";
+  const CORE_FEATURES = [
+    "Talk without limits",
+    "Know who's serious about you",
+    "Browse without restrictions",
+    "Filter by country and values",
+  ];
+  const BADGE_SUBTITLE = "For people serious about commitment.";
+  const BADGE_FEATURES = [
+    "Everything in Core",
+    "Serious Badge displayed on your profile",
+    "Seen first by serious members",
+    "Connect only with verified serious members",
+  ];
 
   const displayedCorePrice = billing === 'yearly' ? YEARLY_CORE_PRICE : pricing.core_price;
   const displayedBadgePrice = billing === 'yearly' ? YEARLY_BADGE_PRICE : pricing.serious_price;
@@ -175,8 +188,8 @@ export default function Premium() {
         <div className="bg-white rounded-[2rem] p-8 border-2 border-[#B5264E] relative shadow-xl transform md:-translate-y-4 flex flex-col">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#B5264E] text-white px-4 py-1 rounded-full text-sm font-bold tracking-wide">MOST POPULAR</div>
           <div className="mb-2">
-            <h3 className="text-2xl font-display font-bold mb-1 text-[#B5264E]">{pricing.core_name}</h3>
-            <p className="text-sm text-muted-foreground mb-3 italic">{pricing.core_description}</p>
+            <h3 className="text-2xl font-display font-bold mb-1 text-[#B5264E]">Core</h3>
+            <p className="text-sm text-muted-foreground mb-3 italic">{CORE_SUBTITLE}</p>
             <p className="text-muted-foreground">
               <span className="text-3xl font-bold text-foreground">${displayedCorePrice}</span>
               <span className="text-sm"> / month</span>
@@ -184,18 +197,18 @@ export default function Premium() {
             </p>
           </div>
           <ul className="space-y-4 mb-8 flex-1 mt-6">
-            {coreFeatures.map(f => (
+            {CORE_FEATURES.map(f => (
               <li key={f} className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-[#B5264E] shrink-0" /> {f}</li>
             ))}
           </ul>
           <button
             onClick={() => handleCheckout('core')}
-            disabled={checkoutMutation.isPending || currentTier === 'core' || currentTier === 'badge'}
-            className="w-full py-4 rounded-xl font-bold bg-[#B5264E] text-white shadow-lg shadow-[#B5264E]/30 hover:shadow-xl hover:bg-[#9e1f42] hover:-translate-y-0.5 transition-all disabled:opacity-50"
+            disabled={checkoutMutation.isPending || currentTier === 'core'}
+            className="w-full py-4 rounded-xl font-bold bg-[#B5264E] text-white shadow-lg shadow-[#B5264E]/30 hover:bg-[#9e1f42] hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:hover:translate-y-0 disabled:hover:shadow-lg disabled:cursor-not-allowed"
           >
-            {checkoutMutation.isPending && currentTier === 'free'
+            {checkoutMutation.isPending && currentTier !== 'core'
               ? <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-              : currentTier === 'core' ? 'Current Plan' : currentTier === 'badge' ? 'Included' : `Select ${pricing.core_name}`}
+              : currentTier === 'core' ? 'Current Plan' : 'Select Core'}
           </button>
         </div>
 
@@ -204,9 +217,9 @@ export default function Premium() {
           <div className="mb-2">
             <div className="flex items-center gap-2 mb-1">
               <Shield className="w-6 h-6 text-yellow-400" />
-              <h3 className="text-2xl font-display font-bold">{pricing.serious_name}</h3>
+              <h3 className="text-2xl font-display font-bold">Serious Badge</h3>
             </div>
-            <p className="text-sm text-white/50 mb-3 italic">{pricing.serious_description}</p>
+            <p className="text-sm text-white/50 mb-3 italic">{BADGE_SUBTITLE}</p>
             <p className="text-white/70">
               <span className="text-3xl font-bold text-white">${displayedBadgePrice}</span>
               <span className="text-sm"> / month</span>
@@ -214,11 +227,11 @@ export default function Premium() {
             </p>
           </div>
           <ul className="space-y-4 mt-6 mb-4 flex-1">
-            {seriousFeatures.map((f, i) => (
+            {BADGE_FEATURES.map((f, i) => (
               <li key={f} className="flex gap-3 text-white items-start">
                 <Check className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
                 {i === 1
-                  ? <span><strong className="text-yellow-400">{pricing.serious_name}</strong> displayed on your profile</span>
+                  ? <span><strong className="text-yellow-400">Serious Badge</strong> displayed on your profile</span>
                   : <span>{f}</span>
                 }
               </li>
