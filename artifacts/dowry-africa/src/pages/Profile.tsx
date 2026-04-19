@@ -746,7 +746,7 @@ export default function Profile() {
               {/* Relocation */}
               <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl">
                 <div>
-                  <p className="font-semibold">Open to long-distance / relocation?</p>
+                  <p className="font-semibold">Open to long-distance?</p>
                   <p className="text-sm text-muted-foreground">Match with people in other cities/countries</p>
                 </div>
                 <button
