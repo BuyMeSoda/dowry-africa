@@ -1,0 +1,72 @@
+⚠️ IMPORTANT: Only modify the Premium/pricing page component and file. Do not touch any other files, routes, components, API logic, or styling. If a change is needed outside the pricing page file, stop and ask me first.
+
+Update the Premium pricing page with the following changes:
+1. Headline
+Replace the current headline with:
+
+"Find someone who is actually ready."
+
+Replace the subtext with:
+
+"Dowry.Africa is built for people serious about commitment. Upgrade to show up that way."
+
+
+2. Monthly / Annual billing toggle
+Add a toggle at the top of the pricing cards, centered:
+
+Two options: Monthly | Yearly (Save 20%)
+Default to Monthly
+When Yearly is selected, prices update to:
+
+Core: $12.99 → $9.99/month, billed annually
+Serious Badge: $19.99 → $15.99/month, billed annually
+
+
+Style the toggle to match the existing brand colors (#B5264E for active state)
+
+
+3. Free tier — update features
+Change the feature list to:
+
+✅ Browse profiles
+✅ Like or pass
+✅ Receive messages
+❌ Send messages
+❌ See who liked you
+
+Remove any "1 message per day" language. Free users can receive messages but cannot initiate conversations.
+
+4. Core tier — reframe as outcomes, not features
+Replace feature copy with:
+
+✅ Talk without limits
+✅ Know who's serious about you
+✅ Browse without restrictions
+✅ Filter by country and values
+
+Subtitle under "Core": "Where real conversations begin."
+
+5. Serious Badge tier — reframe as identity, not features
+Replace feature copy with:
+
+✅ Everything in Core
+✅ Serious Badge displayed on your profile
+✅ Seen first by serious members
+✅ Connect only with verified serious members
+
+Subtitle under "Serious Badge": "For people serious about commitment."
+Add a single line below the feature list, styled in muted text:
+
+"Not for games."
+
+
+6. Core CTA button
+Change the "Select Core" button color to solid #B5264E with white text. It currently looks disabled — it should be the most visually dominant button on the page.
+
+Design rules — do not change:
+
+Card layout, shadows, border radius — leave as is
+"Most Popular" badge — leave as is
+Dark card style for Serious Badge — leave as is
+Navigation, header, footer — do not touch
+All routing and payment logic — do not touch
