@@ -84,6 +84,7 @@ router.post("/register", authRateLimit, async (req, res) => {
     const completeness = calcCompleteness(partial);
 
     const verificationToken = randomBytes(32).toString("hex");
+    const verificationTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     // Check if manual approval is required
     const [approvalSetting] = await db
@@ -111,6 +112,7 @@ router.post("/register", authRateLimit, async (req, res) => {
       blocked: [],
       emailVerified: false,
       verificationToken,
+      verificationTokenExpiry,
       accountStatus,
       approvedAt: manualApprovalRequired ? undefined : now,
     });
@@ -284,7 +286,12 @@ router.get("/verify-email", async (req, res) => {
     }
 
     const [row] = await db
-      .select({ id: schema.users.id, emailVerified: schema.users.emailVerified, accountStatus: schema.users.accountStatus })
+      .select({
+        id: schema.users.id,
+        emailVerified: schema.users.emailVerified,
+        accountStatus: schema.users.accountStatus,
+        verificationTokenExpiry: schema.users.verificationTokenExpiry,
+      })
       .from(schema.users)
       .where(eq(schema.users.verificationToken, token))
       .limit(1);
@@ -302,9 +309,17 @@ router.get("/verify-email", async (req, res) => {
       return;
     }
 
+    // Check if token has expired (treat missing expiry as expired to be safe)
+    const expiry = row.verificationTokenExpiry;
+    if (!expiry || expiry.getTime() <= Date.now()) {
+      const dest = row.accountStatus === "pending" ? `${APP_BASE}/pending?verified=expired` : `${APP_BASE}/login?verified=expired`;
+      res.redirect(dest);
+      return;
+    }
+
     await db
       .update(schema.users)
-      .set({ emailVerified: true, verificationToken: null })
+      .set({ emailVerified: true, verificationToken: null, verificationTokenExpiry: null })
       .where(eq(schema.users.id, row.id));
 
     // Redirect to /pending for users awaiting approval, /discover for auto-approved
@@ -315,6 +330,50 @@ router.get("/verify-email", async (req, res) => {
     }
   } catch (err) {
     req.log.error(err, "Verify email error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/resend-verification", authRateLimit, requireAuth, async (req, res) => {
+  try {
+    const [row] = await db
+      .select({
+        id: schema.users.id,
+        email: schema.users.email,
+        name: schema.users.name,
+        emailVerified: schema.users.emailVerified,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
+
+    if (!row) {
+      res.status(404).json({ error: "Account not found" });
+      return;
+    }
+
+    if (row.emailVerified) {
+      res.status(400).json({ error: "Your email is already verified." });
+      return;
+    }
+
+    const newToken = randomBytes(32).toString("hex");
+    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // Setting a new token invalidates the old one (single column)
+    await db
+      .update(schema.users)
+      .set({ verificationToken: newToken, verificationTokenExpiry: newExpiry })
+      .where(eq(schema.users.id, row.id));
+
+    const verificationLink = `${APP_BASE}/verify-email?token=${newToken}`;
+    sendVerificationEmail(row.email, row.name, verificationLink).catch(
+      (err) => req.log.warn(err, "Verification email failed to send"),
+    );
+
+    res.json({ message: "Verification email sent. Please check your inbox." });
+  } catch (err) {
+    req.log.error(err, "Resend verification error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { API_BASE } from "@/lib/api-url";
 
 // Inject Google Fonts into <head> once
 function useBrandFonts() {
@@ -21,6 +22,13 @@ export default function PendingApproval() {
   const [, setLocation] = useLocation();
   useBrandFonts();
 
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [resendMessage, setResendMessage] = useState<string>("");
+  const [verifyFlag] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("verified");
+  });
+
   useEffect(() => {
     if (!isLoading && !user) {
       setLocation("/login");
@@ -28,6 +36,32 @@ export default function PendingApproval() {
       setLocation("/discover");
     }
   }, [user, isLoading, setLocation]);
+
+  async function handleResendVerification() {
+    setResendState("sending");
+    setResendMessage("");
+    try {
+      const token = localStorage.getItem("da_token");
+      const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setResendState("error");
+        setResendMessage(data.error ?? "Could not send verification email. Please try again.");
+        return;
+      }
+      setResendState("sent");
+      setResendMessage(data.message ?? "Verification email sent. Please check your inbox.");
+    } catch {
+      setResendState("error");
+      setResendMessage("Network error. Please try again.");
+    }
+  }
 
   if (isLoading || !user) {
     return (
@@ -219,6 +253,80 @@ export default function PendingApproval() {
                 once your application has been reviewed.
               </p>
             </div>
+
+            {/* Verification expired banner */}
+            {!user.emailVerified && verifyFlag === "expired" && (
+              <div
+                style={{
+                  background: "#FEF3E2",
+                  border: "1px solid rgba(184,104,10,0.18)",
+                  borderRadius: 12,
+                  padding: "14px 16px",
+                  marginBottom: 16,
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "'Jost', sans-serif",
+                    fontSize: 14,
+                    fontWeight: 400,
+                    color: "#7A4A0A",
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  This verification link has expired. Please request a new one below.
+                </p>
+              </div>
+            )}
+
+            {/* Resend verification email — shown while user is unverified */}
+            {!user.emailVerified && (
+              <div style={{ marginBottom: 20 }}>
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resendState === "sending" || resendState === "sent"}
+                  style={{
+                    width: "100%",
+                    padding: "12px 0",
+                    background: resendState === "sent" ? "#EBF5EF" : "#B5264E",
+                    border: "none",
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontFamily: "'Jost', sans-serif",
+                    fontWeight: 500,
+                    color: resendState === "sent" ? "#2D7A4F" : "#FFFFFF",
+                    cursor:
+                      resendState === "sending" || resendState === "sent"
+                        ? "default"
+                        : "pointer",
+                    transition: "background 0.2s, color 0.2s",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {resendState === "sending"
+                    ? "Sending…"
+                    : resendState === "sent"
+                    ? "Verification email sent"
+                    : "Resend verification email"}
+                </button>
+                {resendMessage && (
+                  <p
+                    style={{
+                      fontFamily: "'Jost', sans-serif",
+                      fontSize: 12,
+                      fontWeight: 300,
+                      color: resendState === "error" ? "#B5264E" : "#5C4A3A",
+                      lineHeight: 1.5,
+                      margin: "10px 0 0",
+                      textAlign: "center",
+                    }}
+                  >
+                    {resendMessage}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Divider */}
             <div

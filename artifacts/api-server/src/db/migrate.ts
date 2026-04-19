@@ -165,6 +165,11 @@ export async function runMigrations(): Promise<void> {
       -- Email verification columns (added after initial schema)
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expiry TIMESTAMPTZ;
+      -- Backfill expiry for any existing users that have a token but no expiry
+      UPDATE users
+        SET verification_token_expiry = NOW() + INTERVAL '7 days'
+        WHERE verification_token IS NOT NULL AND verification_token_expiry IS NULL;
 
       -- Email templates (saved broadcast templates)
       CREATE TABLE IF NOT EXISTS email_templates (

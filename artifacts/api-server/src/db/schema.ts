@@ -41,6 +41,7 @@ export const users = pgTable("users", {
   accountStatus: text("account_status").notNull().default("approved"),
   emailVerified: boolean("email_verified").notNull().default(false),
   verificationToken: text("verification_token"),
+  verificationTokenExpiry: timestamp("verification_token_expiry", { withTimezone: true }),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
   unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
