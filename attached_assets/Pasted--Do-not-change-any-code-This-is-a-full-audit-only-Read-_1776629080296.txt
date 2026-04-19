@@ -1,0 +1,43 @@
+⚠️ Do not change any code. This is a full audit only. Read the code and answer each question with Yes / No and file + line number.
+
+Auth & tier awareness:
+
+Does GET /api/auth/me still return the correct tier and accountStatus for regular non-admin users — i.e. does the admin email override only apply when there is a matching row in admin_users, and falls through normally for everyone else?
+Is the admin override isolated to the /api/auth/me response only — no other endpoint affected?
+
+
+Pending user enforcement:
+
+Does requireApproved middleware still block pending users from all protected endpoints except GET /api/auth/me, verify-email, and logout?
+Can a pending user still log in and reach /pending on the frontend?
+Is a pending user still blocked from /api/messages/*, /api/matches/*, /api/likes/*, and /api/profile/*?
+
+
+Free tier enforcement:
+
+Does POST /api/messages still return 403 when a free user tries to send a message?
+Does GET /api/matches/liked-me still return obfuscated data (no real name, photo, or ID) for free users?
+Does the frontend still show the non-interactive "Upgrade to reply" pill instead of a message input for free users?
+Does the frontend still show the upgrade lock on the "Liked You" tab for free users?
+
+
+Core tier enforcement:
+
+Can a Core user send messages without hitting a 403?
+Can a Core user see who liked them — i.e. does GET /api/matches/liked-me return real liker data for Core users?
+
+
+Serious Badge enforcement:
+
+Does a Serious Badge user get full access to all features including messaging and liked-me?
+Is the Serious Badge displayed correctly on the profile for Badge users?
+
+
+Approval flow:
+
+When admin approves a user, does the approval email still send from hello@dowry.africa?
+When admin rejects a user, does the rejection email still send from hello@dowry.africa?
+Does a newly approved user gain full app access on their next request to /api/auth/me without needing to log out and back in?
+
+
+Report back Yes / No and file + line number for every point. Do not fix anything — I want to review everything before deciding what to change.
