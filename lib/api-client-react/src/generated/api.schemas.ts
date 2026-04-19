@@ -77,6 +77,7 @@ export interface User {
   lastActive?: string;
   createdAt?: string;
   accountStatus?: string;
+  emailVerified?: boolean;
   rejectionReason?: string;
 }
 

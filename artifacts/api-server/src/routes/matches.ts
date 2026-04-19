@@ -56,8 +56,15 @@ router.get("/feed", requireAuth, async (req, res) => {
 
     const tierCap = TIER_CAPS[me.tier] ?? 5;
 
+    // Block pending/suspended/banned users from accessing the feed at all
+    if (meRow.accountStatus !== "approved") {
+      res.status(403).json({ error: "Account not approved" });
+      return;
+    }
+
     const [allUserRows, myPasses, myLikes, likedMeRows, myMessageRows, blockSet] = await Promise.all([
-      db.select().from(schema.users),
+      // Only show approved users in the feed — exclude pending, rejected, suspended, banned
+      db.select().from(schema.users).where(eq(schema.users.accountStatus, "approved")),
       // Users I've passed on
       db.select({ toId: schema.passes.toId }).from(schema.passes).where(eq(schema.passes.fromId, me.id)),
       // Users I've already liked (outgoing)

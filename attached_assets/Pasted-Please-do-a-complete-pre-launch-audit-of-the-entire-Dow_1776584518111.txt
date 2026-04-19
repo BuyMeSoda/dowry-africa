@@ -1,0 +1,267 @@
+Please do a complete pre-launch audit of the entire Dowry.Africa codebase. We are launching in 2 weeks and need everything working perfectly. Go through every file, every feature, every endpoint systematically.
+
+═══════════════════════════════
+1. AUTHENTICATION & ACCOUNTS
+═══════════════════════════════
+Test and fix:
+- Registration creates account correctly
+- Email verification sends and works
+- Login works with correct credentials
+- Login blocked for unverified email with clear message
+- Login blocked for pending accounts with redirect to /pending
+- Login blocked for rejected accounts with clear message
+- Forgot password sends reset email
+- Password reset works and redirects to login
+- Password strength validation works on register and reset
+- Show/hide password toggle works on all password fields
+- Logout clears ALL state — token, user data, cached queries
+- Logo click goes to /discover when logged in, / when logged out
+- JWT expires after 7 days
+- Demo account buttons removed from login page
+
+═══════════════════════════════
+2. GATED ONBOARDING
+═══════════════════════════════
+Test and fix:
+- New registrations go to pending when manual_approval_required = true
+- Pending users see /pending page — cannot access app
+- /pending page looks premium and reassuring
+- Approved users get approval email and full access
+- Rejected users see rejection page
+- Admin can approve/reject from Users → Pending tab
+- Bulk approve works
+- Manual approval toggle in Settings works
+- Turning off approval auto-approves future registrations
+- Existing users all have account_status = approved
+
+═══════════════════════════════
+3. COMING SOON MODE
+═══════════════════════════════
+Test and fix:
+- Coming soon toggle in admin works
+- When ON: all visitors see coming soon page
+- /admin and /login still accessible when coming soon is ON
+- /unsubscribe accessible when coming soon is ON
+- Email capture saves to database
+- Duplicate email handled gracefully
+- Coming soon content editable from admin settings
+- Content changes reflect immediately
+
+═══════════════════════════════
+4. DISCOVER FEED
+═══════════════════════════════
+Test and fix:
+- Feed loads profiles correctly
+- Feed excludes: self, already liked, already passed, already matched, blocked users, users who liked you
+- Like button works and removes from feed
+- Pass button works and removes from feed
+- Clicking profile card opens /members/:id
+- Like/Pass buttons do NOT trigger navigation
+- Infinite scroll loads more profiles
+- Empty state shows correctly
+- Filters work independently and together:
+  * Country of origin
+  * Country of residence
+  * Faith preference
+  * No preference = show all
+- Badge Members toggle shows for Serious Badge only
+- Badge Members toggle filters correctly
+
+═══════════════════════════════
+5. MEMBER PROFILE (/members/:id)
+═══════════════════════════════
+Test and fix:
+- All data shows: name, age, location, country of origin, country of residence, faith, bio, quote, tags, languages, children, timeline, family involvement
+- Country of origin shows in Background section
+- Like button works
+- Already matched shows Send Message button
+- Back button works
+- Three dots menu: Report and Block options work
+- Report flow works and saves to database
+- Block flow works — blocked user disappears from feed
+- Serious Badge shows correctly
+
+═══════════════════════════════
+6. MESSAGES — THREE TAB SYSTEM
+═══════════════════════════════
+Test and fix:
+MATCHES TAB:
+- Shows all mutual matches
+- Last message preview correct
+- Unread indicator works
+- Clicking opens chat
+- Messages load correctly and scroll to bottom
+- New messages auto-scroll to bottom
+- Sending message works for Core and Badge users
+- Free users see upgrade prompt
+- Message prompts show 3 random from database
+- Clicking prompt fills input
+- Avatar/name links to /members/:id
+- Three dots: unmatch works
+
+LIKED YOU TAB:
+- Shows who liked current user
+- Free users: blurred photos
+- Core/Badge: full photos
+- Like back creates match + celebration
+- Pass removes from list
+- Count badge correct
+
+PENDING TAB:
+- Shows sent likes awaiting response
+- Pending badge shows
+- Withdraw confirmation works
+- Withdraw removes the like
+- Count badge correct
+
+═══════════════════════════════
+7. OWN PROFILE PAGE
+═══════════════════════════════
+Test and fix:
+- All data displays correctly
+- Subscription tier badge shows
+- Edit Profile works:
+  * Photo upload works via Cloudinary
+  * City saves correctly
+  * Country of residence saves correctly
+  * Country of origin saves correctly (single select)
+  * Faith saves correctly
+  * Bio saves correctly
+  * Personal quote saves correctly
+  * Intent saves correctly
+  * All persist after page refresh
+- Partner Preferences works:
+  * Gender preference saves
+  * Age range saves
+  * Preferred country of origin saves
+  * Preferred country of residence saves
+  * Faith preference saves
+  * Children preference saves
+  * All persist after refresh
+- Logout clears everything
+
+═══════════════════════════════
+8. PREMIUM PAGE
+═══════════════════════════════
+Test and fix:
+- Pricing shows $12.99 Core and $19.99 Serious Badge
+- Pricing loaded from database not hardcoded
+- Current plan highlighted
+- Stripe checkout opens correctly
+- Feature list accurate per tier
+
+═══════════════════════════════
+9. ABOUT PAGE
+═══════════════════════════════
+Test and fix:
+- /about loads correctly
+- Content displays properly
+- CTA button works
+- Mobile responsive
+- Link in navbar works
+
+═══════════════════════════════
+10. ADMIN PANEL
+═══════════════════════════════
+Test and fix:
+- Login with email + password works
+- Dashboard metrics load correctly
+- Users section:
+  * All users list loads
+  * Pending tab shows pending users
+  * Approve/reject works
+  * Bulk approve works
+  * Search works
+  * Suspend/ban/reactivate works
+  * Send email to user works
+- Early Access:
+  * Email list loads
+  * Delete single email works
+  * CSV export works
+- Communications:
+  * Broadcast compose works
+  * All recipient segments load with correct counts
+  * Templates load and auto-fill correctly
+  * Preview works
+  * Send broadcast works
+  * Broadcast history shows
+  * Direct user email works
+- Message Prompts:
+  * All 10 prompts show
+  * Add prompt works
+  * Edit prompt works
+  * Toggle active/inactive works
+  * Delete prompt works
+- Settings:
+  * Coming soon toggle works
+  * Manual approval toggle works
+  * Content editing saves and reflects immediately
+  * Pricing settings save correctly
+- Admin Access:
+  * Add new admin works
+  * Welcome email sends
+  * Deactivate/reactivate admin works
+
+═══════════════════════════════
+11. MOBILE EXPERIENCE
+═══════════════════════════════
+Test and fix at 390px:
+- Logo header shows on all screens
+- Bottom tab bar shows correctly
+- Discover: full width cards
+- Filters: bottom sheet drawer opens and works
+- Profile cards readable
+- Like/Pass buttons thumb-friendly
+- Messages: full screen conversation list
+- Chat: slide to open, back button works
+- Message input above keyboard
+- Premium page readable
+- Profile edit modal usable
+- All forms usable on mobile keyboard
+
+═══════════════════════════════
+12. SECURITY
+═══════════════════════════════
+Test and fix:
+- Pending/rejected users cannot access protected routes
+- Free users cannot send messages
+- Admin routes return 403 without valid admin token
+- Blocked users filtered from all responses
+- Passwords never returned in API responses
+- Rate limiting active on login/register
+- trust proxy set correctly for Railway
+
+═══════════════════════════════
+13. NAVIGATION & ROUTING
+═══════════════════════════════
+Test and fix:
+- All nav links work
+- About page in navbar
+- Logo → /discover when logged in
+- Logo → / when logged out
+- 404 page for unknown routes
+- Back buttons work throughout
+- No broken links
+
+═══════════════════════════════
+14. PERFORMANCE & CLEANUP
+═══════════════════════════════
+- Remove all console.log statements from production code
+- Remove any hardcoded URLs
+- Remove any test/debug code
+- Check for any unused imports
+- Make sure all API calls have error handling
+- All loading states work
+- All empty states work
+- No broken images
+
+═══════════════════════════════
+AFTER AUDIT — PROVIDE REPORT
+═══════════════════════════════
+After completing the full audit provide:
+1. Complete list of every bug found and fixed
+2. Complete list of every feature confirmed working
+3. List of anything that could not be verified
+4. List of any recommendations before launch
+5. Overall production readiness assessment out of 10
+6. Any environment variables that need updating in Railway

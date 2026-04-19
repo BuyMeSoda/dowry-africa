@@ -163,6 +163,16 @@ router.post("/login", authRateLimit, async (req, res) => {
       return;
     }
 
+    // Block suspended and banned accounts from logging in at all
+    if (row.accountStatus === "suspended") {
+      res.status(403).json({ error: "Your account has been suspended. Please contact hello@dowry.africa if you believe this is a mistake." });
+      return;
+    }
+    if (row.accountStatus === "banned") {
+      res.status(403).json({ error: "Your account has been permanently banned." });
+      return;
+    }
+
     await db
       .update(schema.users)
       .set({ lastActive: new Date() })

@@ -66,6 +66,17 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - Stripe in demo mode (no STRIPE_SECRET_KEY needed)
 - Partner Preferences on Profile: gender, age range, heritage, faith, children, timeline, location, relocation
 
+### Gated Onboarding & Account Status
+- `manual_approval_required` setting in `settings` table (default: true) controls whether new registrations are `pending` or `approved`
+- Account statuses: `pending` (awaiting admin review), `approved` (can access platform), `rejected`, `suspended` (login blocked at API level), `banned` (login blocked at API level)
+- Registration flow: creates user → sends verification email → redirects to `/pending` if pending, `/onboarding` if auto-approved
+- Email verification: `GET /api/auth/verify-email?token=...` — sets `emailVerified=true`, redirects to `/pending` or `/discover`
+- Admin endpoints: `POST /api/admin/users/:id/approve`, `POST /api/admin/users/:id/reject`, `POST /api/admin/users/bulk-approve`
+- `/pending` page shows real-time email verification status via `user.emailVerified`
+- **Feed security**: only `approved` users appear as candidates in the discover feed; pending/suspended/banned users are blocked from calling the feed API at all
+- **Login security**: suspended and banned accounts are blocked at the login API level with clear error messages; pending/rejected users can log in and are routed to their appropriate status page
+- **User type**: `emailVerified?: boolean` is part of the `User` type in the API client schema
+
 ### Safety & Moderation
 - **Unlike**: `DELETE /api/matches/like/:userId` — undo a non-mutual like
 - **Unmatch**: `POST /api/matches/unmatch/:userId` — delete both likes, all messages, and related notifications

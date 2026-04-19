@@ -157,15 +157,15 @@ export default function PendingApproval() {
                   labelWeight={400}
                   pulse={false}
                 />
-                {/* Step 2 — done */}
+                {/* Step 2 — email verified (dynamic) */}
                 <TimelineStep
-                  icon={<CheckIcon />}
-                  iconBg="#EBF5EF"
-                  iconColor="#2D7A4F"
-                  label="Email verified"
-                  labelColor="#1A1008"
-                  labelWeight={400}
-                  pulse={false}
+                  icon={user.emailVerified ? <CheckIcon /> : <ClockIcon />}
+                  iconBg={user.emailVerified ? "#EBF5EF" : "#FEF3E2"}
+                  iconColor={user.emailVerified ? "#2D7A4F" : "#B8680A"}
+                  label={user.emailVerified ? "Email verified" : "Verify your email (check your inbox)"}
+                  labelColor={user.emailVerified ? "#1A1008" : "#B8680A"}
+                  labelWeight={user.emailVerified ? 400 : 500}
+                  pulse={!user.emailVerified}
                 />
                 {/* Step 3 — in progress */}
                 <TimelineStep

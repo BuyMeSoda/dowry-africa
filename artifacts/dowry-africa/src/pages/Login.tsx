@@ -18,8 +18,17 @@ export default function Login() {
     mutation: {
       onSuccess: (data) => {
         setAuthToken(data.token);
-        toast({ title: "Welcome back", description: `Signed in as ${data.user.name}` });
-        setLocation("/discover");
+        const status = data.user.accountStatus;
+        if (status === "pending") {
+          toast({ title: "Application pending", description: "Your application is still under review." });
+          setLocation("/pending");
+        } else if (status === "rejected") {
+          toast({ variant: "destructive", title: "Application not approved", description: "Unfortunately your application was not approved." });
+          setLocation("/rejected");
+        } else {
+          toast({ title: "Welcome back", description: `Signed in as ${data.user.name}` });
+          setLocation("/discover");
+        }
       },
       onError: (err: any) => {
         toast({ 
@@ -34,11 +43,6 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     loginMutation.mutate({ data: { email, password } });
-  };
-
-  const setDemo = (e: string) => {
-    setEmail(e);
-    setPassword("demo");
   };
 
   return (
@@ -58,6 +62,7 @@ export default function Login() {
                 onChange={e => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                 required
+                autoComplete="email"
               />
             </div>
             <div>
@@ -72,6 +77,7 @@ export default function Login() {
                   onChange={e => setPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                   required
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -93,17 +99,6 @@ export default function Login() {
               {loginMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In"}
             </button>
           </form>
-
-          <div className="mt-8 pt-6 border-t border-border">
-            <p className="text-sm text-center text-muted-foreground mb-4">Demo Accounts</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              <button onClick={() => setDemo('chidinma@demo.com')} className="text-xs px-3 py-1 bg-secondary rounded-full hover:bg-secondary/80 transition-colors">Chidinma (Serious Badge)</button>
-              <button onClick={() => setDemo('emeka@demo.com')} className="text-xs px-3 py-1 bg-secondary rounded-full hover:bg-secondary/80 transition-colors">Emeka (Core)</button>
-              <button onClick={() => setDemo('amara@demo.com')} className="text-xs px-3 py-1 bg-secondary rounded-full hover:bg-secondary/80 transition-colors">Amara (Serious Badge)</button>
-              <button onClick={() => setDemo('kwame@demo.com')} className="text-xs px-3 py-1 bg-secondary rounded-full hover:bg-secondary/80 transition-colors">Kwame (Free)</button>
-              <button onClick={() => setDemo('zara@demo.com')} className="text-xs px-3 py-1 bg-secondary rounded-full hover:bg-secondary/80 transition-colors">Zara (Core)</button>
-            </div>
-          </div>
 
           <p className="text-center text-sm text-muted-foreground mt-8">
             Don't have an account? <Link href="/register" className="text-primary font-medium hover:underline">Apply here</Link>

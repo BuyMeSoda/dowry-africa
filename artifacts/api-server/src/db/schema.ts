@@ -38,7 +38,7 @@ export const users = pgTable("users", {
   lastActive: timestamp("last_active", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   blocked: text("blocked").array().notNull().default(sql`ARRAY[]::text[]`),
-  accountStatus: text("account_status").notNull().default("active"),
+  accountStatus: text("account_status").notNull().default("approved"),
   emailVerified: boolean("email_verified").notNull().default(false),
   verificationToken: text("verification_token"),
   resetToken: text("reset_token"),

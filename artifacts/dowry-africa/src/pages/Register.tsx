@@ -26,8 +26,13 @@ export default function Register() {
     mutation: {
       onSuccess: (data) => {
         setAuthToken(data.token);
-        toast({ title: "Account created", description: "Let's complete your profile." });
-        setLocation("/onboarding");
+        if (data.user.accountStatus === "pending") {
+          toast({ title: "Application submitted", description: "We'll review your application and be in touch shortly." });
+          setLocation("/pending");
+        } else {
+          toast({ title: "Account created", description: "Let's complete your profile." });
+          setLocation("/onboarding");
+        }
       },
       onError: (err: any) => {
         toast({ 
@@ -79,6 +84,7 @@ export default function Register() {
                 onChange={e => setFormData({...formData, email: e.target.value})}
                 className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                 required
+                autoComplete="email"
               />
             </div>
 
@@ -117,6 +123,7 @@ export default function Register() {
                   onChange={e => { setFormData({...formData, password: e.target.value}); setPwError(""); }}
                   className="w-full px-4 py-3 pr-12 rounded-xl bg-secondary/50 border border-border focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                   required
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -139,7 +146,7 @@ export default function Register() {
               disabled={registerMutation.isPending}
               className="w-full py-3.5 mt-6 bg-primary text-white rounded-xl font-semibold shadow-lg shadow-primary/25 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-70 disabled:transform-none flex justify-center items-center"
             >
-              {registerMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Continue to Profile"}
+              {registerMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Application"}
             </button>
           </form>
 
