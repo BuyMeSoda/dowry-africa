@@ -43,7 +43,12 @@ export function publicUser(user: User) {
 }
 
 export function calcCompleteness(u: Partial<User>): number {
-  const fields = [u.bio, u.quote, u.photoUrl, u.city, u.country, u.faith, u.intent, u.lifeStage, u.childrenPref, u.marriageTimeline];
+  const fields: unknown[] = [
+    u.bio, u.quote, u.photoUrl, u.city, u.country, u.faith, u.intent,
+    u.lifeStage, u.childrenPref, u.marriageTimeline, u.familyInvolvement,
+    (u.languages && u.languages.length > 0) ? "y" : null,
+    (u.heritage && u.heritage.length > 0) ? "y" : null,
+  ];
   const filled = fields.filter(Boolean).length;
   return Math.round((filled / fields.length) * 100);
 }

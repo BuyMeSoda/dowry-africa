@@ -585,7 +585,7 @@ export default function UserProfileView() {
             )}
 
             {/* ── Background info ────────────────────────────────────────── */}
-            {(profile.city || profile.country || (profile.heritage?.length > 0) || profile.faith || profile.childrenPref || profile.marriageTimeline || profile.familyInvolvement) && (
+            {(profile.city || profile.country || (profile.heritage?.length > 0) || profile.faith || profile.lifeStage || profile.childrenPref || profile.marriageTimeline || profile.familyInvolvement) && (
               <div className="bg-white rounded-3xl shadow-sm border border-border/50 px-6 py-5">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Background</h3>
                 <div>
@@ -610,6 +610,13 @@ export default function UserProfileView() {
                       value={formatTag(profile.faith)}
                     />
                   )}
+                  {profile.lifeStage && (
+                    <DetailRow
+                      icon={<Sparkles className="w-4 h-4" />}
+                      label="Life stage"
+                      value={formatTag(profile.lifeStage)}
+                    />
+                  )}
                   {profile.childrenPref && (
                     <DetailRow
                       icon={<Baby className="w-4 h-4" />}
@@ -628,7 +635,7 @@ export default function UserProfileView() {
                     <DetailRow
                       icon={<Home className="w-4 h-4" />}
                       label="Family involvement"
-                      value={profile.familyInvolvement.charAt(0).toUpperCase() + profile.familyInvolvement.slice(1)}
+                      value={formatTag(profile.familyInvolvement)}
                     />
                   )}
                 </div>

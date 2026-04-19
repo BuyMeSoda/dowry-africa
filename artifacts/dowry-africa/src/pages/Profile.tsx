@@ -40,6 +40,23 @@ const TIMELINE_OPTIONS = [
   { value: "5_years", label: "Within 5 years" },
   { value: "not_sure", label: "Not sure yet" },
 ];
+const LIFE_STAGE_OPTIONS = [
+  { value: "student", label: "Student" },
+  { value: "early_career", label: "Early Career" },
+  { value: "established_career", label: "Established Career" },
+  { value: "entrepreneur", label: "Entrepreneur" },
+  { value: "marriage_ready", label: "Marriage Ready" },
+];
+const FAMILY_INVOLVEMENT_OPTIONS = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "very_high", label: "Very High" },
+];
+const LANGUAGE_PRESETS = [
+  "English", "French", "Yoruba", "Igbo", "Hausa", "Swahili",
+  "Amharic", "Twi", "Zulu", "Arabic", "Portuguese",
+];
 
 function formatValue(val: string | undefined, map?: Record<string, string>) {
   if (!val) return "—";
@@ -141,6 +158,81 @@ function CountryOriginSelect({
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+function LanguageMultiSelect({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [customInput, setCustomInput] = useState("");
+  const toggle = (val: string) => {
+    const lower = val.toLowerCase();
+    const exists = selected.some(s => s.toLowerCase() === lower);
+    if (exists) {
+      onChange(selected.filter(s => s.toLowerCase() !== lower));
+    } else {
+      onChange([...selected, val]);
+    }
+  };
+  const addCustom = () => {
+    const trimmed = customInput.trim();
+    if (!trimmed) return;
+    if (!selected.some(s => s.toLowerCase() === trimmed.toLowerCase())) {
+      onChange([...selected, trimmed]);
+    }
+    setCustomInput("");
+  };
+  const customs = selected.filter(s => !LANGUAGE_PRESETS.some(p => p.toLowerCase() === s.toLowerCase()));
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {LANGUAGE_PRESETS.map(lang => {
+          const active = selected.some(s => s.toLowerCase() === lang.toLowerCase());
+          return (
+            <button
+              key={lang}
+              type="button"
+              onClick={() => toggle(lang)}
+              className={`px-3 py-1.5 text-sm rounded-full border-2 transition-all ${
+                active ? "border-primary bg-primary/5 text-primary font-medium" : "border-border hover:border-primary/40"
+              }`}
+            >
+              {lang}
+            </button>
+          );
+        })}
+        {customs.map(lang => (
+          <span key={lang} className="px-3 py-1.5 text-sm rounded-full border-2 border-primary bg-primary/5 text-primary font-medium flex items-center gap-1.5">
+            {lang}
+            <button type="button" onClick={() => toggle(lang)} className="hover:text-destructive">
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={customInput}
+          onChange={e => setCustomInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
+          placeholder="Add another language…"
+          className="flex-1 px-3 py-2 text-sm rounded-xl bg-background border border-border focus:outline-none focus:border-primary"
+        />
+        <button
+          type="button"
+          onClick={addCustom}
+          disabled={!customInput.trim()}
+          className="px-4 py-2 text-sm font-medium bg-secondary text-foreground rounded-xl hover:bg-secondary/80 disabled:opacity-40 transition-colors"
+        >
+          Add
+        </button>
+      </div>
     </div>
   );
 }
@@ -369,10 +461,10 @@ export default function Profile() {
 
                 <div>
                   <h3 className="text-xl font-display font-bold mb-3 border-b border-border pb-2">Life & Future</h3>
-                  <PrefRow label="Life Stage" value={formatValue(user.lifeStage)} />
-                  <PrefRow label="Marriage Timeline" value={formatValue(user.marriageTimeline)} />
-                  <PrefRow label="Children" value={formatValue(user.childrenPref)} />
-                  <PrefRow label="Family Involvement" value={formatValue(user.familyInvolvement)} />
+                  <PrefRow label="Life Stage" value={formatValue(user.lifeStage, Object.fromEntries(LIFE_STAGE_OPTIONS.map(o => [o.value, o.label])))} />
+                  <PrefRow label="Marriage Timeline" value={formatValue(user.marriageTimeline, Object.fromEntries(TIMELINE_OPTIONS.map(o => [o.value, o.label])))} />
+                  <PrefRow label="Children" value={formatValue(user.childrenPref, Object.fromEntries(CHILDREN_OPTIONS.map(o => [o.value, o.label])))} />
+                  <PrefRow label="Family Involvement" value={formatValue(user.familyInvolvement, Object.fromEntries(FAMILY_INVOLVEMENT_OPTIONS.map(o => [o.value, o.label])))} />
                 </div>
               </div>
             </div>
@@ -454,7 +546,11 @@ export default function Profile() {
                   <MapPin className="w-4 h-4 text-primary" />
                   <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Location</h4>
                 </div>
-                <PrefRow label="Preferred country" value={(user as any)?.preferredCountry || "Anywhere"} />
+                <PrefRow label="Preferred country" value={
+                  !(user as any)?.preferredCountry || (user as any).preferredCountry.trim().toLowerCase() === "anywhere"
+                    ? "Open to all"
+                    : (user as any).preferredCountry
+                } />
                 <PrefRow label="Open to relocate" value={user.relocationOpen ? "Yes" : "No"} />
               </div>
             </div>
@@ -642,7 +738,7 @@ export default function Profile() {
                   type="text"
                   value={prefForm.preferredCountry}
                   onChange={e => setPrefForm(f => ({ ...f, preferredCountry: e.target.value }))}
-                  placeholder="e.g. Nigeria, UK, anywhere"
+                  placeholder="e.g. Nigeria, UK — leave blank for Open to all"
                   className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
@@ -784,6 +880,47 @@ export default function Profile() {
               <div>
                 <label className="block text-sm font-semibold mb-1.5">Personal Quote</label>
                 <input type="text" value={profileForm.quote} onChange={e => setProfileForm(f => ({ ...f, quote: e.target.value }))} className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary font-display italic" placeholder='"Family is everything to me"' />
+              </div>
+
+              {/* Languages — multi-select chips with custom add */}
+              <div>
+                <label className="block text-sm font-semibold mb-1.5">Languages</label>
+                <p className="text-xs text-muted-foreground mb-2">Select all you speak. Add custom for any not listed.</p>
+                <LanguageMultiSelect
+                  selected={profileForm.languages}
+                  onChange={v => setProfileForm(f => ({ ...f, languages: v }))}
+                />
+              </div>
+
+              {/* Life Stage */}
+              <div>
+                <label className="block text-sm font-semibold mb-1.5">Life Stage</label>
+                <select
+                  value={profileForm.lifeStage}
+                  onChange={e => setProfileForm(f => ({ ...f, lifeStage: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary"
+                >
+                  <option value="">Select life stage</option>
+                  {LIFE_STAGE_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Family Involvement */}
+              <div>
+                <label className="block text-sm font-semibold mb-1.5">Family Involvement</label>
+                <p className="text-xs text-muted-foreground mb-2">How involved is your family in your relationship decisions?</p>
+                <select
+                  value={profileForm.familyInvolvement}
+                  onChange={e => setProfileForm(f => ({ ...f, familyInvolvement: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary"
+                >
+                  <option value="">Select level</option>
+                  {FAMILY_INVOLVEMENT_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
