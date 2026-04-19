@@ -551,7 +551,7 @@ export default function Profile() {
                     ? "Open to all"
                     : (user as any).preferredCountry
                 } />
-                <PrefRow label="Open to relocate" value={user.relocationOpen ? "Yes" : "No"} />
+                <PrefRow label="Open to long-distance" value={user.relocationOpen ? "Yes" : "No"} />
               </div>
             </div>
           </div>
