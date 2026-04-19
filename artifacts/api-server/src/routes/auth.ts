@@ -396,7 +396,8 @@ router.get("/me", requireAuth, async (req, res) => {
 
     const user = sanitizeUser(toUser(row));
     if (adminRow) {
-      user.tier = "serious_badge";
+      user.tier = "badge";
+      user.hasBadge = true;
       user.accountStatus = "approved";
     }
     res.json(user);
