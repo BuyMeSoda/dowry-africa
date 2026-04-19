@@ -8,6 +8,7 @@ import {
   useUnmatch,
   useBlockUser,
   useSubmitReport,
+  usePassLiker,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -252,6 +253,7 @@ export default function UserProfileView() {
   const unlikeMutation  = useUnlikeUser();
   const unmatchMutation = useUnmatch();
   const blockMutation   = useBlockUser();
+  const passMutation    = usePassLiker();
 
   const [matchBanner, setMatchBanner] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -338,6 +340,20 @@ export default function UserProfileView() {
   };
 
   const handleMessage = () => setLocation(`/messages/${userId}`);
+
+  const handleDismiss = () => {
+    passMutation.mutate(userId, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/matches/liked-me"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/matches/feed"] });
+        toast({ title: "Dismissed", description: `${profile?.name ?? "Profile"} has been removed from your queue.` });
+        goBack();
+      },
+      onError: () => {
+        toast({ variant: "destructive", title: "Could not dismiss", description: "Please try again." });
+      },
+    });
+  };
 
   const goBack = () => {
     const from = new URLSearchParams(window.location.search).get("from");
@@ -489,7 +505,22 @@ export default function UserProfileView() {
 
                 {/* Heart / Message button — top right of photo */}
                 {!isOwnProfile && (
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 flex items-center gap-2">
+                    {/* Subtle dismiss — only shown when there's no existing relationship */}
+                    {!isMatched && !alreadyLiked && (
+                      <button
+                        onClick={handleDismiss}
+                        disabled={passMutation.isPending}
+                        title="Dismiss"
+                        aria-label="Dismiss profile"
+                        className="w-9 h-9 rounded-full bg-white/60 backdrop-blur-sm text-muted-foreground/80 flex items-center justify-center hover:bg-white/80 hover:text-foreground transition-colors disabled:opacity-50"
+                      >
+                        {passMutation.isPending
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <X className="w-4 h-4" strokeWidth={1.75} />
+                        }
+                      </button>
+                    )}
                     {isMatched ? (
                       <button
                         onClick={handleMessage}

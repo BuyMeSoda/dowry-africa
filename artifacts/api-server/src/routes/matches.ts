@@ -221,18 +221,21 @@ router.get("/liked-me", requireAuth, requireApproved, async (req, res) => {
 
     const blurFree = me.tier === "free";
 
-    const [likerRows, myLikedRows, blockSet] = await Promise.all([
+    const [likerRows, myLikedRows, myPassRows, blockSet] = await Promise.all([
       db.select({ fromId: schema.likes.fromId }).from(schema.likes).where(eq(schema.likes.toId, me.id)),
       db.select({ toId: schema.likes.toId }).from(schema.likes).where(eq(schema.likes.fromId, me.id)),
+      db.select({ toId: schema.passes.toId }).from(schema.passes).where(eq(schema.passes.fromId, me.id)),
       getBlockSet(me.id),
     ]);
 
-    const myLikedIds = new Set(myLikedRows.map(l => l.toId));
+    const myLikedIds  = new Set(myLikedRows.map(l => l.toId));
+    const myPassedIds = new Set(myPassRows.map(p => p.toId));
 
     const likedBy: any[] = [];
     for (const { fromId } of likerRows) {
-      if (myLikedIds.has(fromId)) continue;
-      if (blockSet.has(fromId)) continue;
+      if (myLikedIds.has(fromId))  continue;
+      if (myPassedIds.has(fromId)) continue;
+      if (blockSet.has(fromId))    continue;
 
       if (blurFree) {
         // Free users get a count only — no real identities leave the server.

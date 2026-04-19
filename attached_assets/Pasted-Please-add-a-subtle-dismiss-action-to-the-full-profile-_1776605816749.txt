@@ -1,0 +1,102 @@
+Please add a **subtle dismiss action** to the full profile card view for people shown in the **Likes You / profile evaluation** experience.
+
+### Goal
+
+The profile view currently allows a positive action, but it does not allow the user to quietly dismiss / pass on someone from this richer profile screen. I want to add this, but in a way that still feels premium, calm, and not swipe-app-like.
+
+### Important design direction
+
+This is **not** supposed to feel like Tinder or a gamified dating app.
+
+The dismiss action should feel:
+
+* subtle
+* secondary
+* quiet
+* refined
+* premium
+
+The main positive action should still remain the stronger action.
+
+---
+
+## What to add
+
+### 1. Add a small dismiss “×” control to the top-right of the profile image/card
+
+Please place a subtle dismiss icon in the **top-right area of the profile card/image**.
+
+Design requirements:
+
+* small and low emphasis
+* light grey / muted styling
+* elegant and minimal
+* should not visually compete with the main positive action
+* no loud red or aggressive reject styling
+* should feel like a quiet “dismiss / pass” control
+
+It should look more like a clean UI utility action than a strong rejection button.
+
+---
+
+### 2. Behaviour
+
+When the user taps the dismiss “×”:
+
+* remove that person from the current **Likes You** / profile evaluation queue
+* move to the next available profile if applicable
+* if no more profiles remain, show the empty state normally
+
+Do not make this feel dramatic.
+No heavy animation, no swipe effect, no gamified feedback.
+
+A very subtle fade or card transition is okay if needed.
+
+---
+
+### 3. Scope
+
+This subtle dismiss control should be added to the **rich profile card view** only.
+
+Important:
+
+* Do **not** replace the existing stronger X / heart controls inside the Messages → Liked You list card view
+* The list view can keep its clearer decision controls
+* This change is specifically for the fuller profile evaluation screen where the user is viewing more information before deciding
+
+So the UX should be:
+
+* **List / compact view** = clearer quick decision controls
+* **Full profile view** = quieter, more premium dismiss control
+
+---
+
+### 4. Keep the product tone premium
+
+This platform is positioned around serious relationships and marriage intent, so the UI should feel mature and considered.
+
+Please avoid:
+
+* Tinder-style big reject controls
+* playful microinteractions
+* equal visual weight between reject and positive action
+
+The dismiss action should be clearly available, but understated.
+
+---
+
+### 5. Implementation notes
+
+If useful, structure the dismiss action as:
+
+* `passProfile(profileId)` or similar
+* update local state and backend state consistently
+* remove the profile from the visible Likes You queue
+
+If there is already pass/reject logic used elsewhere in the app, reuse it so behavior stays consistent.
+
+---
+
+### Final result
+
+I want the full profile view to support a quiet “pass” action through a small top-right dismiss icon, while preserving the more premium, intentional feel of the product.
