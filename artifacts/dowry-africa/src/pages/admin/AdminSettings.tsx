@@ -364,7 +364,7 @@ export default function AdminSettings() {
             <div className="flex items-start gap-3 bg-gray-800/50 border border-gray-700 rounded-xl p-4 mt-2">
               <Info className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
               <p className="text-gray-400 text-xs leading-relaxed">
-                <strong className="text-gray-300">Note:</strong> To change actual billing amounts, update the Stripe price IDs in Railway environment variables (<code className="text-amber-400">STRIPE_CORE_PRICE_ID</code> and <code className="text-amber-400">STRIPE_BADGE_PRICE_ID</code>). Create new prices in your Stripe Dashboard at $12.99/month (Core) and $19.99/month (Serious Badge), then update the env vars accordingly.
+                <strong className="text-gray-300">Note:</strong> The fields above only control what users <em>see</em> on the Premium page. To change what they're <em>actually charged</em>, create matching prices in your Stripe Dashboard and update the price IDs in your environment variables: <code className="text-amber-400">STRIPE_CORE_PRICE_ID</code> and <code className="text-amber-400">STRIPE_BADGE_PRICE_ID</code> for monthly billing, plus <code className="text-amber-400">STRIPE_CORE_PRICE_ID_YEARLY</code> and <code className="text-amber-400">STRIPE_BADGE_PRICE_ID_YEARLY</code> for yearly. Make sure the Stripe amounts match the display prices above, otherwise users will be charged a different amount than what they see.
               </p>
             </div>
           </div>
