@@ -7,6 +7,7 @@ import * as schema from "../db/schema.js";
 import { toUser, publicUser } from "../db/database.js";
 import { requireAuth, requireApproved } from "../middlewares/auth.js";
 import { scoreMatch, passesHardFilters, rankFeed } from "../lib/matching.js";
+import { isAdminEmail, applyAdminOverride } from "../lib/adminUtils.js";
 
 const router = Router();
 
@@ -37,14 +38,8 @@ router.get("/feed", requireAuth, requireApproved, async (req, res) => {
     const me = toUser(meRow);
 
     // Admins matched by email get effective badge status for filtering
-    const [adminRow] = await db
-      .select({ id: schema.adminUsers.id })
-      .from(schema.adminUsers)
-      .where(and(eq(schema.adminUsers.email, me.email), eq(schema.adminUsers.isActive, true)))
-      .limit(1);
-    if (adminRow) {
-      me.tier = "badge";
-      me.hasBadge = true;
+    if (await isAdminEmail(me.email)) {
+      Object.assign(me, applyAdminOverride(me));
     }
 
     // Update last_active when browsing the discover feed (fire-and-forget)

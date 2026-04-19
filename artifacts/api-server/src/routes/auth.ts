@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import rateLimit from "express-rate-limit";
 import { db } from "../db/connection.js";
@@ -10,6 +10,7 @@ import * as schema from "../db/schema.js";
 import { toUser, sanitizeUser, calcCompleteness } from "../db/database.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email.js";
+import { isAdminEmail, applyAdminOverride } from "../lib/adminUtils.js";
 
 const APP_BASE = process.env["FRONTEND_URL"] ?? "https://dowry.africa";
 
@@ -388,17 +389,9 @@ router.get("/me", requireAuth, async (req, res) => {
 
     if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-    const [adminRow] = await db
-      .select({ id: schema.adminUsers.id })
-      .from(schema.adminUsers)
-      .where(and(eq(schema.adminUsers.email, row.email), eq(schema.adminUsers.isActive, true)))
-      .limit(1);
-
-    const user = sanitizeUser(toUser(row));
-    if (adminRow) {
-      user.tier = "badge";
-      user.hasBadge = true;
-      user.accountStatus = "approved";
+    let user = sanitizeUser(toUser(row));
+    if (await isAdminEmail(row.email)) {
+      user = applyAdminOverride(user);
     }
     res.json(user);
   } catch (err) {

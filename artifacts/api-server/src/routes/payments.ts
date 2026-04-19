@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser } from "../db/database.js";
 import { requireAuth, requireApproved } from "../middlewares/auth.js";
+import { isAdminEmail, applyAdminOverride } from "../lib/adminUtils.js";
 
 const router = Router();
 
@@ -199,14 +200,9 @@ router.get("/status", requireAuth, requireApproved, async (req, res) => {
       }
     }
 
-    const [adminRow] = await db
-      .select({ id: schema.adminUsers.id })
-      .from(schema.adminUsers)
-      .where(and(eq(schema.adminUsers.email, me.email), eq(schema.adminUsers.isActive, true)))
-      .limit(1);
-
-    if (adminRow) {
-      return res.json({ tier: "badge", hasBadge: true });
+    if (await isAdminEmail(me.email)) {
+      const overridden = applyAdminOverride({ tier: me.tier, hasBadge: me.hasBadge });
+      return res.json({ tier: overridden.tier, hasBadge: overridden.hasBadge });
     }
 
     res.json({ tier: me.tier, hasBadge: me.hasBadge });
