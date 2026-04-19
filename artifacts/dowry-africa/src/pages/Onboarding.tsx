@@ -111,9 +111,9 @@ export default function Onboarding() {
                       className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="">Select faith</option>
-                      <option value="Christianity">Christianity</option>
-                      <option value="Islam">Islam</option>
-                      <option value="Traditional">Traditional</option>
+                      <option value="Christian">Christian</option>
+                      <option value="Muslim">Muslim</option>
+                      <option value="Traditional African">Traditional African</option>
                       <option value="Spiritual but not religious">Spiritual but not religious</option>
                       <option value="Other">Other</option>
                     </select>

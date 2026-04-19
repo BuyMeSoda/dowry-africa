@@ -18,9 +18,10 @@ const FAITH_PREF_PRESETS = [
   "Christian", "Muslim", "Traditional African", "No preference",
 ];
 
-// Faith options for profile faith field
+// Faith options for profile faith field — must align with FAITH_PREF_PRESETS so
+// that exact-string matching in the compatibility engine actually works.
 const FAITH_PROFILE_OPTIONS = [
-  "Christianity", "Islam", "Traditional", "Spiritual but not religious", "Any / Open", "Other",
+  "Christian", "Muslim", "Traditional African", "Spiritual but not religious", "Any / Open", "Other",
 ];
 
 const GENDER_OPTIONS = [

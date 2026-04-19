@@ -31,9 +31,9 @@ export function Navbar() {
 
   return (
     <header className={`sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md ${user ? "hidden md:block" : ""}`}>
-      <div className="container mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href={user ? "/discover" : "/"} className="flex items-center gap-2">
+      <div className="container mx-auto px-4 md:px-8 h-20 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-8 min-w-0">
+          <Link href={user ? "/discover" : "/"} className="flex items-center gap-2 min-w-0">
             <div className="h-11 w-11 overflow-hidden flex-shrink-0">
               <img
                 src={`${import.meta.env.BASE_URL}logo.png`}
@@ -42,7 +42,7 @@ export function Navbar() {
                 style={{ maxWidth: "none" }}
               />
             </div>
-            <span className="font-display font-bold text-primary text-2xl leading-none tracking-tight">
+            <span className="font-display font-bold text-primary text-xl sm:text-2xl leading-none tracking-tight truncate">
               Dowry.Africa
             </span>
           </Link>
@@ -67,16 +67,16 @@ export function Navbar() {
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
           {!user ? (
             <>
               <Link href="/about" className={`hidden md:block text-sm font-medium transition-colors hover:text-primary ${location === '/about' ? 'text-primary' : 'text-muted-foreground'}`}>
                 About
               </Link>
-              <Link href="/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              <Link href="/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap">
                 Log in
               </Link>
-              <Link href={getStartedHref} className="text-sm font-medium bg-primary text-primary-foreground px-5 py-2.5 rounded-full hover:bg-primary/90 shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5">
+              <Link href={getStartedHref} className="text-sm font-medium bg-primary text-primary-foreground px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-primary/90 shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5 whitespace-nowrap">
                 Get Started
               </Link>
             </>

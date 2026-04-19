@@ -74,8 +74,9 @@ export default function Premium() {
         description: `Welcome to ${tier === "badge" ? "Serious Badge" : "Core"}. Your profile is now upgraded.`,
       });
       const poll = setInterval(() => refetch(), 2000);
-      setTimeout(() => clearInterval(poll), 10000);
+      const stopPoll = setTimeout(() => clearInterval(poll), 10000);
       window.history.replaceState({}, "", "/premium");
+      return () => { clearInterval(poll); clearTimeout(stopPoll); };
     }
   }, []);
 

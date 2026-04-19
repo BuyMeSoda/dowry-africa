@@ -82,7 +82,7 @@ router.post("/", async (req, res) => {
       status: "pending",
     });
 
-    console.log(`[Waitlist] New application from ${email} — priority: ${priority}`);
+    req.log.info({ email, priority }, "Waitlist submission received");
 
     res.status(201).json({ success: true, priority });
   } catch (err: any) {
@@ -90,7 +90,7 @@ router.post("/", async (req, res) => {
       res.status(400).json({ error: "This email is already on the waitlist" });
       return;
     }
-    console.error("Waitlist submit error", err);
+    req.log.error({ err }, "Waitlist submit error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

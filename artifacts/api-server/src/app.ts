@@ -35,17 +35,28 @@ const allowedOrigins = (process.env.CORS_ORIGINS ?? "")
   .map((s) => s.trim())
   .filter(Boolean);
 
+const isProduction = process.env.NODE_ENV === "production";
+
+if (isProduction && allowedOrigins.length === 0) {
+  logger.warn("CORS_ORIGINS is not set in production — all cross-origin browser requests will be rejected.");
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (server-to-server, curl, Postman)
+      // Allow requests with no origin (server-to-server, curl, Postman, native mobile)
       if (!origin) return callback(null, true);
       // Always allow localhost in any port (dev)
       if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+      // Allow Replit dev domains (workspace previews)
+      try {
+        if (/\.replit\.dev$/.test(new URL(origin).hostname)) return callback(null, true);
+      } catch { /* malformed origin — fall through */ }
       // Allow explicit allow-list from env
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      // Fall back to allow-all when no explicit list is configured
-      if (allowedOrigins.length === 0) return callback(null, true);
+      // In non-production, fall back to allow-all when no explicit list is configured.
+      // In production we never silently allow-all — operators must opt in via CORS_ORIGINS.
+      if (!isProduction && allowedOrigins.length === 0) return callback(null, true);
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     allowedHeaders: ["Content-Type", "Authorization", "x-admin-secret"],
