@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { randomUUID } from "crypto";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM        = "noreply@dowry.africa";
+const FROM        = "hello@dowry.africa";
 const HELLO_FROM  = "hello@dowry.africa";
 const REPLY_TO    = "hello@dowry.africa";
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "https://dowry.africa";
