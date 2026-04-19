@@ -161,14 +161,15 @@ function LikesYouPanel() {
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none" style={{ scrollbarWidth: "none" }}>
             {likedBy.map(({ user }: any) => (
               <div key={user.id} className="shrink-0 w-44 bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-                <div className="h-48 relative">
+                <Link href={`/members/${user.id}?from=discover`} className="block h-48 relative group">
                   <UserAvatar name={user.name} photoUrl={user.photoUrl} className="w-full h-full" textClassName="text-4xl font-bold" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                   <div className="absolute bottom-3 left-3 right-3">
                     <p className="text-white font-bold text-sm truncate">{user.name}</p>
                     {user.city && <p className="text-white/70 text-xs truncate">{user.city}</p>}
                   </div>
-                </div>
+                </Link>
                 <div className="p-3">
                   <button
                     onClick={() => handleLikeBack(user.id, user.name, user.photoUrl)}
