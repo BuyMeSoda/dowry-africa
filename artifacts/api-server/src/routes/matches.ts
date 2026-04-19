@@ -36,6 +36,17 @@ router.get("/feed", requireAuth, requireApproved, async (req, res) => {
     if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
     const me = toUser(meRow);
 
+    // Admins matched by email get effective badge status for filtering
+    const [adminRow] = await db
+      .select({ id: schema.adminUsers.id })
+      .from(schema.adminUsers)
+      .where(and(eq(schema.adminUsers.email, me.email), eq(schema.adminUsers.isActive, true)))
+      .limit(1);
+    if (adminRow) {
+      me.tier = "badge";
+      me.hasBadge = true;
+    }
+
     // Update last_active when browsing the discover feed (fire-and-forget)
     db.update(schema.users).set({ lastActive: new Date() }).where(eq(schema.users.id, me.id)).catch(() => {});
 
