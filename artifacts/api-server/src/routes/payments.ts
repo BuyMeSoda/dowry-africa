@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser } from "../db/database.js";
@@ -197,6 +197,16 @@ router.get("/status", requireAuth, requireApproved, async (req, res) => {
       } catch {
         // Stripe sync failed — return current DB state
       }
+    }
+
+    const [adminRow] = await db
+      .select({ id: schema.adminUsers.id })
+      .from(schema.adminUsers)
+      .where(and(eq(schema.adminUsers.email, me.email), eq(schema.adminUsers.isActive, true)))
+      .limit(1);
+
+    if (adminRow) {
+      return res.json({ tier: "badge", hasBadge: true });
     }
 
     res.json({ tier: me.tier, hasBadge: me.hasBadge });
