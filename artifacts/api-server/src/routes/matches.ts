@@ -229,10 +229,24 @@ router.get("/liked-me", requireAuth, async (req, res) => {
 
     const myLikedIds = new Set(myLikedRows.map(l => l.toId));
 
-    const likedBy = [];
+    const likedBy: any[] = [];
     for (const { fromId } of likerRows) {
       if (myLikedIds.has(fromId)) continue;
       if (blockSet.has(fromId)) continue;
+
+      if (blurFree) {
+        // Free users get a count only — no real identities leave the server.
+        likedBy.push({
+          id: "obfuscated",
+          blurred: true,
+          photoUrl: null,
+          firstName: null,
+          age: null,
+          location: null,
+        });
+        continue;
+      }
+
       const [likerRow] = await db
         .select()
         .from(schema.users)
@@ -240,7 +254,7 @@ router.get("/liked-me", requireAuth, async (req, res) => {
         .limit(1);
 
       if (!likerRow) continue;
-      likedBy.push({ user: publicUser(toUser(likerRow)), blurred: blurFree });
+      likedBy.push({ user: publicUser(toUser(likerRow)), blurred: false });
     }
 
     res.json({ likedBy, count: likedBy.length });
