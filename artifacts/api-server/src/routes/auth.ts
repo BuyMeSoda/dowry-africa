@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import rateLimit from "express-rate-limit";
 import { db } from "../db/connection.js";
@@ -387,7 +387,19 @@ router.get("/me", requireAuth, async (req, res) => {
       .limit(1);
 
     if (!row) { res.status(404).json({ error: "Not found" }); return; }
-    res.json(sanitizeUser(toUser(row)));
+
+    const [adminRow] = await db
+      .select({ id: schema.adminUsers.id })
+      .from(schema.adminUsers)
+      .where(and(eq(schema.adminUsers.email, row.email), eq(schema.adminUsers.isActive, true)))
+      .limit(1);
+
+    const user = sanitizeUser(toUser(row));
+    if (adminRow) {
+      user.tier = "serious_badge";
+      user.accountStatus = "approved";
+    }
+    res.json(user);
   } catch (err) {
     req.log.error(err, "Get me error");
     res.status(500).json({ error: "Internal server error" });
