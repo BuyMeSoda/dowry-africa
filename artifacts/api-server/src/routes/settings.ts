@@ -7,6 +7,8 @@ const router = Router();
 export const PRICING_DEFAULTS = {
   core_price: "12.99",
   core_price_label: "$12.99/month",
+  core_price_yearly: "9.99",
+  core_price_label_yearly: "$9.99/month billed annually",
   core_name: "Core",
   core_description: "For members who are serious about finding a committed partner.",
   core_features: JSON.stringify([
@@ -17,6 +19,8 @@ export const PRICING_DEFAULTS = {
   ]),
   serious_price: "19.99",
   serious_price_label: "$19.99/month",
+  serious_price_yearly: "15.99",
+  serious_price_label_yearly: "$15.99/month billed annually",
   serious_name: "Serious Badge",
   serious_description: "For members who want to demonstrate the highest level of intent.",
   serious_features: JSON.stringify([

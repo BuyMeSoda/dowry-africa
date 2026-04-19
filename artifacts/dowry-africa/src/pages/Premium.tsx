@@ -16,11 +16,17 @@ interface PricingConfig {
   serious_name: string;
   serious_description: string;
   serious_features: string;
+  core_price_yearly: string;
+  core_price_label_yearly: string;
+  serious_price_yearly: string;
+  serious_price_label_yearly: string;
 }
 
 const DEFAULT_PRICING: PricingConfig = {
   core_price: "12.99",
   core_price_label: "$12.99/month",
+  core_price_yearly: "9.99",
+  core_price_label_yearly: "$9.99/month billed annually",
   core_name: "Core",
   core_description: "Where real conversations begin.",
   core_features: JSON.stringify([
@@ -31,6 +37,8 @@ const DEFAULT_PRICING: PricingConfig = {
   ]),
   serious_price: "19.99",
   serious_price_label: "$19.99/month",
+  serious_price_yearly: "15.99",
+  serious_price_label_yearly: "$15.99/month billed annually",
   serious_name: "Serious Badge",
   serious_description: "For people serious about commitment.",
   serious_features: JSON.stringify([
@@ -40,9 +48,6 @@ const DEFAULT_PRICING: PricingConfig = {
     "Connect only with verified serious members",
   ]),
 };
-
-const YEARLY_CORE_PRICE = "9.99";
-const YEARLY_BADGE_PRICE = "15.99";
 
 function parseFeatures(json: string): string[] {
   try { return JSON.parse(json); } catch { return []; }
@@ -125,8 +130,8 @@ export default function Premium() {
     "Connect only with verified serious members",
   ];
 
-  const displayedCorePrice = billing === 'yearly' ? YEARLY_CORE_PRICE : pricing.core_price;
-  const displayedBadgePrice = billing === 'yearly' ? YEARLY_BADGE_PRICE : pricing.serious_price;
+  const displayedCorePrice = billing === 'yearly' ? pricing.core_price_yearly : pricing.core_price;
+  const displayedBadgePrice = billing === 'yearly' ? pricing.serious_price_yearly : pricing.serious_price;
 
   return (
     <div className="min-h-screen bg-background pb-24">

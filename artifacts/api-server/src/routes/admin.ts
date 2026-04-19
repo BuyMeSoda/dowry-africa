@@ -416,8 +416,10 @@ router.patch("/settings", async (req, res) => {
       "coming_soon_mode", "coming_soon_headline", "coming_soon_subtext",
       "coming_soon_exclusivity", "coming_soon_button_text", "coming_soon_success_message",
       "free_tier_daily_limit", "announcement_banner",
-      "core_price", "core_price_label", "core_name", "core_description", "core_features",
-      "serious_price", "serious_price_label", "serious_name", "serious_description", "serious_features",
+      "core_price", "core_price_label", "core_price_yearly", "core_price_label_yearly",
+      "core_name", "core_description", "core_features",
+      "serious_price", "serious_price_label", "serious_price_yearly", "serious_price_label_yearly",
+      "serious_name", "serious_description", "serious_features",
     ];
 
     for (const [key, value] of Object.entries(updates)) {

@@ -15,11 +15,15 @@ interface AppSettings {
   announcement_banner: string;
   core_price: string;
   core_price_label: string;
+  core_price_yearly: string;
+  core_price_label_yearly: string;
   core_name: string;
   core_description: string;
   core_features: string;
   serious_price: string;
   serious_price_label: string;
+  serious_price_yearly: string;
+  serious_price_label_yearly: string;
   serious_name: string;
   serious_description: string;
   serious_features: string;
@@ -80,11 +84,15 @@ export default function AdminSettings() {
     announcement_banner: "",
     core_price: "12.99",
     core_price_label: "$12.99/month",
+    core_price_yearly: "9.99",
+    core_price_label_yearly: "$9.99/month billed annually",
     core_name: "Core",
     core_description: "For members who are serious about finding a committed partner.",
     core_features: '["Unlimited profiles","See who liked you","Unlimited messaging","Advanced country filters"]',
     serious_price: "19.99",
     serious_price_label: "$19.99/month",
+    serious_price_yearly: "15.99",
+    serious_price_label_yearly: "$15.99/month billed annually",
     serious_name: "Serious Badge",
     serious_description: "For members who want to demonstrate the highest level of intent.",
     serious_features: '["Everything in Core","Serious Badge on your profile","Ranked highest in feeds","Access to Badge-only pool"]',
@@ -309,9 +317,13 @@ export default function AdminSettings() {
               <h3 className="text-sm font-bold uppercase tracking-widest text-amber-400 mb-4">Core Tier</h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <Field label="Tier Name" value={settings.core_name} onChange={set("core_name")} placeholder="Core" />
-                <Field label="Price (number)" value={settings.core_price} onChange={v => { set("core_price")(v); set("core_price_label")(`$${v}/month`); }} placeholder="12.99" />
+                <Field label="Monthly Price (number)" value={settings.core_price} onChange={v => { set("core_price")(v); set("core_price_label")(`$${v}/month`); }} placeholder="12.99" />
               </div>
-              <Field label="Price Label (display)" value={settings.core_price_label} onChange={set("core_price_label")} placeholder="$12.99/month" />
+              <Field label="Monthly Price Label (display)" value={settings.core_price_label} onChange={set("core_price_label")} placeholder="$12.99/month" />
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Field label="Yearly Price (number)" value={settings.core_price_yearly} onChange={v => { set("core_price_yearly")(v); set("core_price_label_yearly")(`$${v}/month billed annually`); }} placeholder="9.99" />
+                <Field label="Yearly Price Label (display)" value={settings.core_price_label_yearly} onChange={set("core_price_label_yearly")} placeholder="$9.99/month billed annually" />
+              </div>
               <div className="mt-4">
                 <Field
                   label='Features (JSON array, e.g. ["Feature 1","Feature 2"])'
@@ -330,9 +342,13 @@ export default function AdminSettings() {
               <h3 className="text-sm font-bold uppercase tracking-widest text-amber-400 mb-4">Serious Badge Tier</h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <Field label="Tier Name" value={settings.serious_name} onChange={set("serious_name")} placeholder="Serious Badge" />
-                <Field label="Price (number)" value={settings.serious_price} onChange={v => { set("serious_price")(v); set("serious_price_label")(`$${v}/month`); }} placeholder="19.99" />
+                <Field label="Monthly Price (number)" value={settings.serious_price} onChange={v => { set("serious_price")(v); set("serious_price_label")(`$${v}/month`); }} placeholder="19.99" />
               </div>
-              <Field label="Price Label (display)" value={settings.serious_price_label} onChange={set("serious_price_label")} placeholder="$19.99/month" />
+              <Field label="Monthly Price Label (display)" value={settings.serious_price_label} onChange={set("serious_price_label")} placeholder="$19.99/month" />
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Field label="Yearly Price (number)" value={settings.serious_price_yearly} onChange={v => { set("serious_price_yearly")(v); set("serious_price_label_yearly")(`$${v}/month billed annually`); }} placeholder="15.99" />
+                <Field label="Yearly Price Label (display)" value={settings.serious_price_label_yearly} onChange={set("serious_price_label_yearly")} placeholder="$15.99/month billed annually" />
+              </div>
               <div className="mt-4">
                 <Field
                   label='Features (JSON array, e.g. ["Feature 1","Feature 2"])'
