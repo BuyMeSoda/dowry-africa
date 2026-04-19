@@ -1,0 +1,169 @@
+Please do a final pre-launch bug fix and audit. Focus on finding and fixing any remaining issues before we go live. Be thorough and systematic.
+
+═══════════════════════════════
+1. END TO END FLOW TEST
+═══════════════════════════════
+Simulate the complete user journey and fix any issues:
+
+NEW USER FLOW:
+- Register with email and password
+- Receive and click verification email
+- See pending approval page
+- Admin approves from admin panel
+- Receive approval email
+- Login and access app
+- Complete profile (photo, bio, country, faith, quote)
+- Set partner preferences
+- Browse discover feed
+- Like a profile
+- See pending in Messages
+- Get liked back — see match celebration
+- Send first message
+- Receive message reply
+
+EXISTING USER FLOW:
+- Login
+- Browse discover with filters
+- View member profile
+- Like/pass profiles
+- Check messages
+- Update profile
+- Check premium page
+- Logout
+
+═══════════════════════════════
+2. PROFILE COMPLETENESS
+═══════════════════════════════
+- Languages field saves and displays correctly
+- Life Stage field saves and displays correctly  
+- Family Involvement field saves and displays correctly
+- No fields showing "—" dash unless genuinely empty
+- All fields in Edit Profile modal save correctly
+- All fields persist after page refresh
+- Profile displays correctly on own profile page
+- Profile displays correctly on member profile page
+
+═══════════════════════════════
+3. DATA CONSISTENCY
+═══════════════════════════════
+Check that these values are consistent everywhere:
+- Faith values: "Christian" not "Christianity" everywhere
+- Intent values: "Marriage Ready" not "marriage_ready" anywhere
+- Country values: consistent naming throughout
+- "Open to all" not "anywhere" or other variations
+- Subscription tier names consistent: "Free", "Core", "Serious Badge"
+- Timeline values consistent everywhere
+
+═══════════════════════════════
+4. EMAIL FLOW
+═══════════════════════════════
+- Verification email sends on registration
+- Verification link works and auto-logs in
+- Approval email sends when admin approves
+- Rejection email sends when admin rejects
+- Password reset email sends
+- Password reset link works
+- All emails use hello@dowry.africa as sender
+- All emails use FRONTEND_URL for links (not hardcoded Railway URL)
+- Plain text version included in all emails
+- Unsubscribe link works in all emails
+
+═══════════════════════════════
+5. ADMIN PANEL FINAL CHECK
+═══════════════════════════════
+- Dashboard shows real metrics
+- Pending users tab works
+- Approve single user works
+- Bulk approve works
+- Reject user works
+- Send email to user works
+- Coming soon toggle works
+- Manual approval toggle works
+- Message prompts all showing
+- Broadcast sends correctly
+- Templates load correctly
+- Early access emails list loads
+- CSV export works
+- Delete email works
+
+═══════════════════════════════
+6. EDGE CASES
+═══════════════════════════════
+Fix these specific edge cases:
+- What happens if user tries to register with existing email? Clear error message
+- What happens if verification link is expired? Clear message + resend option
+- What happens if reset link is expired? Clear message + link to forgot password
+- What happens if user is blocked mid-conversation? Messages disappear
+- What happens if user tries to access /discover while pending? Redirects to /pending
+- What happens if admin rejects already approved user? Handle gracefully
+- What happens if Stripe payment fails? Clear error message to user
+- What happens if Cloudinary upload fails? Clear error + fallback
+- What happens if no profiles match filters? Clear empty state
+- What happens on very slow internet? Loading states everywhere
+
+═══════════════════════════════
+7. MOBILE FINAL CHECK
+═══════════════════════════════
+At 390px width verify:
+- Registration form usable
+- Login form usable
+- Pending page looks good
+- Discover feed works
+- Filter drawer works
+- Profile cards readable
+- Like/Pass buttons work
+- Messages list works
+- Chat view works
+- Message input not hidden by keyboard
+- Profile edit modal scrollable
+- Partner preferences modal scrollable
+- Premium page readable
+- Admin panel — at minimum the coming soon toggle should work on mobile
+
+═══════════════════════════════
+8. PERFORMANCE FINAL CHECK
+═══════════════════════════════
+- Remove ALL console.log and console.error from production code
+- Remove any TODO comments
+- Remove any debug code
+- Check for any hardcoded Railway URLs — replace with environment variables
+- Check for any hardcoded prices — should come from database
+- Make sure images are optimised
+- Check for any memory leaks in useEffect hooks (missing cleanup)
+- Make sure all intervals/polling is cleared on component unmount
+
+═══════════════════════════════
+9. SECURITY FINAL CHECK
+═══════════════════════════════
+- Pending users cannot access any protected routes
+- Rejected users cannot access any protected routes
+- Free users cannot send messages (only read)
+- Admin panel requires valid admin credentials
+- No sensitive data in API responses (no passwords, no tokens)
+- Rate limiting working on auth endpoints
+- CORS only allows dowry.africa domain in production
+- All file uploads validate file type and size
+
+═══════════════════════════════
+10. COMING SOON MODE FINAL CHECK
+═══════════════════════════════
+- Toggle ON → all visitors see coming soon page
+- Toggle OFF → normal app accessible
+- /admin still works when coming soon ON
+- /login still works when coming soon ON
+- /unsubscribe still works when coming soon ON
+- Email capture saves correctly
+- Duplicate email handled
+- Content editable from admin
+
+═══════════════════════════════
+FINAL REPORT
+═══════════════════════════════
+After completing everything provide:
+
+1. BUGS FIXED — list every bug found and fixed with description
+2. CONFIRMED WORKING — list every feature verified working
+3. KNOWN ISSUES — anything that could not be fixed or needs attention
+4. RAILWAY ENVIRONMENT VARIABLES — list any that need updating
+5. PRE-LAUNCH CHECKLIST — final checklist of things to do before going live
+6. PRODUCTION READINESS SCORE — out of 10 with explanation
