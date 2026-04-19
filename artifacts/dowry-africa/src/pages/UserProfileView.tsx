@@ -513,11 +513,11 @@ export default function UserProfileView() {
                         disabled={passMutation.isPending}
                         title="Dismiss"
                         aria-label="Dismiss profile"
-                        className="w-9 h-9 rounded-full bg-white/60 backdrop-blur-sm text-muted-foreground/80 flex items-center justify-center hover:bg-white/80 hover:text-foreground transition-colors disabled:opacity-50"
+                        className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm text-white/90 ring-1 ring-white/30 flex items-center justify-center hover:bg-black/60 hover:text-white transition-colors disabled:opacity-50 shadow-md"
                       >
                         {passMutation.isPending
                           ? <Loader2 className="w-4 h-4 animate-spin" />
-                          : <X className="w-4 h-4" strokeWidth={1.75} />
+                          : <X className="w-5 h-5" strokeWidth={2} />
                         }
                       </button>
                     )}

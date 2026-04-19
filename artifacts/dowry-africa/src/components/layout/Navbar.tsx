@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/contexts/NotificationsContext";
+import { useGetLikedMe } from "@workspace/api-client-react";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import {
@@ -16,6 +17,7 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const { counts } = useNotifications();
+  const { data: likedMeData } = useGetLikedMe(undefined, { query: { enabled: !!user, refetchInterval: 30_000 } });
   const getStartedHref = "/register";
 
   const handleLogout = () => {
@@ -23,7 +25,9 @@ export function Navbar() {
     setLocation("/");
   };
 
-  const msgBadge = counts.messages + counts.matches + counts.likes;
+  // Outstanding pending likes (persistent — doesn't clear when you visit the page)
+  const pendingLikes = likedMeData?.count ?? 0;
+  const msgBadge = counts.messages + counts.matches + pendingLikes;
 
   return (
     <header className={`sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md ${user ? "hidden md:block" : ""}`}>
