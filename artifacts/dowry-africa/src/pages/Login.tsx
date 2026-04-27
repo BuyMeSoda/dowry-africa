@@ -1,10 +1,34 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useLogin } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/layout/Navbar";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+
+const VERIFIED_TOASTS: Record<
+  string,
+  { variant?: "default" | "destructive"; title: string; description: string }
+> = {
+  success: {
+    title: "Email verified",
+    description: "Your email is confirmed. Sign in to continue.",
+  },
+  already: {
+    title: "Already verified",
+    description: "Your email was already confirmed. Sign in to continue.",
+  },
+  expired: {
+    variant: "destructive",
+    title: "Verification link expired",
+    description: "Sign in and we'll send you a fresh verification email.",
+  },
+  invalid: {
+    variant: "destructive",
+    title: "Verification link invalid",
+    description: "This link is no longer valid. Sign in and request a new one.",
+  },
+};
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -13,6 +37,25 @@ export default function Login() {
   const { login: setAuthToken } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const verifiedToastShown = useRef(false);
+
+  useEffect(() => {
+    if (verifiedToastShown.current) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const flag = params.get("verified");
+    if (!flag) return;
+    const cfg = VERIFIED_TOASTS[flag];
+    if (cfg) {
+      toast(cfg);
+      verifiedToastShown.current = true;
+      // Clean the query param so a refresh doesn't re-toast.
+      params.delete("verified");
+      const qs = params.toString();
+      const cleanUrl = window.location.pathname + (qs ? `?${qs}` : "");
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }, [toast]);
 
   const loginMutation = useLogin({
     mutation: {

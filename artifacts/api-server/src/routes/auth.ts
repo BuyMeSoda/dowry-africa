@@ -298,14 +298,14 @@ router.get("/verify-email", async (req, res) => {
       .limit(1);
 
     if (!row) {
-      // Token invalid or already used — redirect with error flag
-      res.redirect(`${APP_BASE}/discover?verified=invalid`);
+      // Token invalid or already used — send to login with error flag
+      res.redirect(`${APP_BASE}/login?verified=invalid`);
       return;
     }
 
     if (row.emailVerified) {
-      // Already verified — redirect based on current status
-      const dest = row.accountStatus === "pending" ? `${APP_BASE}/pending?verified=already` : `${APP_BASE}/discover?verified=already`;
+      // Already verified — pending users go to their status page, others to login
+      const dest = row.accountStatus === "pending" ? `${APP_BASE}/pending?verified=already` : `${APP_BASE}/login?verified=already`;
       res.redirect(dest);
       return;
     }
@@ -323,11 +323,11 @@ router.get("/verify-email", async (req, res) => {
       .set({ emailVerified: true, verificationToken: null, verificationTokenExpiry: null })
       .where(eq(schema.users.id, row.id));
 
-    // Redirect to /pending for users awaiting approval, /discover for auto-approved
+    // Redirect to /pending for users awaiting approval, /login (with success flag) for everyone else
     if (row.accountStatus === "pending") {
       res.redirect(`${APP_BASE}/pending?verified=true`);
     } else {
-      res.redirect(`${APP_BASE}/discover?verified=success`);
+      res.redirect(`${APP_BASE}/login?verified=success`);
     }
   } catch (err) {
     req.log.error(err, "Verify email error");
