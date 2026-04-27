@@ -110,11 +110,16 @@ export interface DailyLimitsSnapshot {
   likesRemaining: number;
   resetsAt: number;
 }
+export interface FreeTierLimits {
+  messagesPerDay: number;
+  likesPerDay: number;
+}
 export interface PaymentStatusFull {
   tier: string;
   hasBadge: boolean;
   paymentsLive: boolean;
   dailyLimits: DailyLimitsSnapshot | null;
+  freeTierLimits?: FreeTierLimits;
 }
 export function usePaymentStatusFull(options?: { query?: Record<string, any> }) {
   return useQuery({

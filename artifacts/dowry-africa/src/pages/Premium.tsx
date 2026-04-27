@@ -256,8 +256,8 @@ export default function Premium() {
           </div>
           <ul className="space-y-4 mb-8 flex-1">
             <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Browse profiles</li>
-            <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Send up to 3 messages a day</li>
-            <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Like up to 10 profiles a day</li>
+            <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Send up to {status?.freeTierLimits?.messagesPerDay ?? 3} messages a day</li>
+            <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Like up to {status?.freeTierLimits?.likesPerDay ?? 10} profiles a day</li>
             <li className="flex gap-3 text-foreground/40"><XIcon /> Unlimited messaging</li>
             <li className="flex gap-3 text-foreground/40"><XIcon /> See who liked you</li>
           </ul>

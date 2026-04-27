@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
-import { useLikeUser, usePassUser, useGetPaymentStatus, useGetLikedMe, type FeedCard } from "@workspace/api-client-react";
+import { useLikeUser, usePassUser, usePaymentStatusFull, useGetLikedMe, type FeedCard } from "@workspace/api-client-react";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { CustomChipSelect } from "@/components/ui/CustomChipSelect";
 import { CountryMultiSelect } from "@/components/ui/CountryMultiSelect";
@@ -221,7 +221,9 @@ interface FeedPageResponse {
 }
 
 export default function Discover() {
-  const { data: paymentStatus } = useGetPaymentStatus();
+  const { data: paymentStatus } = usePaymentStatusFull();
+  const paymentsLive = paymentStatus?.paymentsLive ?? false;
+  const dailyLimits = paymentStatus?.dailyLimits ?? null;
   const { refresh: refreshNotifs } = useNotifications();
   const [, setLocation] = useLocation();
   const likeMutation = useLikeUser();
@@ -758,10 +760,32 @@ export default function Discover() {
                       <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Sparkles className="w-8 h-8 text-primary" />
                       </div>
-                      <h3 className="text-xl font-display font-bold mb-2">You've seen your 5 free profiles today</h3>
-                      <p className="text-muted-foreground mb-6">Upgrade to Core or Badge to unlock unlimited daily discoveries and see who liked you.</p>
+                      <h3 className="text-xl font-display font-bold mb-2">
+                        {reachedTierLimit
+                          ? "You've reached your free-tier discovery limit"
+                          : "You've seen everyone in your feed for now"}
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        {paymentsLive
+                          ? "Upgrade to Core or Badge for unlimited daily likes and messages — and to see who liked you."
+                          : "Paid plans launch in days. Join the waitlist and we'll email you the moment they open — no card needed."}
+                      </p>
+
+                      {dailyLimits && (
+                        <div className="inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 mb-6 px-4 py-2 rounded-full bg-background/60 border border-primary/15 text-xs">
+                          <span className="text-muted-foreground">Today on free:</span>
+                          <span className="font-medium text-foreground">
+                            {dailyLimits.messagesUsed}/{dailyLimits.messagesLimit} messages
+                          </span>
+                          <span className="text-primary/40">•</span>
+                          <span className="font-medium text-foreground">
+                            {dailyLimits.likesUsed}/{dailyLimits.likesLimit} likes
+                          </span>
+                        </div>
+                      )}
+
                       <Link href="/premium" className="inline-block px-8 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-                        Upgrade Now
+                        {paymentsLive ? "Upgrade Now" : "Join the waitlist"}
                       </Link>
                     </motion.div>
                   )}

@@ -225,6 +225,10 @@ router.get("/status", requireAuth, requireApproved, async (req, res) => {
       hasBadge: effectiveBadge,
       paymentsLive: flags.paymentsLive,
       dailyLimits,
+      freeTierLimits: {
+        messagesPerDay: flags.freeDailyMessageLimit,
+        likesPerDay: flags.freeDailyLikeLimit,
+      },
     });
   } catch (err) {
     req.log.error(err, "Payment status error");
