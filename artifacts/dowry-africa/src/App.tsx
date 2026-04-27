@@ -34,6 +34,7 @@ import UserProfileView from "@/pages/UserProfileView";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import Unsubscribe from "@/pages/Unsubscribe";
+import VerifyEmail from "@/pages/VerifyEmail";
 import PendingApproval from "@/pages/Pending";
 import RejectedPage from "@/pages/Rejected";
 
@@ -115,6 +116,7 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/unsubscribe" component={Unsubscribe} />
+        <Route path="/verify-email" component={VerifyEmail} />
         <Route path="/coming-soon" component={ComingSoon} />
         <Route path="/about" component={About} />
         <Route path="/pending" component={PendingApproval} />
