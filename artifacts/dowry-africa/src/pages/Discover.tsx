@@ -122,7 +122,18 @@ function LikesYouPanel() {
         } else {
           toast({ title: "Liked!", description: `You liked ${name} back.` });
         }
-      }
+      },
+      onError: (err: any) => {
+        if (err?.status === 429) {
+          toast({
+            variant: "destructive",
+            title: "Daily like limit reached",
+            description: "You've liked the maximum number of profiles today. Limit resets at midnight UTC.",
+          });
+        } else {
+          toast({ variant: "destructive", title: "Could not like", description: "Please try again." });
+        }
+      },
     });
   };
 
@@ -386,7 +397,20 @@ export default function Discover() {
           } else {
             toast({ title: "Like sent!", description: "We'll let you know if they like you back." });
           }
-        }
+        },
+        onError: (err: any) => {
+          // Restore the card so they can try again tomorrow
+          setFeed(prev => prev.some(c => c.user.id === id) ? prev : [card, ...prev]);
+          if (err?.status === 429) {
+            toast({
+              variant: "destructive",
+              title: "Daily like limit reached",
+              description: "You've liked the maximum number of profiles today. Resets at midnight UTC — upgrade for unlimited.",
+            });
+          } else {
+            toast({ variant: "destructive", title: "Could not like", description: "Please try again." });
+          }
+        },
       });
     } else {
       passMutation.mutate({ id });

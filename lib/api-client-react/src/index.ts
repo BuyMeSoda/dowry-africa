@@ -100,6 +100,57 @@ export function useGetBlockedUsers() {
   });
 }
 
+// Extended payment status — includes paymentsLive flag + free-tier daily limits
+export interface DailyLimitsSnapshot {
+  messagesLimit: number;
+  messagesUsed: number;
+  messagesRemaining: number;
+  likesLimit: number;
+  likesUsed: number;
+  likesRemaining: number;
+  resetsAt: number;
+}
+export interface PaymentStatusFull {
+  tier: string;
+  hasBadge: boolean;
+  paymentsLive: boolean;
+  dailyLimits: DailyLimitsSnapshot | null;
+}
+export function usePaymentStatusFull(options?: { query?: Record<string, any> }) {
+  return useQuery({
+    queryKey: ["/api/payments/status", "full"],
+    queryFn: () => customFetch<PaymentStatusFull>("/api/payments/status"),
+    ...options?.query,
+  });
+}
+
+// Capture interest for a paid plan while payments aren't live yet
+export function useSubmitUpgradeInterest() {
+  return useMutation({
+    mutationFn: async (plan: "core" | "badge") =>
+      customFetch<{ success: boolean; alreadyRegistered: boolean; plan: string; email: string }>(
+        "/api/payments/upgrade-interest",
+        {
+          method: "POST",
+          body: JSON.stringify({ plan }),
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+  });
+}
+
+// Public count of how many users have registered interest in each plan
+export function useGetUpgradeInterestCount(options?: { query?: Record<string, any> }) {
+  return useQuery({
+    queryKey: ["/api/payments/upgrade-interest/count"],
+    queryFn: () =>
+      customFetch<{ counts: { core: number; badge: number } }>(
+        "/api/payments/upgrade-interest/count",
+      ),
+    ...options?.query,
+  });
+}
+
 // Submit a report against another user
 export function useSubmitReport() {
   return useMutation({

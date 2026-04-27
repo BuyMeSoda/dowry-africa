@@ -238,6 +238,35 @@ export async function runMigrations(): Promise<void> {
       SET value = 'Join 100s of Africans already on the waitlist', updated_at = NOW()
       WHERE key = 'coming_soon_exclusivity'
         AND value IN ('We are onboarding a limited number of serious members. Be first.', '');
+
+      -- Free-tier daily limits + upgrade waitlist (added before payments go live)
+      CREATE TABLE IF NOT EXISTS user_daily_limits (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
+        messages_sent INTEGER NOT NULL DEFAULT 0,
+        likes_sent INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT user_daily_limits_user_date_uq UNIQUE (user_id, date)
+      );
+      CREATE INDEX IF NOT EXISTS user_daily_limits_user_date_idx ON user_daily_limits (user_id, date);
+
+      CREATE TABLE IF NOT EXISTS upgrade_interest (
+        id TEXT PRIMARY KEY,
+        user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        email TEXT NOT NULL,
+        plan_interest TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT upgrade_interest_email_plan_uq UNIQUE (email, plan_interest)
+      );
+      CREATE INDEX IF NOT EXISTS upgrade_interest_plan_idx ON upgrade_interest (plan_interest);
+
+      INSERT INTO settings (key, value, updated_at)
+      VALUES
+        ('free_daily_message_limit', '3', NOW()),
+        ('free_daily_like_limit', '10', NOW()),
+        ('payments_live', 'false', NOW())
+      ON CONFLICT (key) DO NOTHING;
     `);
   } finally {
     client.release();

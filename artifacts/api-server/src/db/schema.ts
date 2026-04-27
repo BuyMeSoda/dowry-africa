@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, primaryKey, date, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 export { sql };
 
@@ -148,6 +148,23 @@ export const emailTemplates = pgTable("email_templates", {
   ctaUrl: text("cta_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const userDailyLimits = pgTable("user_daily_limits", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: date("date").notNull(),
+  messagesSent: integer("messages_sent").notNull().default(0),
+  likesSent: integer("likes_sent").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [unique("user_daily_limits_user_date_uq").on(t.userId, t.date)]);
+
+export const upgradeInterest = pgTable("upgrade_interest", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  email: text("email").notNull(),
+  planInterest: text("plan_interest").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [unique("upgrade_interest_email_plan_uq").on(t.email, t.planInterest)]);
 
 export const broadcastLogs = pgTable("broadcast_logs", {
   id: text("id").primaryKey(),

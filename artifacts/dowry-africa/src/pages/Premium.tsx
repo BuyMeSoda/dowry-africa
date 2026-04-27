@@ -1,6 +1,12 @@
 import { Navbar } from "@/components/layout/Navbar";
-import { useCreateCheckout, useGetPaymentStatus, useCreatePortal } from "@workspace/api-client-react";
-import { Check, Shield, Loader2, Settings } from "lucide-react";
+import {
+  useCreateCheckout,
+  useCreatePortal,
+  usePaymentStatusFull,
+  useSubmitUpgradeInterest,
+  useGetUpgradeInterestCount,
+} from "@workspace/api-client-react";
+import { Check, Shield, Loader2, Settings, Heart, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE } from "@/lib/api-url";
@@ -49,18 +55,17 @@ const DEFAULT_PRICING: PricingConfig = {
   ]),
 };
 
-function parseFeatures(json: string): string[] {
-  try { return JSON.parse(json); } catch { return []; }
-}
-
 export default function Premium() {
   const checkoutMutation = useCreateCheckout();
   const portalMutation = useCreatePortal();
-  const { data: status, refetch } = useGetPaymentStatus();
+  const upgradeInterestMutation = useSubmitUpgradeInterest();
+  const { data: status, refetch } = usePaymentStatusFull();
+  const { data: interestCounts, refetch: refetchInterestCounts } = useGetUpgradeInterestCount();
   const { toast } = useToast();
   const polled = useRef(false);
   const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING);
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  const [registeredPlans, setRegisteredPlans] = useState<Set<'core' | 'badge'>>(new Set());
 
   useEffect(() => {
     fetch(`${API_BASE}/api/settings/pricing`)
@@ -113,7 +118,31 @@ export default function Premium() {
     });
   };
 
+  const handleJoinWaitlist = (plan: 'core' | 'badge') => {
+    upgradeInterestMutation.mutate(plan, {
+      onSuccess: (res) => {
+        setRegisteredPlans(prev => new Set(prev).add(plan));
+        refetchInterestCounts();
+        if (res.alreadyRegistered) {
+          toast({
+            title: "You're already on the list",
+            description: "We'll email you the moment payments open up.",
+          });
+        } else {
+          toast({
+            title: "You're on the list",
+            description: "We'll email you the moment payments open up.",
+          });
+        }
+      },
+      onError: (err: any) => {
+        toast({ variant: "destructive", title: "Could not save", description: err.message });
+      },
+    });
+  };
+
   const currentTier = status?.tier || 'free';
+  const paymentsLive = status?.paymentsLive ?? false;
 
   const CORE_SUBTITLE = "Where real conversations begin.";
   const CORE_FEATURES = [
@@ -133,6 +162,40 @@ export default function Premium() {
   const displayedCorePrice = billing === 'yearly' ? pricing.core_price_yearly : pricing.core_price;
   const displayedBadgePrice = billing === 'yearly' ? pricing.serious_price_yearly : pricing.serious_price;
 
+  const coreInterestCount = interestCounts?.counts?.core ?? 0;
+  const badgeInterestCount = interestCounts?.counts?.badge ?? 0;
+
+  function PlanButton({ plan, label, current, className }: {
+    plan: 'core' | 'badge'; label: string; current: boolean; className: string;
+  }) {
+    if (current) {
+      return <button disabled className={className}>Current Plan</button>;
+    }
+    if (paymentsLive) {
+      const isLoading = checkoutMutation.isPending && checkoutMutation.variables?.data?.tier === plan;
+      return (
+        <button onClick={() => handleCheckout(plan)} disabled={checkoutMutation.isPending} className={className}>
+          {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : label}
+        </button>
+      );
+    }
+    // Waitlist mode
+    const registered = registeredPlans.has(plan);
+    const isLoading = upgradeInterestMutation.isPending && upgradeInterestMutation.variables === plan;
+    if (registered) {
+      return (
+        <button disabled className={className + " !cursor-default"}>
+          <span className="inline-flex items-center justify-center gap-2"><Check className="w-4 h-4" /> You're on the list</span>
+        </button>
+      );
+    }
+    return (
+      <button onClick={() => handleJoinWaitlist(plan)} disabled={upgradeInterestMutation.isPending} className={className}>
+        {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Notify me when it launches"}
+      </button>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <Navbar />
@@ -141,9 +204,22 @@ export default function Premium() {
         <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
           Find someone who is actually ready.
         </h1>
-        <p className="text-xl text-muted-foreground mb-10">
+        <p className="text-xl text-muted-foreground mb-6">
           Dowry.Africa is built for people serious about commitment. Upgrade to show up that way.
         </p>
+
+        {/* Coming-soon banner — shown only while payments aren't live yet */}
+        {!paymentsLive && currentTier === 'free' && (
+          <div className="mb-10 inline-flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-2xl px-5 py-4 text-left">
+            <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-foreground text-sm">Paid plans launch in days, not weeks.</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Payments aren't open yet. Pick the plan you want and we'll email you the moment it opens — no credit card needed.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Billing toggle */}
         <div className="inline-flex items-center gap-1 bg-secondary rounded-full p-1 mb-14">
@@ -180,9 +256,9 @@ export default function Premium() {
           </div>
           <ul className="space-y-4 mb-8 flex-1">
             <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Browse profiles</li>
-            <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Like or pass</li>
-            <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Receive messages</li>
-            <li className="flex gap-3 text-foreground/40"><XIcon /> Send messages</li>
+            <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Send up to 3 messages a day</li>
+            <li className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-green-500 shrink-0" /> Like up to 10 profiles a day</li>
+            <li className="flex gap-3 text-foreground/40"><XIcon /> Unlimited messaging</li>
             <li className="flex gap-3 text-foreground/40"><XIcon /> See who liked you</li>
           </ul>
           <button disabled className="w-full py-4 rounded-xl font-bold bg-secondary text-muted-foreground">
@@ -202,20 +278,23 @@ export default function Premium() {
               {billing === 'yearly' && <span className="block text-xs text-muted-foreground mt-0.5">billed annually</span>}
             </p>
           </div>
-          <ul className="space-y-4 mb-8 flex-1 mt-6">
+          <ul className="space-y-4 mb-6 flex-1 mt-6">
             {CORE_FEATURES.map(f => (
               <li key={f} className="flex gap-3 text-foreground"><Check className="w-5 h-5 text-[#B5264E] shrink-0" /> {f}</li>
             ))}
           </ul>
-          <button
-            onClick={() => handleCheckout('core')}
-            disabled={checkoutMutation.isPending || currentTier === 'core'}
-            className="w-full py-4 rounded-xl font-bold bg-[#B5264E] text-white shadow-lg shadow-[#B5264E]/30 hover:bg-[#9e1f42] hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:hover:translate-y-0 disabled:hover:shadow-lg disabled:cursor-not-allowed"
-          >
-            {checkoutMutation.isPending && currentTier !== 'core'
-              ? <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-              : currentTier === 'core' ? 'Current Plan' : 'Select Core'}
-          </button>
+          {!paymentsLive && coreInterestCount > 0 && currentTier === 'free' && (
+            <p className="text-xs text-muted-foreground text-center mb-3 inline-flex items-center justify-center gap-1.5">
+              <Heart className="w-3 h-3 text-[#B5264E] fill-[#B5264E]" />
+              {coreInterestCount} {coreInterestCount === 1 ? "person is" : "people are"} on the list
+            </p>
+          )}
+          <PlanButton
+            plan="core"
+            label="Select Core"
+            current={currentTier === 'core'}
+            className="w-full py-4 rounded-xl font-bold bg-[#B5264E] text-white shadow-lg shadow-[#B5264E]/30 hover:bg-[#9e1f42] hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:hover:translate-y-0 disabled:hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-90"
+          />
         </div>
 
         {/* Badge Tier */}
@@ -243,16 +322,19 @@ export default function Premium() {
               </li>
             ))}
           </ul>
-          <p className="text-white/30 text-sm italic mb-6">Not for games.</p>
-          <button
-            onClick={() => handleCheckout('badge')}
-            disabled={checkoutMutation.isPending || currentTier === 'badge'}
-            className="w-full py-4 rounded-xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-950 shadow-lg shadow-yellow-500/25 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50"
-          >
-            {checkoutMutation.isPending && currentTier !== 'badge'
-              ? <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-              : currentTier === 'badge' ? 'Current Plan' : 'Get The Badge'}
-          </button>
+          <p className="text-white/30 text-sm italic mb-3">Not for games.</p>
+          {!paymentsLive && badgeInterestCount > 0 && currentTier !== 'badge' && (
+            <p className="text-xs text-white/60 text-center mb-3 inline-flex items-center justify-center gap-1.5">
+              <Heart className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+              {badgeInterestCount} {badgeInterestCount === 1 ? "person is" : "people are"} on the list
+            </p>
+          )}
+          <PlanButton
+            plan="badge"
+            label="Get The Badge"
+            current={currentTier === 'badge'}
+            className="w-full py-4 rounded-xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-950 shadow-lg shadow-yellow-500/25 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-90 disabled:cursor-not-allowed"
+          />
         </div>
 
       </div>

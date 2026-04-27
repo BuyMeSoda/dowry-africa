@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/connection.js";
 import * as schema from "../db/schema.js";
 import { toUser } from "../db/database.js";
 import { requireAuth, requireApproved } from "../middlewares/auth.js";
 import { isAdminEmail, applyAdminOverride } from "../lib/adminUtils.js";
+import { getAppFlags } from "./settings.js";
+import { getDailyLimitsSnapshot } from "../lib/dailyLimits.js";
 
 const router = Router();
 
@@ -169,6 +172,8 @@ router.get("/status", requireAuth, requireApproved, async (req, res) => {
     if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
     const me = toUser(meRow);
 
+    // Stripe-sync may upgrade a user from "free" → "core"/"badge" in the DB.
+    // Mutate the in-memory `me` so the unified return path below sees the fresh tier.
     if (me.tier === "free" && !isDemoMode()) {
       try {
         const stripe = await import("stripe");
@@ -191,23 +196,85 @@ router.get("/status", requireAuth, requireApproved, async (req, res) => {
               await db.update(schema.users)
                 .set({ tier: newTier, hasBadge: newBadge, stripeCustomerId: customer.id })
                 .where(eq(schema.users.id, me.id));
-              return res.json({ tier: newTier, hasBadge: newBadge });
+              me.tier = newTier;
+              me.hasBadge = newBadge;
             }
           }
         }
       } catch {
-        // Stripe sync failed — return current DB state
+        // Stripe sync failed — fall through with current DB state.
       }
     }
 
+    const flags = await getAppFlags();
+
+    let effectiveTier = me.tier;
+    let effectiveBadge = me.hasBadge;
     if (await isAdminEmail(me.email)) {
       const overridden = applyAdminOverride({ tier: me.tier, hasBadge: me.hasBadge });
-      return res.json({ tier: overridden.tier, hasBadge: overridden.hasBadge });
+      effectiveTier = overridden.tier!;
+      effectiveBadge = overridden.hasBadge!;
     }
 
-    res.json({ tier: me.tier, hasBadge: me.hasBadge });
+    const dailyLimits = effectiveTier === "free"
+      ? await getDailyLimitsSnapshot(me.id)
+      : null;
+
+    res.json({
+      tier: effectiveTier,
+      hasBadge: effectiveBadge,
+      paymentsLive: flags.paymentsLive,
+      dailyLimits,
+    });
   } catch (err) {
     req.log.error(err, "Payment status error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Upgrade-interest waitlist (used while payments_live = false) ──────────
+router.post("/upgrade-interest", requireAuth, requireApproved, async (req, res) => {
+  try {
+    const { plan } = req.body as { plan?: string };
+    if (plan !== "core" && plan !== "badge") {
+      res.status(400).json({ error: "Invalid plan. Must be 'core' or 'badge'" });
+      return;
+    }
+
+    const [meRow] = await db
+      .select({ id: schema.users.id, email: schema.users.email })
+      .from(schema.users)
+      .where(eq(schema.users.id, req.userId!))
+      .limit(1);
+    if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const result = await db.insert(schema.upgradeInterest)
+      .values({ id: uuidv4(), userId: meRow.id, email: meRow.email, planInterest: plan })
+      .onConflictDoNothing()
+      .returning({ id: schema.upgradeInterest.id });
+
+    const alreadyRegistered = result.length === 0;
+    res.json({ success: true, alreadyRegistered, plan, email: meRow.email });
+  } catch (err) {
+    req.log.error(err, "Upgrade interest error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/upgrade-interest/count", async (_req, res) => {
+  try {
+    const rows = await db.execute<{ plan_interest: string; total: string }>(sql`
+      SELECT plan_interest, COUNT(*)::text AS total
+      FROM upgrade_interest
+      GROUP BY plan_interest
+    `);
+    const counts: Record<string, number> = { core: 0, badge: 0 };
+    for (const r of rows.rows) {
+      counts[r.plan_interest] = parseInt(r.total, 10) || 0;
+    }
+    res.json({ counts });
+  } catch (err) {
+    req.log.error(err, "Upgrade interest count error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

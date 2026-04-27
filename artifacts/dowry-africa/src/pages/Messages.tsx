@@ -13,6 +13,8 @@ import {
   usePassLiker,
   useGetSentLikes,
   useUnlikeUser,
+  usePaymentStatusFull,
+  useSubmitUpgradeInterest,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/contexts/NotificationsContext";
@@ -162,6 +164,11 @@ export default function Messages() {
   const isNearBottomRef     = useRef(true);
   const justSentRef         = useRef(false);
 
+  // ── Payment status / daily limits (free tier UX) ─────────────────────────
+  const { data: paymentStatus, refetch: refetchPaymentStatus } = usePaymentStatusFull({ query: { refetchInterval: 60_000 } });
+  const upgradeInterestMutation = useSubmitUpgradeInterest();
+  const [interestSubmitted, setInterestSubmitted] = useState(false);
+
   // ── Liked You (received) ─────────────────────────────────────────────────
   const { data: likedMeData, isLoading: likedMeLoading, refetch: refetchLikedMe } = useGetLikedMe({ query: { refetchInterval: 30_000 } });
   const likeMutation = useLikeUser();
@@ -243,8 +250,21 @@ export default function Messages() {
     const tempId = Date.now().toString();
     setLocalMsgs(prev => [...prev, { id: tempId, text: newText, fromId: user?.id, createdAt: new Date().toISOString() }]);
     sendMutation.mutate({ userId: activeUserId, data: { text: newText } }, {
-      onSuccess: () => refetch(),
-      onError: () => setLocalMsgs(localMsgs),
+      onSuccess: () => { refetch(); refetchPaymentStatus(); },
+      onError: (err: any) => {
+        setLocalMsgs(localMsgs);
+        if (err?.status === 429) {
+          refetchPaymentStatus();
+          refetch();
+          toast({
+            variant: "destructive",
+            title: "Daily message limit reached",
+            description: "You've used all your free messages for today. Upgrade for unlimited.",
+          });
+        } else {
+          toast({ variant: "destructive", title: "Could not send", description: "Please try again." });
+        }
+      },
     });
   };
 
@@ -290,9 +310,18 @@ export default function Messages() {
           toast({ title: "Liked!", description: `You liked ${name} back.` });
         }
       },
-      onError: () => {
+      onError: (err: any) => {
         setLikingBackId(null);
-        toast({ variant: "destructive", title: "Could not like", description: "Please try again." });
+        if (err?.status === 429) {
+          refetchPaymentStatus();
+          toast({
+            variant: "destructive",
+            title: "Daily like limit reached",
+            description: "You've liked the maximum number of profiles today. Limit resets at midnight UTC.",
+          });
+        } else {
+          toast({ variant: "destructive", title: "Could not like", description: "Please try again." });
+        }
       },
     });
   };
@@ -330,7 +359,26 @@ export default function Messages() {
   const likedBy       = likedMeData?.likedBy ?? [];
   const sentLikes     = sentData?.sent ?? [];
 
-  const isFree = !user || (user as any).tier === "free";
+  const isFree = !user || (paymentStatus?.tier ?? (user as any).tier) === "free";
+  const dailyLimits = paymentStatus?.dailyLimits ?? null;
+  const messagesRemaining = dailyLimits?.messagesRemaining ?? null;
+  const messagesLimit = dailyLimits?.messagesLimit ?? null;
+  const limitReached = isFree && messagesRemaining !== null && messagesRemaining <= 0;
+  const paymentsLive = paymentStatus?.paymentsLive ?? false;
+
+  const handleNotifyMe = () => {
+    upgradeInterestMutation.mutate("core", {
+      onSuccess: (res) => {
+        setInterestSubmitted(true);
+        if (res.alreadyRegistered) {
+          toast({ title: "You're already on the list", description: "We'll email you the moment payments open up." });
+        } else {
+          toast({ title: "You're on the list", description: "We'll email you the moment payments open up." });
+        }
+      },
+      onError: () => toast({ variant: "destructive", title: "Could not save", description: "Please try again." }),
+    });
+  };
 
   return (
     <div className="bg-background flex flex-col overflow-hidden h-[calc(100dvh-3rem)] md:h-[100dvh]">
@@ -703,18 +751,68 @@ export default function Messages() {
                 </div>
               )}
 
-              {/* Input — upgrade prompt for free users, full input for paid */}
-              {isFree || msgsData?.canSend === false ? (
-                <div className="p-4 bg-white border-t border-border flex items-center gap-4">
-                  <div className="flex-1 bg-secondary/40 border border-border/60 rounded-full px-6 py-3 text-muted-foreground text-sm select-none cursor-default">
-                    Upgrade to reply...
+              {/* Input — limit-reached panel for free users, full input otherwise */}
+              {(isFree && (limitReached || msgsData?.canSend === false)) ? (
+                <div className="p-5 bg-white border-t border-border">
+                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 mb-3">
+                      <Lock className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="font-display font-bold text-base mb-1">
+                      You've used today's free messages
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      You can send {messagesLimit ?? 3} messages a day on the free plan. Your limit resets at midnight UTC.
+                    </p>
+                    {paymentsLive ? (
+                      <Link
+                        href="/premium"
+                        className="inline-block px-6 py-2.5 rounded-full bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:opacity-90 transition-opacity"
+                      >
+                        Upgrade for unlimited messaging
+                      </Link>
+                    ) : interestSubmitted ? (
+                      <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
+                        <Heart className="w-4 h-4 fill-green-600 text-green-600" />
+                        You're on the list — we'll email you
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <button
+                          onClick={handleNotifyMe}
+                          disabled={upgradeInterestMutation.isPending}
+                          className="px-6 py-2.5 rounded-full bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:opacity-90 transition-opacity disabled:opacity-60"
+                        >
+                          {upgradeInterestMutation.isPending
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : "Notify me when paid plans launch"}
+                        </button>
+                        <Link href="/premium" className="text-xs text-muted-foreground hover:text-foreground underline">
+                          See all plans
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                  <Link href="/premium" className="shrink-0 px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold shadow-md shadow-primary/20 hover:opacity-90 transition-opacity">
-                    Upgrade
-                  </Link>
                 </div>
               ) : (
                 <div className="p-4 bg-white border-t border-border">
+                  {isFree && messagesRemaining !== null && messagesLimit !== null && (
+                    <div className="flex items-center justify-between mb-2 px-2 text-xs">
+                      <span className="text-muted-foreground">
+                        {messagesRemaining} of {messagesLimit} free messages left today
+                      </span>
+                      {messagesRemaining <= 1 && !paymentsLive && (
+                        <Link href="/premium" className="text-primary font-semibold hover:underline">
+                          Get notified when paid plans launch →
+                        </Link>
+                      )}
+                      {messagesRemaining <= 1 && paymentsLive && (
+                        <Link href="/premium" className="text-primary font-semibold hover:underline">
+                          Upgrade →
+                        </Link>
+                      )}
+                    </div>
+                  )}
                   <form onSubmit={handleSend} className="flex gap-4">
                     <input
                       type="text"

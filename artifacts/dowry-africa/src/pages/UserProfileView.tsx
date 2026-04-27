@@ -290,8 +290,16 @@ export default function UserProfileView() {
           toast({ title: "Liked!", description: `You liked ${profile?.name}.` });
         }
       },
-      onError: () => {
-        toast({ variant: "destructive", title: "Could not send like", description: "Please try again." });
+      onError: (err: any) => {
+        if (err?.status === 429) {
+          toast({
+            variant: "destructive",
+            title: "Daily like limit reached",
+            description: "You've liked the maximum number of profiles today. Limit resets at midnight UTC.",
+          });
+        } else {
+          toast({ variant: "destructive", title: "Could not send like", description: "Please try again." });
+        }
       }
     });
   };

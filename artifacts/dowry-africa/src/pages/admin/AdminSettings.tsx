@@ -28,6 +28,9 @@ interface AppSettings {
   serious_description: string;
   serious_features: string;
   manual_approval_required: string;
+  payments_live: string;
+  free_daily_message_limit: string;
+  free_daily_like_limit: string;
 }
 
 interface EarlyAccessEmail {
@@ -97,6 +100,9 @@ export default function AdminSettings() {
     serious_description: "For members who want to demonstrate the highest level of intent.",
     serious_features: '["Everything in Core","Serious Badge on your profile","Ranked highest in feeds","Access to Badge-only pool"]',
     manual_approval_required: "true",
+    payments_live: "false",
+    free_daily_message_limit: "3",
+    free_daily_like_limit: "10",
   });
   const [emails, setEmails] = useState<EarlyAccessEmail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -258,20 +264,64 @@ export default function AdminSettings() {
           </div>
         </div>
 
-        {/* Match Limits */}
+        {/* Payments & Free-Tier Limits */}
         <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
           <div className="p-6 border-b border-gray-800">
-            <h2 className="text-white font-bold">Match Limits</h2>
+            <h2 className="text-white font-bold">Payments & Free-Tier Limits</h2>
+            <p className="text-gray-400 text-sm mt-1">Control whether checkout is open and how much free users can do per day.</p>
+          </div>
+          <div className="px-6">
+            <Toggle
+              label="Payments Live"
+              desc="When OFF, the Premium page shows a 'Notify me' waitlist instead of checkout buttons. Turn ON once Stripe products are live."
+              value={settings.payments_live === "true"}
+              onChange={v => set("payments_live")(String(v))}
+            />
+          </div>
+          <div className="p-6 grid grid-cols-2 gap-6 pt-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Free Daily Message Limit</label>
+              <input
+                type="number" min={0} max={1000}
+                value={settings.free_daily_message_limit}
+                onChange={e => set("free_daily_message_limit")(e.target.value)}
+                className="w-32 bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <p className="text-gray-500 text-xs mt-2">Max messages a free user can send per day.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Free Daily Like Limit</label>
+              <input
+                type="number" min={0} max={1000}
+                value={settings.free_daily_like_limit}
+                onChange={e => set("free_daily_like_limit")(e.target.value)}
+                className="w-32 bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <p className="text-gray-500 text-xs mt-2">Max likes a free user can send per day.</p>
+            </div>
+          </div>
+          <div className="mx-6 mb-5 flex items-start gap-3 bg-gray-800/50 border border-gray-700 rounded-xl p-4">
+            <Info className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Counters reset at <strong className="text-gray-300">midnight UTC</strong>. Core and Badge tiers are unlimited regardless of these values.
+            </p>
+          </div>
+        </div>
+
+        {/* Legacy Match Limit (feed pagination) */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <div className="p-6 border-b border-gray-800">
+            <h2 className="text-white font-bold">Discover Feed Limit</h2>
           </div>
           <div className="p-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Free Tier Daily Match Limit</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Free Tier Daily Feed Limit</label>
             <input
               type="number" min={1} max={100}
               value={settings.free_tier_daily_limit}
               onChange={e => set("free_tier_daily_limit")(e.target.value)}
               className="w-32 bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
-            <p className="text-gray-500 text-xs mt-2">Core and Badge tiers have unlimited matches.</p>
+            <p className="text-gray-500 text-xs mt-2">How many profiles a free user can see per day in Discover. Core and Badge tiers see unlimited.</p>
           </div>
         </div>
 

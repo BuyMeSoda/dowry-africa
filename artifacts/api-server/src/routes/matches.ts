@@ -8,6 +8,7 @@ import { toUser, publicUser } from "../db/database.js";
 import { requireAuth, requireApproved } from "../middlewares/auth.js";
 import { scoreMatch, passesHardFilters, rankFeed } from "../lib/matching.js";
 import { isAdminEmail, applyAdminOverride } from "../lib/adminUtils.js";
+import { getDailyLimitsSnapshot, tryIncrementLikes, decrementLikes } from "../lib/dailyLimits.js";
 
 const router = Router();
 
@@ -320,9 +321,50 @@ router.post("/like/:id", requireAuth, requireApproved, async (req, res) => {
     if (!meRow || !targetRow) { res.status(404).json({ error: "Not found" }); return; }
     if (meRow.id === targetRow.id) { res.status(400).json({ error: "Cannot like yourself" }); return; }
 
-    await db.insert(schema.likes)
-      .values({ fromId: meRow.id, toId: targetRow.id })
-      .onConflictDoNothing();
+    const me = toUser(meRow);
+
+    // Atomically reserve a like slot for free tier BEFORE inserting.
+    // If the insert turns out to be a duplicate (re-like), we refund the slot.
+    let reservedFreeSlot = false;
+    if (me.tier === "free") {
+      const snap = await getDailyLimitsSnapshot(me.id);
+      const tryRes = await tryIncrementLikes(me.id, snap.likesLimit);
+      if (!tryRes.ok) {
+        res.status(429).json({
+          error: "daily_limit_reached",
+          likesUsed: tryRes.count,
+          likesLimit: snap.likesLimit,
+          remaining: 0,
+          resetsAt: snap.resetsAt,
+        });
+        return;
+      }
+      reservedFreeSlot = true;
+    }
+
+    let insertResult: Array<{ fromId: string }>;
+    try {
+      insertResult = await db.insert(schema.likes)
+        .values({ fromId: meRow.id, toId: targetRow.id })
+        .onConflictDoNothing()
+        .returning({ fromId: schema.likes.fromId });
+    } catch (e) {
+      if (reservedFreeSlot) {
+        await decrementLikes(meRow.id).catch(refundErr => req.log.error(
+          { err: refundErr, userId: meRow.id, route: "matches.like.insertFailed" },
+          "Daily-counter refund failed — counter may be drifted by +1 for today",
+        ));
+      }
+      throw e;
+    }
+
+    // Refund the reservation if the like was a duplicate (not actually inserted)
+    if (reservedFreeSlot && insertResult.length === 0) {
+      await decrementLikes(meRow.id).catch(refundErr => req.log.error(
+        { err: refundErr, userId: meRow.id, route: "matches.like.duplicateRefund" },
+        "Daily-counter refund failed — counter may be drifted by +1 for today",
+      ));
+    }
 
     // Update last_active when liking a profile (fire-and-forget)
     db.update(schema.users).set({ lastActive: new Date() }).where(eq(schema.users.id, meRow.id)).catch(() => {});

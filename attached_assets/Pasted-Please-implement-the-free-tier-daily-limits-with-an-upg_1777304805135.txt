@@ -1,0 +1,163 @@
+Please implement the free tier daily limits with an "upgrade interest" capture instead of a payment button, since payment integration is not yet live.
+
+═══════════════════════════════
+1. FREE TIER DAILY LIMITS
+═══════════════════════════════
+Free tier users can send messages and likes with daily limits:
+- Messages per day: 3
+- Likes per day: 10
+- Limits reset at midnight UTC
+
+Paid tiers (Core and Serious Badge):
+- Unlimited messages
+- Unlimited likes
+
+═══════════════════════════════
+2. DATABASE
+═══════════════════════════════
+Add user_daily_limits table:
+- id
+- user_id (foreign key)
+- date (date)
+- messages_sent (integer, default 0)
+- likes_sent (integer, default 0)
+- UNIQUE constraint on (user_id, date)
+
+Add upgrade_interest table:
+- id
+- user_id (foreign key, nullable)
+- email (text)
+- plan_interest (text: 'core' or 'badge')
+- created_at
+- UNIQUE on (email, plan_interest)
+
+Add to settings table:
+- free_daily_message_limit (integer, default 3)
+- free_daily_like_limit (integer, default 10)
+- payments_live (boolean, default false)
+
+═══════════════════════════════
+3. BACKEND
+═══════════════════════════════
+Update POST /api/messages/:userId:
+- If free tier:
+  * Check today's message count
+  * If >= limit: return 429 { error: 'daily_limit_reached', messagesUsed, messagesLimit, remaining: 0 }
+  * If under limit: send message, increment counter
+- If paid tier: no limit
+
+Update POST /api/likes/:userId:
+- If free tier:
+  * Check today's like count
+  * If >= limit: return 429 { error: 'daily_limit_reached' }
+  * If under limit: allow like, increment counter
+- If paid tier: no limit
+
+Add POST /api/payments/upgrade-interest:
+- Public endpoint (auth required)
+- Body: { plan: 'core' | 'badge' }
+- Save to upgrade_interest table with user email
+- Return success
+- If already registered: return { alreadyRegistered: true }
+
+Add GET /api/payments/status update:
+- Include daily limits info:
+{
+  tier,
+  paymentsLive: false,
+  dailyLimits: {
+    messagesLimit: 3,
+    messagesUsed: 1,
+    messagesRemaining: 2,
+    likesLimit: 10,
+    likesUsed: 0,
+    likesRemaining: 10,
+    resetsAt: midnight UTC timestamp
+  }
+}
+
+═══════════════════════════════
+4. FRONTEND — MESSAGE LIMIT UI
+═══════════════════════════════
+In the chat view for free users:
+
+Show remaining count above input:
+- "3 messages remaining today"
+- "2 messages remaining today"  
+- "1 message remaining today"
+- Use subtle muted gray text — not alarming
+
+When limit is reached:
+- Disable the message input
+- Show this upgrade interest panel instead of input:
+
+"You have used your 3 free messages today.
+
+Paid plans are coming soon — be the first to know when they launch.
+
+[Email pre-filled from their account]
+Plan interest: ○ Core ($12.99/mo)  ● Serious Badge ($19.99/mo)
+
+[Notify me when payments go live] button
+
+Or come back tomorrow for 3 more free messages."
+
+After they click notify:
+- Show: "Got it! We'll email you at [email] as soon as paid plans are available."
+- If already registered: show: "You're already on the list — we'll notify you soon."
+
+═══════════════════════════════
+5. FRONTEND — LIKES LIMIT UI
+═══════════════════════════════
+When free user reaches like limit:
+- Like button shows a subtle lock icon
+- Tooltip/toast: "Daily like limit reached. Come back tomorrow or join the upgrade waitlist."
+- Do not show a modal — keep it subtle
+
+═══════════════════════════════
+6. PREMIUM PAGE UPDATE
+═══════════════════════════════
+Since payments are not live yet, update the Premium page:
+
+Replace the "Upgrade" payment buttons with:
+- "Join the waitlist — be notified when this plan launches"
+- Simple one-click button that calls POST /api/payments/upgrade-interest
+- After click: "You're on the list! We'll email you at [email] when [Core/Serious Badge] is available."
+- Show a count: "X members are waiting for this plan" (from upgrade_interest table count)
+
+Keep the pricing and features displayed exactly as they are.
+Add a banner at top of Premium page:
+"Paid plans launching soon. Join the waitlist to be first in line."
+
+═══════════════════════════════
+7. ADMIN PANEL
+═══════════════════════════════
+Add "Upgrade Interest" section to admin Communications or Users:
+- List of all users who expressed upgrade interest
+- Show: name, email, plan interest, date
+- Total count per plan (X want Core, Y want Serious Badge)
+- Export to CSV
+- This is your warm list to email when Paystack goes live
+
+Add to admin Settings:
+- free_daily_message_limit (editable)
+- free_daily_like_limit (editable)
+- payments_live toggle (when turned ON — removes waitlist UI and shows real payment buttons)
+
+═══════════════════════════════
+8. PAYMENTS LIVE TOGGLE
+═══════════════════════════════
+When admin toggles payments_live = true in Settings:
+- Premium page shows real payment buttons instead of waitlist
+- Message limit upgrade prompt shows real payment button
+- The upgrade interest capture UI is hidden
+- Everything else stays the same
+
+This means when Paystack is ready:
+1. Admin toggles payments_live = ON in admin Settings
+2. Paystack integration code is deployed
+3. All upgrade prompts immediately show real payment buttons
+4. Send broadcast email to upgrade_interest list: "Paid plans are now live!"
+
+Do not remove or change any existing payment code —
+just add the payments_live flag to control which UI is shown.

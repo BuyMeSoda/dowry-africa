@@ -4,7 +4,9 @@ import { adminFetch } from "@/lib/admin";
 import {
   Send, Radio, History, ChevronDown, Loader2, CheckCircle2, XCircle,
   ExternalLink, BookTemplate, Save, Eye, Trash2, FileText, X,
+  Heart, Download, Sparkles,
 } from "lucide-react";
+import { API_BASE } from "@/lib/api-url";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +14,7 @@ type RecipientGroup = "waitlist" | "all_users" | "free_users" | "core_users" | "
 
 interface EmailTemplate { id: string; name: string; subject: string; body: string; ctaLabel?: string | null; ctaUrl?: string | null; }
 interface BroadcastLog  { id: string; subject: string; body: string; recipientGroup: string; recipientCount: number; sentCount: number; failedCount: number; status: string; ctaLabel: string | null; ctaUrl: string | null; createdAt: string; }
+interface UpgradeInterestRow { id: string; userId: string | null; email: string; planInterest: string; createdAt: string; }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -251,6 +254,13 @@ export default function AdminCommunications() {
   const [templateName, setTemplateName] = useState("");
   const [saving, setSaving]             = useState(false);
 
+  // Upgrade-interest waitlist
+  const [upgradeRows, setUpgradeRows] = useState<UpgradeInterestRow[]>([]);
+  const [upgradeCounts, setUpgradeCounts] = useState<{ core: number; badge: number }>({ core: 0, badge: 0 });
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgradeExpanded, setUpgradeExpanded] = useState(false);
+  const [confirmDeleteUpgradeId, setConfirmDeleteUpgradeId] = useState<{ id: string; email: string } | null>(null);
+
   const [toastMsg, setToastMsg] = useState("");
   const toast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 4000); };
 
@@ -285,8 +295,45 @@ export default function AdminCommunications() {
     } catch { /**/ }
   };
 
+  const loadUpgradeInterest = async () => {
+    setUpgradeLoading(true);
+    try {
+      const r = await adminFetch("/upgrade-interest");
+      const d = await r.json();
+      setUpgradeRows(d.rows ?? []);
+      setUpgradeCounts(d.counts ?? { core: 0, badge: 0 });
+    } catch { /**/ }
+    setUpgradeLoading(false);
+  };
+
+  const exportUpgradeInterestCSV = async () => {
+    const { getAdminToken } = await import("@/lib/admin");
+    const token = getAdminToken();
+    const res = await fetch(`${API_BASE}/api/admin/upgrade-interest/export`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) { toast("Export failed"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `upgrade-interest-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const deleteUpgradeInterest = async (id: string) => {
+    try {
+      await adminFetch(`/upgrade-interest/${id}`, { method: "DELETE" });
+      setUpgradeRows(prev => prev.filter(r => r.id !== id));
+      loadUpgradeInterest();
+      toast("Removed from waitlist");
+    } catch { toast("Failed to remove"); }
+    finally { setConfirmDeleteUpgradeId(null); }
+  };
+
   useEffect(() => { fetchCount(group); }, [group]);
-  useEffect(() => { loadHistory(); loadCustomTemplates(); }, []);
+  useEffect(() => { loadHistory(); loadCustomTemplates(); loadUpgradeInterest(); }, []);
 
   // ── Template selection ─────────────────────────────────────────────────────
 
@@ -399,6 +446,98 @@ export default function AdminCommunications() {
         {toastMsg && (
           <div className="mb-4 px-4 py-3 bg-green-600/20 border border-green-500/30 text-green-400 rounded-xl text-sm">{toastMsg}</div>
         )}
+
+        {/* ── Upgrade Interest (waitlist while payments aren't live) ──────── */}
+        <div className="mb-6 bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <div className="p-5 border-b border-gray-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="text-white font-bold flex items-center gap-2">
+                  Paid-Plan Waitlist
+                  <span className="text-xs font-medium text-gray-500">(captured while payments are off)</span>
+                </h2>
+                <p className="text-gray-400 text-xs mt-0.5">
+                  Users who clicked "Notify me" on the Premium page. Email them once Stripe goes live.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={exportUpgradeInterestCSV}
+              disabled={upgradeRows.length === 0}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 rounded-xl text-sm font-medium transition-colors border border-gray-700"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
+
+          {/* Counts */}
+          <div className="grid grid-cols-3 divide-x divide-gray-800">
+            <div className="p-4 text-center">
+              <p className="text-2xl font-bold text-white">{upgradeRows.length}</p>
+              <p className="text-xs uppercase tracking-wider text-gray-500 mt-0.5">Total interested</p>
+            </div>
+            <div className="p-4 text-center">
+              <p className="text-2xl font-bold text-amber-400">{upgradeCounts.core}</p>
+              <p className="text-xs uppercase tracking-wider text-gray-500 mt-0.5">Core plan</p>
+            </div>
+            <div className="p-4 text-center">
+              <p className="text-2xl font-bold text-amber-400">{upgradeCounts.badge}</p>
+              <p className="text-xs uppercase tracking-wider text-gray-500 mt-0.5">Serious Badge</p>
+            </div>
+          </div>
+
+          {/* Expandable list */}
+          {upgradeRows.length > 0 && (
+            <>
+              <button
+                onClick={() => setUpgradeExpanded(v => !v)}
+                className="w-full px-5 py-3 flex items-center justify-center gap-2 border-t border-gray-800 text-xs text-gray-400 hover:text-white hover:bg-gray-800/40 transition-colors"
+              >
+                {upgradeExpanded ? "Hide list" : `Show all ${upgradeRows.length} signups`}
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${upgradeExpanded ? "rotate-180" : ""}`} />
+              </button>
+              {upgradeExpanded && (
+                <div className="border-t border-gray-800 max-h-96 overflow-y-auto divide-y divide-gray-800">
+                  {upgradeLoading ? (
+                    <div className="p-6 text-center text-gray-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
+                  ) : (
+                    upgradeRows.map(row => (
+                      <div key={row.id} className="px-5 py-3 flex items-center justify-between group hover:bg-gray-800/30 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Heart className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
+                          <span className="text-white text-sm truncate">{row.email}</span>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${
+                            row.planInterest === "badge"
+                              ? "bg-amber-500/15 text-amber-400"
+                              : "bg-blue-500/15 text-blue-400"
+                          }`}>
+                            {row.planInterest === "badge" ? "Badge" : "Core"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-gray-500 text-xs">
+                            {new Date(row.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                          <button
+                            onClick={() => setConfirmDeleteUpgradeId({ id: row.id, email: row.email })}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            title="Remove from waitlist"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-gray-900 rounded-xl p-1 w-fit border border-gray-800">
@@ -772,6 +911,27 @@ export default function AdminCommunications() {
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Save Template
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirmDeleteUpgradeId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-white font-bold text-base mb-2">Remove from waitlist?</h3>
+            <p className="text-gray-400 text-sm mb-6">
+              Remove <span className="text-white font-medium">{confirmDeleteUpgradeId.email}</span> from the upgrade-interest list?
+              This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteUpgradeId(null)}
+                className="flex-1 px-4 py-2 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 text-sm font-medium transition-colors"
+              >Cancel</button>
+              <button
+                onClick={() => deleteUpgradeInterest(confirmDeleteUpgradeId.id)}
+                className="flex-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+              >Remove</button>
             </div>
           </div>
         </div>

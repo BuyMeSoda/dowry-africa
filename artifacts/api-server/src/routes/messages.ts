@@ -6,6 +6,7 @@ import * as schema from "../db/schema.js";
 import { toUser } from "../db/database.js";
 import { requireAuth, requireApproved } from "../middlewares/auth.js";
 import { sendMessageNotificationEmail } from "../lib/email.js";
+import { getDailyLimitsSnapshot, tryIncrementMessages, decrementMessages } from "../lib/dailyLimits.js";
 
 const router = Router();
 
@@ -246,7 +247,12 @@ router.get("/:userId", requireAuth, requireApproved, async (req, res) => {
     } catch {
       guidedPrompts = FALLBACK_PROMPTS;
     }
-    res.json({ messages: thread, guidedPrompts, canSend: me.tier !== "free" });
+    let canSend = true;
+    if (me.tier === "free") {
+      const snap = await getDailyLimitsSnapshot(me.id);
+      canSend = snap.messagesRemaining > 0;
+    }
+    res.json({ messages: thread, guidedPrompts, canSend });
   } catch (err) {
     req.log.error(err, "Get thread error");
     res.status(500).json({ error: "Internal server error" });
@@ -264,15 +270,29 @@ router.post("/:userId", requireAuth, requireApproved, async (req, res) => {
     if (!meRow) { res.status(401).json({ error: "Unauthorized" }); return; }
     const me = toUser(meRow);
 
-    if (me.tier === "free") {
-      res.status(403).json({ error: "Messaging requires a Core or Badge subscription" });
-      return;
-    }
-
     const { text } = req.body;
     if (!text || !text.trim()) {
       res.status(400).json({ error: "Message text required" });
       return;
+    }
+
+    // Reserve a slot atomically BEFORE doing any work, so concurrent requests
+    // cannot both pass a stale "remaining > 0" check and exceed the limit.
+    let reservedFreeSlot = false;
+    if (me.tier === "free") {
+      const snap = await getDailyLimitsSnapshot(me.id);
+      const tryRes = await tryIncrementMessages(me.id, snap.messagesLimit);
+      if (!tryRes.ok) {
+        res.status(429).json({
+          error: "daily_limit_reached",
+          messagesUsed: tryRes.count,
+          messagesLimit: snap.messagesLimit,
+          remaining: 0,
+          resetsAt: snap.resetsAt,
+        });
+        return;
+      }
+      reservedFreeSlot = true;
     }
 
     const otherId = req.params.userId;
@@ -288,6 +308,12 @@ router.post("/:userId", requireAuth, requireApproved, async (req, res) => {
       .limit(1);
 
     if (!recipient) {
+      if (reservedFreeSlot) {
+        await decrementMessages(me.id).catch(e => req.log.error(
+          { err: e, userId: me.id, route: "messages.send.recipientMissing" },
+          "Daily-counter refund failed — counter may be drifted by +1 for today",
+        ));
+      }
       res.status(404).json({ error: "User not found" });
       return;
     }
@@ -300,7 +326,17 @@ router.post("/:userId", requireAuth, requireApproved, async (req, res) => {
       createdAt: new Date(),
     };
 
-    await db.insert(schema.messages).values(message);
+    try {
+      await db.insert(schema.messages).values(message);
+    } catch (e) {
+      if (reservedFreeSlot) {
+        await decrementMessages(me.id).catch(refundErr => req.log.error(
+          { err: refundErr, userId: me.id, route: "messages.send.insertFailed" },
+          "Daily-counter refund failed — counter may be drifted by +1 for today",
+        ));
+      }
+      throw e;
+    }
 
     // Update sender's last_active (fire-and-forget)
     db.update(schema.users).set({ lastActive: new Date() }).where(eq(schema.users.id, me.id)).catch(() => {});

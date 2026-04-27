@@ -397,6 +397,72 @@ router.delete("/early-access/:id", async (req, res) => {
   }
 });
 
+// ── Upgrade-interest waitlist (collected while payments_live = false) ───────
+router.get("/upgrade-interest", async (req, res) => {
+  try {
+    const result = await db.execute(sql`
+      SELECT ui.id,
+             ui.user_id     AS "userId",
+             ui.email,
+             ui.plan_interest AS "planInterest",
+             ui.created_at  AS "createdAt",
+             u.name         AS "userName"
+      FROM upgrade_interest ui
+      LEFT JOIN users u ON u.id = ui.user_id
+      ORDER BY ui.created_at DESC
+    `);
+    const counts: Record<string, number> = { core: 0, badge: 0 };
+    for (const r of result.rows as Array<{ planInterest: string }>) {
+      counts[r.planInterest] = (counts[r.planInterest] ?? 0) + 1;
+    }
+    res.json({ rows: result.rows, total: result.rows.length, counts });
+  } catch (err) {
+    req.log.error(err, "Upgrade interest list error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/upgrade-interest/export", async (req, res) => {
+  try {
+    const result = await db.execute<{ email: string; planInterest: string; createdAt: Date; userName: string | null }>(sql`
+      SELECT ui.email,
+             ui.plan_interest AS "planInterest",
+             ui.created_at    AS "createdAt",
+             u.name           AS "userName"
+      FROM upgrade_interest ui
+      LEFT JOIN users u ON u.id = ui.user_id
+      ORDER BY ui.created_at DESC
+    `);
+    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+    const rows = [["email", "name", "plan_interest", "created_at"].join(",")];
+    for (const r of result.rows) {
+      rows.push([
+        escape(r.email),
+        escape(r.userName ?? ""),
+        escape(r.planInterest),
+        escape(new Date(r.createdAt).toISOString()),
+      ].join(","));
+    }
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="upgrade-interest-${Date.now()}.csv"`);
+    res.send(rows.join("\n"));
+  } catch (err) {
+    req.log.error(err, "Upgrade interest export error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/upgrade-interest/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.upgradeInterest).where(eq(schema.upgradeInterest.id, id));
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error(err, "Delete upgrade-interest error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── Settings ──────────────────────────────────────────────────────────────
 router.get("/settings", async (_req, res) => {
   try {
@@ -420,6 +486,7 @@ router.patch("/settings", async (req, res) => {
       "core_name", "core_description", "core_features",
       "serious_price", "serious_price_label", "serious_price_yearly", "serious_price_label_yearly",
       "serious_name", "serious_description", "serious_features",
+      "free_daily_message_limit", "free_daily_like_limit", "payments_live",
     ];
 
     for (const [key, value] of Object.entries(updates)) {

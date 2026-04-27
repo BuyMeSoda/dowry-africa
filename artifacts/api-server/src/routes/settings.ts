@@ -42,6 +42,34 @@ export async function getPricing(): Promise<typeof PRICING_DEFAULTS & Record<str
   return { ...PRICING_DEFAULTS, ...stored };
 }
 
+export const APP_FLAG_DEFAULTS = {
+  free_daily_message_limit: "3",
+  free_daily_like_limit: "10",
+  payments_live: "false",
+};
+
+export interface AppFlags {
+  paymentsLive: boolean;
+  freeDailyMessageLimit: number;
+  freeDailyLikeLimit: number;
+}
+
+const APP_FLAG_KEYS = new Set(Object.keys(APP_FLAG_DEFAULTS));
+
+export async function getAppFlags(): Promise<AppFlags> {
+  const rows = await db.select().from(schema.settings);
+  const stored: Record<string, string> = { ...APP_FLAG_DEFAULTS };
+  rows.forEach(r => { if (APP_FLAG_KEYS.has(r.key)) stored[r.key] = r.value; });
+
+  const messageLimit = parseInt(stored["free_daily_message_limit"]!, 10);
+  const likeLimit = parseInt(stored["free_daily_like_limit"]!, 10);
+  return {
+    paymentsLive: stored["payments_live"] === "true",
+    freeDailyMessageLimit: Number.isFinite(messageLimit) && messageLimit >= 0 ? messageLimit : 3,
+    freeDailyLikeLimit: Number.isFinite(likeLimit) && likeLimit >= 0 ? likeLimit : 10,
+  };
+}
+
 router.get("/pricing", async (_req, res) => {
   try {
     const pricing = await getPricing();
