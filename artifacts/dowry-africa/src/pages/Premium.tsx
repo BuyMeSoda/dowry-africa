@@ -213,9 +213,9 @@ export default function Premium() {
           <div className="mb-10 inline-flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-2xl px-5 py-4 text-left">
             <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-foreground text-sm">Paid plans launch in days, not weeks.</p>
+              <p className="font-semibold text-foreground text-sm">Join the waitlist.</p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Payments aren't open yet. Pick the plan you want and we'll email you the moment it opens — no credit card needed.
+                Pick the plan you want and we'll email you the moment the paid plans are available — no credit card needed.
               </p>
             </div>
           </div>

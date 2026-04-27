@@ -768,7 +768,7 @@ export default function Discover() {
                       <p className="text-muted-foreground mb-4">
                         {paymentsLive
                           ? "Upgrade to Core or Badge for unlimited daily likes and messages — and to see who liked you."
-                          : "Paid plans launch in days. Join the waitlist and we'll email you the moment they open — no card needed."}
+                          : "Join the waitlist and we'll email you the moment the paid plans are available — no card needed."}
                       </p>
 
                       {dailyLimits && (
